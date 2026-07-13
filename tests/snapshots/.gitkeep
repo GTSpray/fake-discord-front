@@ -1,0 +1,4 @@
+# Playwright captures of every file in examples/.
+# MD5 fingerprints live in manifest.json.
+# Regenerate with: npm run snapshots
+# Verify without recapture: npm run snapshots:check

@@ -1,0 +1,11 @@
+node_modules
+dist
+output
+.git
+.github
+*.log
+.env
+.env.*
+tests/snapshots/*.png
+tests/snapshots/*.webm
+coverage

@@ -1,0 +1,131 @@
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
+import { makeScenario } from '../test/scenarioFixtures.ts';
+import { createInitialState, ScenarioRunner } from './ScenarioRunner.ts';
+
+vi.mock('./typingBridge.ts', () => ({
+  runTyping: vi.fn(async (_signal, handlers) => {
+    handlers.onStart();
+    handlers.onReveal?.();
+    handlers.onDone();
+  }),
+  revealTyping: vi.fn(),
+  completeTyping: vi.fn(),
+}));
+
+vi.mock('./cursorBridge.ts', () => ({
+  runCursorClick: vi.fn(async () => {}),
+}));
+
+describe('ScenarioRunner', () => {
+  beforeEach(() => {
+    vi.useFakeTimers();
+  });
+
+  afterEach(() => {
+    vi.useRealTimers();
+  });
+
+  it('creates an empty initial playback state', () => {
+    const scenario = makeScenario([{ type: 'wait', ms: 1 }]);
+    const state = createInitialState(scenario);
+
+    expect(state.messages).toEqual([]);
+    expect(state.slash).toBeNull();
+    expect(state.modal).toBeNull();
+    expect(state.chrome.channel.name).toBe('general');
+  });
+
+  it('plays wait and focusInput actions', async () => {
+    const runner = new ScenarioRunner(
+      makeScenario([{ type: 'wait', ms: 500 }, { type: 'focusInput' }]),
+    );
+
+    const playPromise = runner.play();
+    await vi.runAllTimersAsync();
+    await playPromise;
+
+    const snapshot = runner.getState();
+    expect(snapshot.slash).toEqual({ input: '', focused: true, suggestions: undefined });
+  });
+
+  it('shows a pending bot reply before applyState messages', async () => {
+    const runner = new ScenarioRunner(
+      makeScenario(
+        [
+          { type: 'focusInput' },
+          { type: 'type', text: '/poll create', msPerChar: 0 },
+          { type: 'pressEnter' },
+          {
+            type: 'applyState',
+            layers: {
+              messages: [
+                {
+                  author: { name: 'Bot', bot: true },
+                  content: 'Done',
+                  slashInvocation: {
+                    user: { name: 'Alice' },
+                    command: 'poll create',
+                  },
+                },
+              ],
+            },
+          },
+        ],
+        {
+          defaults: { botResponseMs: 300, botPendingText: 'Waiting…' },
+        },
+      ),
+    );
+
+    const statuses: string[] = [];
+    runner.subscribe((snapshot) => {
+      statuses.push(snapshot.status);
+    });
+
+    const playPromise = runner.play();
+    await vi.runAllTimersAsync();
+    await playPromise;
+
+    expect(statuses.at(-1)).toBe('done');
+    expect(runner.getState().messages).toHaveLength(1);
+    expect(runner.getState().messages[0]?.content).toBe('Done');
+  });
+
+  it('stop resets playback to idle', async () => {
+    const runner = new ScenarioRunner(makeScenario([{ type: 'wait', ms: 10_000 }]));
+
+    const playPromise = runner.play();
+    await vi.advanceTimersByTimeAsync(100);
+    runner.stop();
+    await playPromise;
+
+    expect(runner.getState().messages).toEqual([]);
+  });
+
+  it('pause and resume keep progress', async () => {
+    const runner = new ScenarioRunner(
+      makeScenario([{ type: 'wait', ms: 1000 }, { type: 'focusInput' }]),
+    );
+
+    let actionIndexWhilePaused = -1;
+    runner.subscribe((snapshot) => {
+      if (snapshot.status === 'paused') {
+        actionIndexWhilePaused = snapshot.actionIndex;
+      }
+    });
+
+    const playPromise = runner.play();
+    await vi.advanceTimersByTimeAsync(200);
+    runner.pause();
+    await vi.advanceTimersByTimeAsync(500);
+
+    expect(actionIndexWhilePaused).toBe(0);
+    expect(runner.getState().slash).toBeNull();
+
+    runner.resume();
+    await vi.runAllTimersAsync();
+    await playPromise;
+
+    expect(runner.getState().slash?.focused).toBe(true);
+  });
+});

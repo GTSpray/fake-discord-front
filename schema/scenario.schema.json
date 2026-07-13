@@ -1,0 +1,363 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://doc-studio.dev/schema/scenario.schema.json",
+  "title": "DocStudioPlayback",
+  "type": "object",
+  "required": ["id", "title", "chrome", "actions"],
+  "additionalProperties": false,
+  "properties": {
+    "$schema": { "type": "string" },
+    "id": {
+      "type": "string",
+      "pattern": "^[a-z0-9]+(?:-[a-z0-9]+)*$"
+    },
+    "title": { "type": "string", "minLength": 1 },
+    "doc": { "type": "string" },
+    "chrome": { "$ref": "#/$defs/Chrome" },
+    "defaults": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "botResponseMs": {
+          "type": "integer",
+          "minimum": 0,
+          "default": 1200,
+          "description": "Pause avant modale / éphémère / message bot (défaut 1200 ms)"
+        },
+        "botPendingText": {
+          "type": "string",
+          "default": "Sending command...",
+          "description": "Texte du message bot différé pendant l’attente"
+        }
+      }
+    },
+    "actions": {
+      "type": "array",
+      "minItems": 1,
+      "items": { "$ref": "#/$defs/Action" }
+    },
+    "output": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "directory": { "type": "string", "default": "output" },
+        "prefix": { "type": "string" },
+        "video": { "type": "boolean", "default": true }
+      }
+    }
+  },
+  "$defs": {
+    "Chrome": {
+      "type": "object",
+      "required": ["guild", "channel"],
+      "additionalProperties": false,
+      "properties": {
+        "guild": {
+          "type": "object",
+          "required": ["name"],
+          "additionalProperties": false,
+          "properties": {
+            "name": { "type": "string", "minLength": 1 },
+            "iconUrl": { "type": "string", "format": "uri" }
+          }
+        },
+        "channel": {
+          "type": "object",
+          "required": ["name"],
+          "additionalProperties": false,
+          "properties": {
+            "name": { "type": "string", "minLength": 1 },
+            "type": { "enum": ["text"], "default": "text" }
+          }
+        },
+        "membersOnline": { "type": "integer", "minimum": 0 },
+        "viewer": {
+          "type": "object",
+          "description": "Connected user shown in the bottom-left user panel",
+          "additionalProperties": false,
+          "properties": {
+            "name": { "type": "string", "minLength": 1 },
+            "status": { "type": "string" },
+            "avatarUrl": { "type": "string", "format": "uri" }
+          },
+          "required": ["name"]
+        }
+      }
+    },
+    "Author": {
+      "type": "object",
+      "required": ["name"],
+      "additionalProperties": false,
+      "properties": {
+        "name": { "type": "string", "minLength": 1 },
+        "color": { "type": "string", "pattern": "^#[0-9a-fA-F]{6}$" },
+        "avatarUrl": { "type": "string", "format": "uri" },
+        "bot": { "type": "boolean", "default": false }
+      }
+    },
+    "ChannelMessage": {
+      "type": "object",
+      "required": ["author"],
+      "additionalProperties": false,
+      "properties": {
+        "author": { "$ref": "#/$defs/Author" },
+        "content": { "type": "string" },
+        "timestamp": { "type": "string" },
+        "deletedReply": { "type": "boolean" },
+        "slashInvocation": {
+          "type": "object",
+          "required": ["user", "command"],
+          "additionalProperties": false,
+          "properties": {
+            "user": { "$ref": "#/$defs/Author" },
+            "command": { "type": "string", "minLength": 1 }
+          }
+        },
+        "interaction": { "$ref": "#/$defs/BotInteractionResponse" }
+      },
+      "oneOf": [{ "required": ["content"] }, { "required": ["interaction"] }]
+    },
+    "BotInteractionResponse": {
+      "type": "object",
+      "required": ["type", "data"],
+      "additionalProperties": false,
+      "properties": {
+        "type": { "type": "integer", "enum": [4, 9] },
+        "data": { "type": "object" }
+      }
+    },
+    "EphemeralLayer": {
+      "type": "object",
+      "required": ["type", "data"],
+      "additionalProperties": false,
+      "properties": {
+        "type": { "type": "integer", "enum": [4, 9] },
+        "data": { "type": "object" },
+        "slashInvocation": {
+          "type": "object",
+          "required": ["user", "command"],
+          "additionalProperties": false,
+          "properties": {
+            "user": { "$ref": "#/$defs/Author" },
+            "command": { "type": "string", "minLength": 1 }
+          }
+        }
+      }
+    },
+    "ModalLayer": {
+      "type": "object",
+      "required": ["type", "data"],
+      "additionalProperties": false,
+      "properties": {
+        "type": { "const": 9 },
+        "data": { "type": "object" },
+        "author": { "$ref": "#/$defs/Author" },
+        "values": {
+          "type": "object",
+          "additionalProperties": {
+            "oneOf": [
+              { "type": "string" },
+              { "type": "array", "items": { "type": "string" } },
+              { "type": "null" }
+            ]
+          }
+        },
+        "roleDisplay": {
+          "type": "object",
+          "additionalProperties": { "type": "string" }
+        }
+      }
+    },
+    "SlashSuggestion": {
+      "type": "object",
+      "required": ["name"],
+      "additionalProperties": false,
+      "properties": {
+        "name": { "type": "string" },
+        "description": { "type": "string" }
+      }
+    },
+    "Layers": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "messages": {
+          "type": "array",
+          "items": { "$ref": "#/$defs/ChannelMessage" }
+        },
+        "ephemeral": { "$ref": "#/$defs/EphemeralLayer" },
+        "modal": { "$ref": "#/$defs/ModalLayer" },
+        "slash": {
+          "type": "object",
+          "required": ["input"],
+          "additionalProperties": false,
+          "properties": {
+            "input": { "type": "string" },
+            "focused": { "type": "boolean" },
+            "suggestions": {
+              "type": "array",
+              "items": { "$ref": "#/$defs/SlashSuggestion" }
+            }
+          }
+        }
+      }
+    },
+    "Action": {
+      "oneOf": [
+        { "$ref": "#/$defs/WaitAction" },
+        { "$ref": "#/$defs/FocusInputAction" },
+        { "$ref": "#/$defs/TypeAction" },
+        { "$ref": "#/$defs/PressEnterAction" },
+        { "$ref": "#/$defs/OpenModalAction" },
+        { "$ref": "#/$defs/FillModalAction" },
+        { "$ref": "#/$defs/SubmitModalAction" },
+        { "$ref": "#/$defs/ShowEphemeralAction" },
+        { "$ref": "#/$defs/ClickButtonAction" },
+        { "$ref": "#/$defs/ApplyStateAction" }
+      ]
+    },
+    "WaitAction": {
+      "type": "object",
+      "required": ["type", "ms"],
+      "additionalProperties": false,
+      "properties": {
+        "type": { "const": "wait" },
+        "ms": { "type": "integer", "minimum": 0 }
+      }
+    },
+    "FocusInputAction": {
+      "type": "object",
+      "required": ["type"],
+      "additionalProperties": false,
+      "properties": {
+        "type": { "const": "focusInput" }
+      }
+    },
+    "TypeAction": {
+      "type": "object",
+      "required": ["type", "text"],
+      "additionalProperties": false,
+      "properties": {
+        "type": { "const": "type" },
+        "text": { "type": "string" },
+        "msPerChar": { "type": "integer", "minimum": 1, "default": 50 },
+        "delayBeforeMs": {
+          "type": "integer",
+          "minimum": 0,
+          "description": "Pause avant de taper (défaut 1250 ms si le champ n'est pas vide)"
+        },
+        "revealSuggestions": {
+          "type": "object",
+          "required": ["after", "suggestions"],
+          "additionalProperties": false,
+          "properties": {
+            "after": { "type": "string" },
+            "suggestions": {
+              "type": "array",
+              "items": { "$ref": "#/$defs/SlashSuggestion" }
+            }
+          }
+        }
+      }
+    },
+    "PressEnterAction": {
+      "type": "object",
+      "required": ["type"],
+      "additionalProperties": false,
+      "properties": {
+        "type": { "const": "pressEnter" },
+        "userMessage": { "$ref": "#/$defs/ChannelMessage" }
+      }
+    },
+    "OpenModalAction": {
+      "type": "object",
+      "required": ["type", "modal"],
+      "additionalProperties": false,
+      "properties": {
+        "type": { "const": "openModal" },
+        "modal": { "$ref": "#/$defs/ModalLayer" },
+        "responseDelayMs": {
+          "type": "integer",
+          "minimum": 0,
+          "description": "Délai avant ouverture (défaut scénario / 1200 ms). 0 = aucun."
+        }
+      }
+    },
+    "FillModalAction": {
+      "type": "object",
+      "required": ["type", "values"],
+      "additionalProperties": false,
+      "properties": {
+        "type": { "const": "fillModal" },
+        "values": {
+          "type": "object",
+          "additionalProperties": {
+            "oneOf": [
+              { "type": "string" },
+              { "type": "array", "items": { "type": "string" } },
+              { "type": "null" }
+            ]
+          }
+        },
+        "roleDisplay": {
+          "type": "object",
+          "additionalProperties": { "type": "string" }
+        },
+        "msPerField": { "type": "integer", "minimum": 1, "default": 100 },
+        "delayBeforeFieldMs": {
+          "type": "integer",
+          "minimum": 0,
+          "description": "Pause avant chaque champ de la modale (défaut 900 ms)"
+        }
+      }
+    },
+    "SubmitModalAction": {
+      "type": "object",
+      "required": ["type"],
+      "additionalProperties": false,
+      "properties": {
+        "type": { "const": "submitModal" }
+      }
+    },
+    "ShowEphemeralAction": {
+      "type": "object",
+      "required": ["type", "ephemeral"],
+      "additionalProperties": false,
+      "properties": {
+        "type": { "const": "showEphemeral" },
+        "ephemeral": { "$ref": "#/$defs/EphemeralLayer" },
+        "responseDelayMs": {
+          "type": "integer",
+          "minimum": 0,
+          "description": "Délai avant affichage (défaut scénario / 1200 ms). 0 = aucun."
+        }
+      }
+    },
+    "ClickButtonAction": {
+      "type": "object",
+      "required": ["type", "label"],
+      "additionalProperties": false,
+      "properties": {
+        "type": { "const": "clickButton" },
+        "label": { "type": "string", "minLength": 1 }
+      }
+    },
+    "ApplyStateAction": {
+      "type": "object",
+      "required": ["type"],
+      "additionalProperties": false,
+      "properties": {
+        "type": { "const": "applyState" },
+        "chrome": { "$ref": "#/$defs/Chrome" },
+        "layers": { "$ref": "#/$defs/Layers" },
+        "holdMs": { "type": "integer", "minimum": 0 },
+        "responseDelayMs": {
+          "type": "integer",
+          "minimum": 0,
+          "description": "Délai avant message bot (défaut scénario / 1200 ms). 0 = aucun."
+        }
+      },
+      "anyOf": [{ "required": ["layers"] }, { "required": ["chrome"] }]
+    }
+  }
+}

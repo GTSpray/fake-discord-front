@@ -1,0 +1,511 @@
+import type {
+  PendingBotReply,
+  PlaybackState,
+  Scenario,
+  ScenarioAction,
+  ScenarioPlayerSnapshot,
+  ScenarioStatus,
+} from '../lib/scenarioTypes.ts';
+import {
+  resolveApplyState,
+  resolveEphemeral,
+  resolveModal,
+  resolveModalFill,
+  resolveScenarioChrome,
+  resolveSuggestions,
+  resolveUserMessage,
+} from '../lib/scenarioResolve.ts';
+import type { ModalLayer, SlashInvocation } from '../lib/types.ts';
+import { resolveViewer } from '../lib/types.ts';
+import { runCursorClick } from './cursorBridge.ts';
+import { runTyping } from './typingBridge.ts';
+
+/** Pause avant de continuer à taper dans la barre slash (ex. entre "/poll" et " create") */
+const DEFAULT_DELAY_BEFORE_TYPING_MS = 1250;
+/** Pause avant de remplir chaque champ de modale */
+const DEFAULT_DELAY_BEFORE_MODAL_FIELD_MS = 900;
+/** Pause avant modale / éphémère / message bot */
+const DEFAULT_BOT_RESPONSE_MS = 1200;
+const DEFAULT_BOT_PENDING_TEXT = 'Sending command...';
+const DEFAULT_BOT_AUTHOR_NAME = 'Bot';
+
+function formatPendingTimestamp(): string {
+  const now = new Date();
+  const h = String(now.getHours()).padStart(2, '0');
+  const m = String(now.getMinutes()).padStart(2, '0');
+  return `${h}:${m}`;
+}
+
+function sleep(ms: number, signal?: AbortSignal): Promise<void> {
+  return new Promise((resolve, reject) => {
+    if (signal?.aborted) {
+      reject(new DOMException('Aborted', 'AbortError'));
+      return;
+    }
+    const id = setTimeout(resolve, ms);
+    signal?.addEventListener('abort', () => {
+      clearTimeout(id);
+      reject(new DOMException('Aborted', 'AbortError'));
+    });
+  });
+}
+
+function emptyModalValues(modal: ModalLayer): ModalLayer {
+  return {
+    ...modal,
+    values: {},
+    roleDisplay: modal.roleDisplay
+      ? Object.fromEntries(Object.keys(modal.roleDisplay).map((k) => [k, '']))
+      : undefined,
+  };
+}
+
+export function createInitialState(scenario: Scenario): PlaybackState {
+  return {
+    chrome: resolveScenarioChrome(scenario),
+    messages: [],
+    slash: null,
+    modal: null,
+    modalClosing: false,
+    ephemeral: null,
+    highlightedButton: null,
+    loadingButton: null,
+    cursorTarget: null,
+    pendingBotReply: null,
+  };
+}
+
+export type StateListener = (snapshot: ScenarioPlayerSnapshot) => void;
+
+export class ScenarioRunner {
+  private state: PlaybackState;
+  private actionIndex = 0;
+  private status: ScenarioStatus = 'idle';
+  private abort?: AbortController;
+  private pauseGate?: { resolve: () => void };
+  private listeners = new Set<StateListener>();
+  private typingId = 0;
+
+  constructor(private scenario: Scenario) {
+    this.state = createInitialState(scenario);
+  }
+
+  subscribe(listener: StateListener): () => void {
+    this.listeners.add(listener);
+    listener(this.snapshot());
+    return () => this.listeners.delete(listener);
+  }
+
+  private emit() {
+    const snap = this.snapshot();
+    for (const listener of this.listeners) listener(snap);
+    if (typeof window !== 'undefined') {
+      (window as ScenarioWindow).__SCENARIO_PLAYER__ = {
+        status: snap.status,
+        actionIndex: snap.actionIndex,
+        totalActions: snap.totalActions,
+        scenarioId: this.scenario.id,
+      };
+      window.dispatchEvent(new CustomEvent('scenario-player-update', { detail: snap }));
+      if (snap.status === 'done') {
+        window.dispatchEvent(new CustomEvent('scenario-complete', { detail: snap }));
+      }
+    }
+  }
+
+  private snapshot(): ScenarioPlayerSnapshot {
+    return {
+      status: this.status,
+      actionIndex: this.actionIndex,
+      totalActions: this.scenario.actions.length,
+      state: structuredClone(this.state),
+    };
+  }
+
+  private patch(partial: Partial<PlaybackState>) {
+    this.state = { ...this.state, ...partial };
+    this.emit();
+  }
+
+  private async waitIfPaused() {
+    while (this.status === 'paused') {
+      await new Promise<void>((resolve) => {
+        this.pauseGate = { resolve };
+      });
+    }
+  }
+
+  async play() {
+    if (this.status === 'playing') return;
+
+    const isFresh = this.status === 'idle' || this.status === 'done';
+    if (isFresh) {
+      this.abort?.abort();
+      this.abort = new AbortController();
+      this.actionIndex = 0;
+      this.state = createInitialState(this.scenario);
+    } else if (!this.abort) {
+      this.abort = new AbortController();
+    }
+
+    const signal = this.abort!.signal;
+    this.status = 'playing';
+    this.emit();
+
+    try {
+      for (; this.actionIndex < this.scenario.actions.length; this.actionIndex++) {
+        await this.waitIfPaused();
+        if (signal.aborted) return;
+
+        const action = this.scenario.actions[this.actionIndex];
+        await this.runAction(action, signal);
+        this.emit();
+      }
+      this.status = 'done';
+      this.emit();
+    } catch (err) {
+      if (err instanceof DOMException && err.name === 'AbortError') return;
+      throw err;
+    }
+  }
+
+  pause() {
+    if (this.status !== 'playing') return;
+    this.status = 'paused';
+    this.emit();
+  }
+
+  resume() {
+    if (this.status !== 'paused') return;
+    this.status = 'playing';
+    this.pauseGate?.resolve();
+    this.pauseGate = undefined;
+    this.emit();
+  }
+
+  stop() {
+    this.abort?.abort();
+    this.status = 'idle';
+    this.actionIndex = 0;
+    this.state = createInitialState(this.scenario);
+    this.emit();
+  }
+
+  getState(): PlaybackState {
+    return structuredClone(this.state);
+  }
+
+  private isBotResponseAction(action: ScenarioAction | undefined): boolean {
+    if (!action) return false;
+    switch (action.type) {
+      case 'openModal':
+      case 'showEphemeral':
+        return true;
+      case 'applyState':
+        return Boolean(action.layers?.messages?.length || action.layers?.ephemeral);
+      default:
+        return false;
+    }
+  }
+
+  private getResponseDelayMs(action: ScenarioAction): number | undefined {
+    if ('responseDelayMs' in action && action.responseDelayMs !== undefined) {
+      return action.responseDelayMs;
+    }
+    return undefined;
+  }
+
+  private nextAction(): ScenarioAction | undefined {
+    return this.scenario.actions[this.actionIndex + 1];
+  }
+
+  private shouldShowPendingReply(
+    next: ScenarioAction,
+    trigger: 'pressEnter' | 'submitModal' | 'clickButton',
+  ): boolean {
+    if (next.type === 'openModal') return false;
+    if (next.type === 'showEphemeral') return true;
+    if (next.type === 'applyState') {
+      if (trigger === 'pressEnter') {
+        return Boolean(next.layers?.messages?.length);
+      }
+      if (trigger === 'submitModal') return false;
+      return false;
+    }
+    return false;
+  }
+
+  private resolveSlashInvocationForPending(next: ScenarioAction): SlashInvocation | undefined {
+    if (next.type === 'applyState') {
+      const msg = next.layers?.messages?.find((m) => m.slashInvocation);
+      if (msg?.slashInvocation) return msg.slashInvocation;
+    }
+    if (next.type === 'showEphemeral') {
+      return next.ephemeral.slashInvocation;
+    }
+    const input = this.state.slash?.input ?? '';
+    if (input.startsWith('/')) {
+      const viewer = resolveViewer(this.state.chrome);
+      return {
+        user: {
+          name: viewer.name,
+          ...(viewer.avatarUrl ? { avatarUrl: viewer.avatarUrl } : {}),
+        },
+        command: input.slice(1).trim(),
+      };
+    }
+    return this.state.ephemeral?.slashInvocation;
+  }
+
+  private buildPendingReply(next: ScenarioAction, ephemeral: boolean): PendingBotReply {
+    return {
+      slashInvocation: this.resolveSlashInvocationForPending(next),
+      text: this.scenario.defaults?.botPendingText ?? DEFAULT_BOT_PENDING_TEXT,
+      timestamp: formatPendingTimestamp(),
+      ephemeral,
+      authorName: DEFAULT_BOT_AUTHOR_NAME,
+    };
+  }
+
+  private async awaitBotResponseAfterUserAction(
+    signal: AbortSignal,
+    trigger: 'submitModal' | 'clickButton',
+  ) {
+    const next = this.nextAction();
+    if (!next || !this.isBotResponseAction(next)) return;
+    if (this.shouldShowPendingReply(next, trigger)) {
+      this.patch({
+        pendingBotReply: this.buildPendingReply(next, trigger === 'submitModal'),
+      });
+    }
+    await this.awaitBotResponse(signal, this.getResponseDelayMs(next));
+  }
+
+  private async awaitBotResponse(signal: AbortSignal, responseDelayMs?: number) {
+    const ms = responseDelayMs ?? this.scenario.defaults?.botResponseMs ?? DEFAULT_BOT_RESPONSE_MS;
+    if (ms <= 0) {
+      this.patch({ pendingBotReply: null });
+      return;
+    }
+
+    await sleep(ms, signal);
+  }
+
+  private async runAction(action: ScenarioAction, signal: AbortSignal) {
+    switch (action.type) {
+      case 'wait':
+        await sleep(action.ms, signal);
+        break;
+
+      case 'focusInput':
+        this.patch({
+          slash: { input: '', focused: true, suggestions: undefined },
+          highlightedButton: null,
+          cursorTarget: null,
+        });
+        break;
+
+      case 'type':
+        await this.typeText(action, signal);
+        break;
+
+      case 'pressEnter':
+        await this.pressEnter(action, signal);
+        break;
+
+      case 'openModal': {
+        const modal = resolveModal(action);
+        this.patch({
+          slash: null,
+          modal: emptyModalValues(modal),
+          modalClosing: false,
+          pendingBotReply: null,
+        });
+        break;
+      }
+
+      case 'fillModal':
+        await this.fillModal(action, signal);
+        break;
+
+      case 'submitModal':
+        this.patch({ modalClosing: true, highlightedButton: null });
+        await sleep(280, signal);
+        this.patch({ modal: null, modalClosing: false });
+        await this.awaitBotResponseAfterUserAction(signal, 'submitModal');
+        break;
+
+      case 'showEphemeral': {
+        const ephemeral = resolveEphemeral(action);
+        this.patch({
+          ephemeral,
+          modal: null,
+          slash: null,
+          pendingBotReply: null,
+          loadingButton: null,
+        });
+        break;
+      }
+
+      case 'clickButton': {
+        this.patch({ cursorTarget: action.label, highlightedButton: null, loadingButton: null });
+        await runCursorClick(signal);
+        this.patch({ highlightedButton: action.label, cursorTarget: null });
+        await sleep(220, signal);
+        const next = this.nextAction();
+        if (next && this.isBotResponseAction(next)) {
+          this.patch({ highlightedButton: null, loadingButton: action.label });
+          await this.awaitBotResponseAfterUserAction(signal, 'clickButton');
+        } else {
+          this.patch({ highlightedButton: null });
+        }
+        break;
+      }
+
+      case 'applyState': {
+        const resolved = resolveApplyState(action);
+        this.patch({
+          chrome: resolved.chrome ?? this.state.chrome,
+          messages: resolved.messages,
+          slash: resolved.slash,
+          modal: resolved.modal,
+          ephemeral: resolved.ephemeral,
+          modalClosing: false,
+          highlightedButton: null,
+          loadingButton: null,
+          cursorTarget: null,
+          pendingBotReply: null,
+        });
+        if (action.holdMs) await sleep(action.holdMs, signal);
+        break;
+      }
+    }
+  }
+
+  private async typeText(action: Extract<ScenarioAction, { type: 'type' }>, signal: AbortSignal) {
+    const ms = action.msPerChar ?? 50;
+    const current = this.state.slash ?? { input: '', focused: true };
+    const from = current.input;
+    const to = from + action.text;
+    const typingId = ++this.typingId;
+    const revealConfig = action.revealSuggestions;
+    const finalSuggestions = revealConfig ? resolveSuggestions(revealConfig) : undefined;
+
+    const delayBefore =
+      action.delayBeforeMs ?? (from.length > 0 ? DEFAULT_DELAY_BEFORE_TYPING_MS : 0);
+    if (delayBefore > 0) {
+      await sleep(delayBefore, signal);
+    }
+
+    await runTyping(signal, {
+      onStart: () => {
+        this.patch({
+          slash: {
+            ...current,
+            input: to,
+            focused: true,
+            typingAnimation: {
+              id: typingId,
+              from,
+              to,
+              msPerChar: ms,
+              revealAfter: revealConfig?.after,
+            },
+          },
+        });
+      },
+      onReveal: () => {
+        if (!finalSuggestions || !this.state.slash) return;
+        this.patch({
+          slash: {
+            ...this.state.slash,
+            suggestions: finalSuggestions,
+          },
+        });
+      },
+      onDone: () => {
+        this.patch({
+          slash: {
+            ...current,
+            input: to,
+            focused: true,
+            suggestions: finalSuggestions,
+            typingAnimation: undefined,
+          },
+        });
+      },
+    });
+  }
+
+  private async pressEnter(
+    action: Extract<ScenarioAction, { type: 'pressEnter' }>,
+    signal: AbortSignal,
+  ) {
+    const messages = [...this.state.messages];
+    if (action.userMessage) {
+      const msg = resolveUserMessage(action.userMessage);
+      if (msg) messages.push(msg);
+    }
+    const next = this.nextAction();
+    const awaitingBot = this.isBotResponseAction(next);
+    const showPending = awaitingBot && next && this.shouldShowPendingReply(next, 'pressEnter');
+
+    this.patch({
+      messages,
+      slash: null,
+      pendingBotReply: showPending ? this.buildPendingReply(next!, false) : null,
+    });
+
+    if (awaitingBot) {
+      await this.awaitBotResponse(signal, this.getResponseDelayMs(next!));
+    }
+  }
+
+  private async fillModal(
+    action: Extract<ScenarioAction, { type: 'fillModal' }>,
+    signal: AbortSignal,
+  ) {
+    const source = resolveModalFill(action);
+    if (!this.state.modal) return;
+
+    const targetValues = source.values;
+    const fieldIds = Object.keys(targetValues);
+    const values: Record<string, string | string[] | null> = {
+      ...(this.state.modal.values ?? {}),
+    };
+    const delayBeforeField = action.delayBeforeFieldMs ?? DEFAULT_DELAY_BEFORE_MODAL_FIELD_MS;
+    const msPerChar = action.msPerField ?? 100;
+
+    for (const fieldId of fieldIds) {
+      if (delayBeforeField > 0) {
+        await sleep(delayBeforeField, signal);
+      }
+
+      const fullValue = String(targetValues[fieldId] ?? '');
+      values[fieldId] = '';
+
+      for (let i = 1; i <= fullValue.length; i++) {
+        values[fieldId] = fullValue.slice(0, i);
+        this.patch({
+          modal: {
+            ...this.state.modal,
+            values: { ...values },
+            roleDisplay: source.roleDisplay,
+          },
+        });
+        await sleep(msPerChar, signal);
+      }
+    }
+  }
+}
+
+interface ScenarioWindow extends Window {
+  __SCENARIO_PLAYER__?: {
+    status: ScenarioStatus;
+    actionIndex: number;
+    totalActions: number;
+    scenarioId: string;
+  };
+}
+
+declare const window: ScenarioWindow;

@@ -1,0 +1,11 @@
+#discord-modal-title {
+  font-weight: 700;
+}
+
+.discord-modal-actions-container,
+.discord-modal-actions-container-light-theme {
+  background: none;
+  background-color: transparent !important;
+  border: none !important;
+  box-shadow: none !important;
+}
