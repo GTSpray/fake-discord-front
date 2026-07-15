@@ -64,6 +64,19 @@ export interface ModalLayer {
   roleDisplay?: Record<string, string>;
 }
 
+export interface SlashSuggestion {
+  name: string;
+  description?: string;
+  botName?: string;
+  botAvatarUrl?: string;
+}
+
+export interface SlashCommandParam {
+  name: string;
+  description?: string;
+  value?: string;
+}
+
 export interface SlashTypingAnimation {
   id: number;
   from: string;
@@ -72,12 +85,28 @@ export interface SlashTypingAnimation {
   revealAfter?: string;
 }
 
+export interface SlashParamTypingAnimation {
+  id: number;
+  paramIndex: number;
+  from: string;
+  to: string;
+  msPerChar: number;
+}
+
 export interface SlashLayer {
   input: string;
   focused?: boolean;
-  suggestions?: { name: string; description?: string }[];
+  suggestions?: SlashSuggestion[];
+  /** subcommand = suite de commande (/poll create) ; commandMatch = liste filtrée (/ali → /alias set) */
+  suggestionMode?: 'subcommand' | 'commandMatch';
+  activeSuggestionIndex?: number;
+  params?: SlashCommandParam[];
+  /** Index du paramètre actif (focus + tooltip). */
+  activeParamIndex?: number;
   /** Runtime only — scenario player typing via react-type-animation */
   typingAnimation?: SlashTypingAnimation;
+  /** Runtime only — frappe dans la valeur d'un paramètre */
+  paramTypingAnimation?: SlashParamTypingAnimation;
 }
 
 export interface EphemeralLayer extends BotInteractionResponse {

@@ -15,7 +15,18 @@ import {
   resolveSuggestions,
   resolveUserMessage,
 } from '../lib/scenarioResolve.ts';
-import type { ModalLayer, SlashInvocation, Author } from '../lib/types.ts';
+import { formatSlashInvocationCommand } from '../lib/slashCommand.ts';
+import {
+  commandMatchRevealAfter,
+  resolveCommandMatchSuggestions,
+} from '../lib/slashCommandMatch.ts';
+import type {
+  ModalLayer,
+  SlashCommandParam,
+  SlashInvocation,
+  Author,
+  SlashLayer,
+} from '../lib/types.ts';
 import { DEFAULT_BOT_NAME, resolveViewer } from '../lib/types.ts';
 import { runCursorClick } from './cursorBridge.ts';
 import { runTyping } from './typingBridge.ts';
@@ -249,12 +260,13 @@ export class ScenarioRunner {
     const input = this.state.slash?.input ?? '';
     if (input.startsWith('/')) {
       const viewer = resolveViewer(this.state.chrome);
+      const command = formatSlashInvocationCommand(input, this.state.slash?.params);
       return {
         user: {
           name: viewer.name,
           ...(viewer.avatarUrl ? { avatarUrl: viewer.avatarUrl } : {}),
         },
-        command: input.slice(1).trim(),
+        command,
       };
     }
     return this.state.ephemeral?.slashInvocation;
@@ -321,6 +333,14 @@ export class ScenarioRunner {
 
       case 'type':
         await this.typeText(action, signal);
+        break;
+
+      case 'setSlashParams':
+        this.setSlashParams(action);
+        break;
+
+      case 'typeSlashParam':
+        await this.typeSlashParam(action, signal);
         break;
 
       case 'pressEnter':
@@ -396,14 +416,55 @@ export class ScenarioRunner {
     }
   }
 
+  private resolveTypeSlashSuggestions(
+    action: Extract<ScenarioAction, { type: 'type' }>,
+    input: string,
+  ): Pick<SlashLayer, 'suggestions' | 'suggestionMode' | 'activeSuggestionIndex'> {
+    const revealConfig = action.revealSuggestions;
+    if (!revealConfig) return {};
+
+    if ((revealConfig.mode ?? 'subcommand') === 'subcommand') {
+      const resolved = resolveSuggestions(revealConfig);
+      return {
+        suggestions: resolved.suggestions,
+        suggestionMode: resolved.mode,
+        activeSuggestionIndex: resolved.activeIndex,
+      };
+    }
+
+    const auto = resolveCommandMatchSuggestions(
+      input,
+      revealConfig.suggestions,
+      revealConfig.activeIndex,
+    );
+    return {
+      suggestions: auto?.suggestions,
+      suggestionMode: auto?.mode,
+      activeSuggestionIndex: auto?.activeIndex,
+    };
+  }
+
+  private resolveRevealAfter(
+    action: Extract<ScenarioAction, { type: 'type' }>,
+    from: string,
+    to: string,
+  ): string | undefined {
+    const revealConfig = action.revealSuggestions;
+    if (!revealConfig) return undefined;
+    if (revealConfig.after) return revealConfig.after;
+    if (revealConfig.mode === 'commandMatch') {
+      return commandMatchRevealAfter(from, to);
+    }
+    return undefined;
+  }
+
   private async typeText(action: Extract<ScenarioAction, { type: 'type' }>, signal: AbortSignal) {
     const ms = action.msPerChar ?? 50;
     const current = this.state.slash ?? { input: '', focused: true };
     const from = current.input;
     const to = from + action.text;
     const typingId = ++this.typingId;
-    const revealConfig = action.revealSuggestions;
-    const finalSuggestions = revealConfig ? resolveSuggestions(revealConfig) : undefined;
+    const revealAfter = this.resolveRevealAfter(action, from, to);
 
     const delayBefore =
       action.delayBeforeMs ?? (from.length > 0 ? DEFAULT_DELAY_BEFORE_TYPING_MS : 0);
@@ -423,28 +484,113 @@ export class ScenarioRunner {
               from,
               to,
               msPerChar: ms,
-              revealAfter: revealConfig?.after,
+              revealAfter,
             },
           },
         });
       },
       onReveal: () => {
-        if (!finalSuggestions || !this.state.slash) return;
+        if (!revealAfter || !this.state.slash) return;
+        const resolved = this.resolveTypeSlashSuggestions(action, revealAfter);
+        if (!resolved.suggestions?.length) return;
         this.patch({
           slash: {
             ...this.state.slash,
-            suggestions: finalSuggestions,
+            ...resolved,
           },
         });
       },
       onDone: () => {
+        const resolved = this.resolveTypeSlashSuggestions(action, to);
         this.patch({
           slash: {
             ...current,
             input: to,
             focused: true,
-            suggestions: finalSuggestions,
+            ...resolved,
             typingAnimation: undefined,
+          },
+        });
+      },
+    });
+  }
+
+  private setSlashParams(action: Extract<ScenarioAction, { type: 'setSlashParams' }>) {
+    const current = this.state.slash ?? { input: '', focused: true };
+    const params: SlashCommandParam[] = action.params.map((param) => ({
+      name: param.name,
+      ...(param.description ? { description: param.description } : {}),
+      ...(param.value !== undefined ? { value: param.value } : {}),
+    }));
+
+    this.patch({
+      slash: {
+        ...current,
+        focused: true,
+        params,
+        activeParamIndex: action.activeParamIndex ?? 0,
+        suggestions: undefined,
+        suggestionMode: undefined,
+        activeSuggestionIndex: undefined,
+        typingAnimation: undefined,
+        paramTypingAnimation: undefined,
+      },
+    });
+  }
+
+  private async typeSlashParam(
+    action: Extract<ScenarioAction, { type: 'typeSlashParam' }>,
+    signal: AbortSignal,
+  ) {
+    if (!this.state.slash?.params?.length) return;
+
+    const paramIndex = this.state.slash.params.findIndex((param) => param.name === action.param);
+    if (paramIndex < 0) return;
+
+    const ms = action.msPerChar ?? 50;
+    const params = this.state.slash.params.map((param) => ({ ...param }));
+    const from = params[paramIndex].value ?? '';
+    const to = from + action.text;
+    const typingId = ++this.typingId;
+
+    const delayBefore =
+      action.delayBeforeMs ?? (from.length > 0 ? DEFAULT_DELAY_BEFORE_TYPING_MS : 0);
+    if (delayBefore > 0) {
+      await sleep(delayBefore, signal);
+    }
+
+    const slashBase = this.state.slash;
+
+    await runTyping(signal, {
+      onStart: () => {
+        params[paramIndex] = { ...params[paramIndex], value: to };
+        this.patch({
+          slash: {
+            ...slashBase,
+            params,
+            activeParamIndex: paramIndex,
+            focused: true,
+            paramTypingAnimation: {
+              id: typingId,
+              paramIndex,
+              from,
+              to,
+              msPerChar: ms,
+            },
+          },
+        });
+      },
+      onDone: () => {
+        params[paramIndex] = { ...params[paramIndex], value: to };
+        const nextActiveIndex =
+          paramIndex + 1 < params.length ? paramIndex + 1 : paramIndex;
+        this.patch({
+          slash: {
+            ...slashBase,
+            params,
+            activeParamIndex: nextActiveIndex,
+            focused: true,
+            paramTypingAnimation: undefined,
           },
         });
       },

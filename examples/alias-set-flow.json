@@ -1,0 +1,110 @@
+{
+  "$schema": "../schema/scenario.schema.json",
+  "id": "alias-set-flow",
+  "title": "Créer un alias (/alias set)",
+  "chrome": {
+    "guild": {
+      "name": "Serveur de démo"
+    },
+    "channel": {
+      "name": "général",
+      "type": "text"
+    },
+    "viewer": {
+      "name": "Modo",
+      "status": "Online"
+    }
+  },
+  "actions": [
+    {
+      "type": "focusInput"
+    },
+    {
+      "type": "type",
+      "text": "/alias set",
+      "msPerChar": 70,
+      "revealSuggestions": {
+        "mode": "commandMatch",
+        "activeIndex": 2,
+        "suggestions": [
+          {
+            "name": "/alias ls",
+            "description": "liste les alias disponibles sur ton serveur",
+            "botName": "P'titPote"
+          },
+          {
+            "name": "/alias say",
+            "description": "demande a p'titpote d'envoyer le message",
+            "botName": "P'titPote"
+          },
+          {
+            "name": "/alias set",
+            "description": "definit un alias message",
+            "botName": "P'titPote"
+          }
+        ]
+      }
+    },
+    {
+      "type": "wait",
+      "ms": 900
+    },
+    {
+      "type": "setSlashParams",
+      "params": [
+        {
+          "name": "alias",
+          "description": "alias du message"
+        },
+        {
+          "name": "message",
+          "description": "contenu du message"
+        }
+      ]
+    },
+    {
+      "type": "typeSlashParam",
+      "param": "alias",
+      "text": "toto",
+      "msPerChar": 80
+    },
+    {
+      "type": "typeSlashParam",
+      "param": "message",
+      "text": "Bonjour tout le monde !",
+      "msPerChar": 55
+    },
+    {
+      "type": "wait",
+      "ms": 800
+    },
+    {
+      "type": "pressEnter"
+    },
+    {
+      "type": "applyState",
+      "layers": {
+        "messages": [
+          {
+            "author": {
+              "name": "P'titPote",
+              "bot": true
+            },
+            "interaction": {
+              "type": 4,
+              "data": {
+                "content": "Alias **toto** enregistré."
+              }
+            },
+            "slashInvocation": {
+              "user": {
+                "name": "Modo"
+              },
+              "command": "alias set alias:toto message:Bonjour tout le monde !"
+            }
+          }
+        ]
+      }
+    }
+  ]
+}

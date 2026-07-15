@@ -5,13 +5,20 @@ export function DiscordMessageInput({
   channelName,
   children,
   variant = 'idle',
+  flush = false,
 }: {
   channelName: string;
   children?: ReactNode;
   variant?: 'idle' | 'focused';
+  /** Retire le padding horizontal (géré par le parent, ex. SlashBar) */
+  flush?: boolean;
 }) {
   return (
-    <div className={`discord-composer${variant === 'idle' ? ' discord-composer--idle' : ''}`}>
+    <div
+      className={`discord-composer${variant === 'idle' ? ' discord-composer--idle' : ''}${
+        flush ? ' discord-composer--flush' : ''
+      }`}
+    >
       <div className={`message-input-bar message-input-bar--${variant}`}>
         <button type="button" className="input-addon" disabled aria-label="Upload a File">
           <IconAttach />

@@ -4,15 +4,15 @@ import type {
   Chrome,
   EphemeralLayer,
   ModalLayer,
+  SlashCommandParam,
   SlashInvocation,
 } from './types.ts';
 
 export const UPLOAD_SCENARIO_STORAGE_KEY = 'doc-studio-scenario-upload';
 
-export interface SlashSuggestion {
-  name: string;
-  description?: string;
-}
+export type { SlashSuggestion } from './types.ts';
+
+export type SlashSuggestionMode = 'subcommand' | 'commandMatch';
 
 export type ScenarioAction =
   | { type: 'wait'; ms: number }
@@ -24,9 +24,29 @@ export type ScenarioAction =
       /** Pause avant de commencer à taper (défaut : 1250 ms si le champ n'est pas vide) */
       delayBeforeMs?: number;
       revealSuggestions?: {
-        after: string;
-        suggestions: SlashSuggestion[];
+        /** Optionnel en commandMatch (auto à 3 caractères après /) ; requis en subcommand */
+        after?: string;
+        suggestions: import('./types.ts').SlashSuggestion[];
+        /** subcommand (défaut) ou commandMatch (liste « COMMANDS MATCHING … ») */
+        mode?: SlashSuggestionMode;
+        /** Suggestion surlignée (défaut : 0) */
+        activeIndex?: number;
       };
+    }
+  | {
+      type: 'setSlashParams';
+      params: SlashCommandParam[];
+      /** Index du paramètre actif (défaut : 0) */
+      activeParamIndex?: number;
+    }
+  | {
+      type: 'typeSlashParam';
+      /** Nom du paramètre à remplir */
+      param: string;
+      text: string;
+      msPerChar?: number;
+      /** Pause avant de taper (défaut : 1250 ms si une valeur existe déjà) */
+      delayBeforeMs?: number;
     }
   | {
       type: 'pressEnter';
@@ -60,6 +80,7 @@ export type ScenarioAction =
         messages?: ChannelMessage[];
         ephemeral?: EphemeralLayer;
         modal?: ModalLayer;
+        slash?: import('./types.ts').SlashLayer;
       };
       holdMs?: number;
       responseDelayMs?: number;
