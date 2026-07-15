@@ -63,7 +63,10 @@ function SkyraEphemeralMessage({
   if (ephemeral.type !== 4 || !ephemeral.data) return null;
 
   return (
-    <DiscordMessage {...defaultBotProps()} ephemeral>
+    <DiscordMessage
+      {...(ephemeral.author ? skyraAuthorProps(ephemeral.author) : defaultBotProps())}
+      ephemeral
+    >
       {ephemeral.slashInvocation && (
         <DiscordCommand
           slot="reply"

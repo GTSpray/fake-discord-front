@@ -15,8 +15,8 @@ import {
   resolveSuggestions,
   resolveUserMessage,
 } from '../lib/scenarioResolve.ts';
-import type { ModalLayer, SlashInvocation } from '../lib/types.ts';
-import { resolveViewer } from '../lib/types.ts';
+import type { ModalLayer, SlashInvocation, Author } from '../lib/types.ts';
+import { DEFAULT_BOT_NAME, resolveViewer } from '../lib/types.ts';
 import { runCursorClick } from './cursorBridge.ts';
 import { runTyping } from './typingBridge.ts';
 
@@ -27,7 +27,10 @@ const DEFAULT_DELAY_BEFORE_MODAL_FIELD_MS = 900;
 /** Pause avant modale / éphémère / message bot */
 const DEFAULT_BOT_RESPONSE_MS = 1200;
 const DEFAULT_BOT_PENDING_TEXT = 'Sending command...';
-const DEFAULT_BOT_AUTHOR_NAME = 'Bot';
+
+function defaultBotAuthor(): Author {
+  return { name: DEFAULT_BOT_NAME, bot: true };
+}
 
 function formatPendingTimestamp(): string {
   const now = new Date();
@@ -257,13 +260,24 @@ export class ScenarioRunner {
     return this.state.ephemeral?.slashInvocation;
   }
 
+  private resolveAuthorForPending(next: ScenarioAction): Author {
+    if (next.type === 'applyState') {
+      const msg = next.layers?.messages?.find((m) => m.author);
+      if (msg?.author) return msg.author;
+    }
+    if (next.type === 'showEphemeral' && next.ephemeral.author) {
+      return next.ephemeral.author;
+    }
+    return defaultBotAuthor();
+  }
+
   private buildPendingReply(next: ScenarioAction, ephemeral: boolean): PendingBotReply {
     return {
       slashInvocation: this.resolveSlashInvocationForPending(next),
       text: this.scenario.defaults?.botPendingText ?? DEFAULT_BOT_PENDING_TEXT,
       timestamp: formatPendingTimestamp(),
       ephemeral,
-      authorName: DEFAULT_BOT_AUTHOR_NAME,
+      author: this.resolveAuthorForPending(next),
     };
   }
 

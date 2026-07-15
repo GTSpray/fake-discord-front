@@ -141,7 +141,8 @@
             "user": { "$ref": "#/$defs/Author" },
             "command": { "type": "string", "minLength": 1 }
           }
-        }
+        },
+        "author": { "$ref": "#/$defs/Author" }
       }
     },
     "ModalLayer": {

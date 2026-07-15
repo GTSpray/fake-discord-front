@@ -82,6 +82,7 @@ export interface SlashLayer {
 
 export interface EphemeralLayer extends BotInteractionResponse {
   slashInvocation?: SlashInvocation;
+  author?: Author;
 }
 
 export interface Layers {

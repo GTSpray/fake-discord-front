@@ -1,4 +1,5 @@
 import type {
+  Author,
   ChannelMessage,
   Chrome,
   EphemeralLayer,
@@ -77,7 +78,7 @@ export interface PendingBotReply {
   text: string;
   timestamp: string;
   ephemeral?: boolean;
-  authorName?: string;
+  author?: Author;
 }
 
 export interface Scenario {

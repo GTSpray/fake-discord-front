@@ -48,6 +48,52 @@ describe('ScenarioRunner', () => {
     expect(snapshot.slash).toEqual({ input: '', focused: true, suggestions: undefined });
   });
 
+  it('uses the interaction author for the pending bot reply', async () => {
+    const botAuthor = {
+      name: "P'titPote",
+      bot: true,
+      avatarUrl: 'https://example.com/bot.png',
+    };
+    const runner = new ScenarioRunner(
+      makeScenario(
+        [
+          { type: 'focusInput' },
+          { type: 'type', text: '/poll create', msPerChar: 0 },
+          { type: 'pressEnter' },
+          {
+            type: 'applyState',
+            layers: {
+              messages: [
+                {
+                  author: botAuthor,
+                  content: 'Done',
+                  slashInvocation: {
+                    user: { name: 'Alice' },
+                    command: 'poll create',
+                  },
+                },
+              ],
+            },
+          },
+        ],
+        {
+          defaults: { botResponseMs: 300, botPendingText: 'Waiting…' },
+        },
+      ),
+    );
+
+    const pendingAuthors: (typeof botAuthor | undefined)[] = [];
+    runner.subscribe((snapshot) => {
+      pendingAuthors.push(snapshot.state.pendingBotReply?.author);
+    });
+
+    const playPromise = runner.play();
+    await vi.runAllTimersAsync();
+    await playPromise;
+
+    expect(pendingAuthors).toContainEqual(botAuthor);
+  });
+
   it('shows a pending bot reply before applyState messages', async () => {
     const runner = new ScenarioRunner(
       makeScenario(
