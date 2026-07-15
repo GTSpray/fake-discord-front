@@ -24,11 +24,14 @@ import {
 } from './capture-lib.mjs';
 import {
   diffHashes,
+  expectedSnapshotArtifacts,
+  findMissingArtifacts,
   hashSnapshotFiles,
   hasHashDiff,
   loadManifest,
   MANIFEST_FILENAME,
   printHashDiff,
+  printMissingArtifacts,
   writeManifest,
 } from './snapshot-hashes.mjs';
 
@@ -103,12 +106,25 @@ function listExampleFiles() {
     .sort();
 }
 
+function listScenarioIds() {
+  return listExampleFiles().map((file) => readScenarioFile(join('examples', file)).scenario.id);
+}
+
 function verifySnapshotHashes({ updateManifest }) {
   const previousManifest = loadManifest(manifestPath);
   const currentHashes = hashSnapshotFiles(snapshotsDir);
+  const scenarioIds = listScenarioIds();
+  const expectedArtifacts = expectedSnapshotArtifacts(scenarioIds);
+  const missingArtifacts = findMissingArtifacts(expectedArtifacts, Object.keys(currentHashes));
 
   if (Object.keys(currentHashes).length === 0) {
     throw new Error(`No snapshot files found in tests/snapshots/. Run npm run snapshots first.`);
+  }
+
+  if (missingArtifacts.length > 0) {
+    printMissingArtifacts(missingArtifacts, { root, snapshotsDir });
+    console.log('\nLancez npm run snapshots pour générer les captures manquantes.');
+    return 1;
   }
 
   const diff = diffHashes(previousManifest?.files ?? {}, currentHashes);

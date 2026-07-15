@@ -1,9 +1,9 @@
 import { useMemo } from 'react';
 import { TypeAnimation } from 'react-type-animation';
-import type { SlashTypingAnimation } from '../lib/types.ts';
+import type { SlashParamTypingAnimation } from '../lib/types.ts';
 import { buildSlashTypingSequence } from './buildSlashTypingSequence.ts';
 
-export function AnimatedSlashInput({ animation }: { animation: SlashTypingAnimation }) {
+export function AnimatedSlashParamValue({ animation }: { animation: SlashParamTypingAnimation }) {
   const sequence = useMemo(() => buildSlashTypingSequence(animation), [animation]);
 
   return (
@@ -13,7 +13,7 @@ export function AnimatedSlashInput({ animation }: { animation: SlashTypingAnimat
       speed={{ type: 'keyStrokeDelayInMs', value: animation.msPerChar }}
       wrapper="span"
       cursor={false}
-      className="slash-input-display"
+      className="slash-param-value-text"
       preRenderFirstString={Boolean(animation.from)}
       omitDeletionAnimation
     />

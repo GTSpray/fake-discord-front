@@ -1,5 +1,5 @@
 /** Minimal Discord-flavoured markdown → HTML */
-export function renderMarkdown(text: string): string {
+function renderMarkdown(text: string): string {
   const lines = text.split('\n');
   const html: string[] = [];
   let inList = false;

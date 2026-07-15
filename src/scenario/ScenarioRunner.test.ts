@@ -50,7 +50,7 @@ describe('ScenarioRunner', () => {
 
   it('uses the interaction author for the pending bot reply', async () => {
     const botAuthor = {
-      name: "P'titPote",
+      name: 'Bot',
       bot: true,
       avatarUrl: 'https://example.com/bot.png',
     };
@@ -173,5 +173,66 @@ describe('ScenarioRunner', () => {
     await playPromise;
 
     expect(runner.getState().slash?.focused).toBe(true);
+  });
+
+  it('types slash command params one step at a time', async () => {
+    const runner = new ScenarioRunner(
+      makeScenario([
+        { type: 'focusInput' },
+        { type: 'type', text: '/alias set', msPerChar: 0 },
+        {
+          type: 'setSlashParams',
+          params: [
+            { name: 'alias', description: 'alias du message' },
+            { name: 'message', description: 'contenu du message' },
+          ],
+        },
+        { type: 'typeSlashParam', param: 'alias', text: 'toto', msPerChar: 0 },
+        { type: 'typeSlashParam', param: 'message', text: 'Hello', msPerChar: 0 },
+      ]),
+    );
+
+    const playPromise = runner.play();
+    await vi.runAllTimersAsync();
+    await playPromise;
+
+    const slash = runner.getState().slash;
+    expect(slash?.params).toEqual([
+      { name: 'alias', description: 'alias du message', value: 'toto' },
+      { name: 'message', description: 'contenu du message', value: 'Hello' },
+    ]);
+    expect(slash?.activeParamIndex).toBe(1);
+  });
+
+  it('reveals command match suggestions after three characters', async () => {
+    const runner = new ScenarioRunner(
+      makeScenario([
+        { type: 'focusInput' },
+        {
+          type: 'type',
+          text: '/alias set',
+          msPerChar: 0,
+          revealSuggestions: {
+            mode: 'commandMatch',
+            activeIndex: 2,
+            suggestions: [
+              { name: '/alias ls', description: 'liste', botName: 'Bot' },
+              { name: '/alias set', description: 'definit', botName: 'Bot' },
+            ],
+          },
+        },
+      ]),
+    );
+
+    const playPromise = runner.play();
+    await vi.runAllTimersAsync();
+    await playPromise;
+
+    const slash = runner.getState().slash;
+    expect(slash?.input).toBe('/alias set');
+    expect(slash?.suggestionMode).toBe('commandMatch');
+    expect(slash?.suggestions).toEqual([
+      { name: '/alias set', description: 'definit', botName: 'Bot' },
+    ]);
   });
 });

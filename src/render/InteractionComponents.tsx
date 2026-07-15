@@ -255,5 +255,3 @@ export function InteractionBody({
     </>
   );
 }
-
-export { defaultAvatar } from './skyraAuthor.ts';

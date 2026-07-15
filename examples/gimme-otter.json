@@ -27,13 +27,11 @@
     },
     {
       "type": "type",
-      "text": "/gimme",
-      "msPerChar": 100
+      "text": "/gimme"
     },
     {
       "type": "type",
       "text": " otter",
-      "msPerChar": 80,
       "revealSuggestions": {
         "after": "/gimme ",
         "suggestions": [

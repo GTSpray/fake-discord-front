@@ -1,0 +1,115 @@
+{
+  "$schema": "../schema/scenario.schema.json",
+  "id": "say-hello-flow",
+  "title": "Dire bonjour (/say hello)",
+  "chrome": {
+    "guild": {
+      "name": "Serveur de démo"
+    },
+    "channel": {
+      "name": "général",
+      "type": "text"
+    },
+    "viewer": {
+      "name": "Modo",
+      "status": "Online"
+    }
+  },
+  "actions": [
+    {
+      "type": "wait",
+      "ms": 1500
+    },
+    {
+      "type": "focusInput"
+    },
+    {
+      "type": "wait",
+      "ms": 1200
+    },
+    {
+      "type": "type",
+      "text": "/say hello",
+      "revealSuggestions": {
+        "mode": "commandMatch",
+        "activeIndex": 0,
+        "suggestions": [
+          {
+            "name": "/say hello",
+            "description": "dit bonjour à quelqu'un",
+            "botName": "Bot"
+          },
+          {
+            "name": "/say goodbye",
+            "description": "dit au revoir à quelqu'un",
+            "botName": "Bot"
+          }
+        ]
+      }
+    },
+    {
+      "type": "wait",
+      "ms": 1200
+    },
+    {
+      "type": "setSlashParams",
+      "params": [
+        {
+          "name": "firstname",
+          "description": "prénom"
+        },
+        {
+          "name": "secondname",
+          "description": "nom de famille"
+        }
+      ]
+    },
+    {
+      "type": "typeSlashParam",
+      "param": "firstname",
+      "text": "Jean"
+    },
+    {
+      "type": "wait",
+      "ms": 500
+    },
+    {
+      "type": "typeSlashParam",
+      "param": "secondname",
+      "text": "Dupont"
+    },
+    {
+      "type": "wait",
+      "ms": 900
+    },
+    {
+      "type": "pressEnter"
+    },
+    {
+      "type": "applyState",
+      "holdMs": 1000,
+      "layers": {
+        "messages": [
+          {
+            "author": {
+              "name": "Bot",
+              "bot": true
+            },
+            "interaction": {
+              "type": 4,
+              "data": {
+                "content": "hello **Jean Dupont** !"
+              }
+            },
+            "slashInvocation": {
+              "user": {
+                "name": "Modo"
+              },
+              "command": "say hello"
+            }
+          }
+        ]
+      }
+    }
+  ]
+}

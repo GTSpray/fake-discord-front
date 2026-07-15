@@ -1,5 +1,6 @@
 import type { ChannelMessage, Chrome, EphemeralLayer, ModalLayer } from './types.ts';
-import type { Scenario, ScenarioAction, SlashSuggestion } from './scenarioTypes.ts';
+import type { Scenario, ScenarioAction, SlashSuggestionMode } from './scenarioTypes.ts';
+import type { SlashSuggestion } from './types.ts';
 
 export function resolveScenarioChrome(scenario: Scenario): Chrome {
   return scenario.chrome;
@@ -7,8 +8,16 @@ export function resolveScenarioChrome(scenario: Scenario): Chrome {
 
 export function resolveSuggestions(
   reveal: NonNullable<Extract<ScenarioAction, { type: 'type' }>['revealSuggestions']>,
-): SlashSuggestion[] | undefined {
-  return reveal.suggestions;
+): {
+  suggestions: SlashSuggestion[];
+  mode: SlashSuggestionMode;
+  activeIndex: number;
+} {
+  return {
+    suggestions: reveal.suggestions,
+    mode: reveal.mode ?? 'subcommand',
+    activeIndex: reveal.activeIndex ?? 0,
+  };
 }
 
 export function resolveUserMessage(
@@ -37,14 +46,14 @@ export function resolveEphemeral(
 export function resolveApplyState(action: Extract<ScenarioAction, { type: 'applyState' }>): {
   chrome?: Chrome;
   messages: ChannelMessage[];
-  slash: null;
+  slash: import('./types.ts').SlashLayer | null;
   modal: ModalLayer | null;
   ephemeral: EphemeralLayer | null;
 } {
   return {
     chrome: action.chrome,
     messages: action.layers?.messages ?? [],
-    slash: null,
+    slash: action.layers?.slash ?? null,
     modal: action.layers?.modal ?? null,
     ephemeral: action.layers?.ephemeral ?? null,
   };

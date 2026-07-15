@@ -1,8 +1,8 @@
-# P'tit Pote Doc Studio
+# Doc Studio
 
 Standalone tool that renders uploaded JSON playback files resembling the Discord
 client. Use it to produce screenshots and short screen recordings for
-[P'tit Pote](https://github.com/GTSpray/P-titPote) user documentation.
+documentation.
 
 This repository does **not** run the bot or connect to Discord.
 
@@ -43,7 +43,7 @@ npm run validate -- examples/poll-moderator-flow.json
 | Slash — pause before continuing to type | `delayBeforeMs` on `type`                     | **1250 ms** when input is not empty |
 | Modal — pause before each field         | `delayBeforeFieldMs` on `fillModal`           | **900 ms**                          |
 | Bot response delay                      | `defaults.botResponseMs` or `responseDelayMs` | **1200 ms**                         |
-| Typing speed (slash)                    | `msPerChar` on `type`                         | 50 ms                               |
+| Typing speed (slash)                    | `msPerChar` on `type`                         | random 120–180 ms                   |
 | Typing speed (modal)                    | `msPerField` on `fillModal`                   | 100 ms                              |
 
 Constants are defined in `src/scenario/ScenarioRunner.ts`.
@@ -80,7 +80,7 @@ Playwright. JSON validation happens in the studio when each scenario is loaded.
 ### Build
 
 ```bash
-docker build -t ptitpote-doc-studio-capture .
+docker build -t doc-studio-capture .
 ```
 
 ### Usage
@@ -90,15 +90,15 @@ resolved from there (see the optional `output` block in each JSON file).
 
 ```bash
 # One scenario
-docker run --rm -v "$PWD:/work" ptitpote-doc-studio-capture \
+docker run --rm -v "$PWD:/work" doc-studio-capture \
   capture --file scenarios/poll-moderator-flow.json
 
 # Every *.json in a folder
-docker run --rm -v "$PWD:/work" ptitpote-doc-studio-capture \
+docker run --rm -v "$PWD:/work" doc-studio-capture \
   capture-dir scenarios/
 
 # Skip WebM, only PNG
-docker run --rm -v "$PWD:/work" ptitpote-doc-studio-capture \
+docker run --rm -v "$PWD:/work" doc-studio-capture \
   capture --file scenarios/gimme-otter.json --no-video
 ```
 
@@ -114,7 +114,7 @@ Override with `CAPTURE_BASE_URL` (e.g. a local preview during development):
 ```bash
 docker run --rm -v "$PWD:/work" \
   -e CAPTURE_BASE_URL=http://host.docker.internal:4173/ \
-  ptitpote-doc-studio-capture capture --file scenarios/gimme-otter.json
+  doc-studio-capture capture --file scenarios/gimme-otter.json
 ```
 
 ## For contributors and AI agents

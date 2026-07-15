@@ -4,6 +4,8 @@ import { tmpdir } from 'node:os';
 import { describe, expect, it } from 'vitest';
 import {
   diffHashes,
+  expectedSnapshotArtifacts,
+  findMissingArtifacts,
   hasHashDiff,
   hashSnapshotFiles,
   md5File,
@@ -46,5 +48,12 @@ describe('snapshot-hashes', () => {
     expect(diff.added).toEqual([{ name: 'new.png', hash: '444' }]);
     expect(diff.removed).toEqual([]);
     expect(hasHashDiff(diff)).toBe(true);
+  });
+
+  it('lists missing snapshot artifacts for examples', () => {
+    const expected = expectedSnapshotArtifacts(['say-hello-flow', 'gimme-otter']);
+    const missing = findMissingArtifacts(expected, ['gimme-otter.png', 'gimme-otter.webm']);
+
+    expect(missing).toEqual(['say-hello-flow.png', 'say-hello-flow.webm']);
   });
 });

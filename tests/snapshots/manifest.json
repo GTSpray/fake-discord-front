@@ -1,9 +1,11 @@
 {
   "algorithm": "md5",
   "files": {
-    "gimme-otter.png": "218aec3fe225e46d7564eb3bd9eae11a",
-    "gimme-otter.webm": "e63decd8e4f90f8f24a91adfd6c37244",
-    "poll-moderator-flow.png": "32146fad307e20610afdcf77bdaa9617",
-    "poll-moderator-flow.webm": "359c475e8a515caba897555f5a809bcf"
+    "gimme-otter.png": "c6889e0ff954efc8954893145399627f",
+    "gimme-otter.webm": "a6c623b57cf11ea69d7bd94088b67fc0",
+    "poll-moderator-flow.png": "f2cfc854d1d85ad1ed2ff918a8a7793b",
+    "poll-moderator-flow.webm": "a1d7615a77cda341fdab08112513c6a5",
+    "say-hello-flow.png": "e7a8c1ba7256411c4d2a4604ee78f0d9",
+    "say-hello-flow.webm": "1d259d5814b03ac02d6a62578a68c22a"
   }
 }

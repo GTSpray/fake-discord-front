@@ -7,7 +7,7 @@
   /* Discord dark theme — maquette */
   --bg-primary: #323339;
   --bg-secondary: #2c2d32;
-  --bg-secondary-alt: #36373e;
+  --bg-secondary-alt: #3c3d45;
   --bg-tertiary: #1e1f22;
   --bg-modifier-hover: #35373c;
   --bg-modifier-selected: #3f4147;
@@ -27,10 +27,11 @@
   --guild-rail-width: 72px;
   --user-panel-rail-overlap: 16px;
   --bg-title-bar: #020202;
-  --bottom-bar-height: 52px;
+  --bottom-bar-height: 64px;
   --bottom-bar-gutter: 8px;
   --bottom-bar-zone: calc(var(--bottom-bar-height) + var(--bottom-bar-gutter));
   --border-subtle: #3d3e45;
+  --border-pffff: #2c2d32;
   --input-surface-bg: #2e2f34;
   --input-surface-radius: 4px;
   --header-shadow:
@@ -734,8 +735,14 @@ button {
 .user-panel__controls {
   display: flex;
   align-items: center;
-  gap: 2px;
+  gap: 8px;
   flex-shrink: 0;
+}
+
+.user-panel__split {
+  display: flex;
+  align-items: center;
+  gap: 1px;
 }
 
 .user-panel__pill {
@@ -747,7 +754,19 @@ button {
   display: flex;
   align-items: center;
   gap: 0;
-  border-radius: 4px;
+  border-radius: 8px;
+}
+
+.user-panel__pill--split-main {
+  padding: 0 4px;
+  border-top-right-radius: 0;
+  border-bottom-right-radius: 0;
+}
+
+.user-panel__pill--split-chevron {
+  padding: 0 2px;
+  border-top-left-radius: 0;
+  border-bottom-left-radius: 0;
 }
 
 .user-panel__pill--muted {
@@ -775,8 +794,8 @@ button {
 }
 
 .user-panel__pill-chevron {
-  width: 12px;
-  height: 12px;
+  width: 15px;
+  height: 15px;
   flex-shrink: 0;
   opacity: 0.85;
 }
@@ -843,7 +862,7 @@ button {
 .channel-toolbar__actions {
   display: flex;
   align-items: center;
-  gap: 4px;
+  gap: 8px;
   min-width: 0;
   flex: 1;
   justify-content: flex-end;
@@ -1065,6 +1084,7 @@ button {
   display: flex;
   flex-direction: column;
   border: none !important;
+  margin-bottom: 20px;
 }
 
 /* Skyra uses margin-left: 62px on deleted replies vs 56px on slash commands.
@@ -1486,6 +1506,19 @@ button {
   margin-bottom: 8px;
 }
 
+.slash-suggestions--command-match {
+  padding-bottom: 4px;
+}
+
+.slash-suggestions-header {
+  padding: 8px 12px 6px;
+  font-size: 0.7rem;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  color: var(--text-muted);
+  text-transform: uppercase;
+}
+
 .slash-suggestion {
   display: flex;
   align-items: baseline;
@@ -1494,13 +1527,62 @@ button {
   font-size: 0.9rem;
 }
 
+.slash-suggestion--command {
+  align-items: center;
+  gap: 10px;
+  padding: 6px 12px;
+}
+
 .slash-suggestion--active {
   background: var(--bg-modifier-selected);
 }
 
+.slash-suggestion-avatar {
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  flex-shrink: 0;
+}
+
+.slash-suggestion-body {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  flex: 1;
+  min-width: 0;
+}
+
+.slash-suggestion--command .slash-suggestion-name {
+  font-size: 0.95rem;
+}
+
+.slash-suggestion--command .slash-suggestion-desc {
+  font-size: 0.82rem;
+  line-height: 1.25;
+}
+
+.slash-suggestion-bot {
+  flex-shrink: 0;
+  color: var(--text-muted);
+  font-size: 0.82rem;
+  max-width: 38%;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
 .slash-suggestion-name {
+  color: var(--header-primary);
+}
+
+.slash-suggestion-name-match {
   font-weight: 600;
   color: var(--header-primary);
+}
+
+.slash-suggestion-name-rest {
+  font-weight: 400;
+  color: var(--text-muted);
 }
 
 .slash-suggestion-prefix {
@@ -1515,7 +1597,6 @@ button {
 
 .discord-composer {
   flex-shrink: 0;
-  height: var(--bottom-bar-zone);
   padding: 0 8px var(--bottom-bar-gutter);
   box-sizing: border-box;
   display: flex;
@@ -1525,6 +1606,71 @@ button {
 
 .discord-composer--idle {
   padding-bottom: var(--bottom-bar-gutter);
+}
+
+.discord-composer--flush {
+  padding-left: 0;
+  padding-right: 0;
+  padding-bottom: 0;
+}
+
+.slash-composer-column {
+  padding: 0 8px var(--bottom-bar-gutter);
+  box-sizing: border-box;
+}
+
+.slash-composer-column--param-help .message-input-bar {
+  border-top-left-radius: 0;
+  border-top-right-radius: 0;
+}
+
+.slash-param-help {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  width: 100%;
+  box-sizing: border-box;
+  padding: 8px 12px;
+  background: var(--bg-secondary-alt);
+  border: 1px solid var(--border-subtle);
+  border-radius: 8px 8px 0 0;
+  font-size: 0.85rem;
+}
+
+.slash-param-help-content {
+  display: flex;
+  align-items: baseline;
+  gap: 8px;
+  flex: 1;
+  min-width: 0;
+}
+
+.slash-param-help-dismiss {
+  width: 20px;
+  height: 20px;
+  border: none;
+  padding: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  background: none;
+}
+
+.slash-param-help-dismiss svg {
+  width: 16px;
+  height: 16px;
+}
+
+.slash-param-help-name {
+  color: var(--header-primary);
+  font-weight: 600;
+  flex-shrink: 0;
+}
+
+.slash-param-help-desc {
+  color: var(--text-muted);
+  min-width: 0;
 }
 
 .message-input-bar {
@@ -1553,8 +1699,8 @@ button {
   background: transparent;
   border: none;
   border-radius: 50%;
-  width: 24px;
-  height: 24px;
+  width: 32px;
+  height: 32px;
   color: var(--text-muted);
   font-size: 1rem;
   line-height: 1;
@@ -1567,8 +1713,14 @@ button {
 
 .input-addon svg,
 .input-addon .dc-icon {
-  width: 20px;
-  height: 20px;
+  width: 28px;
+  height: 28px;
+}
+
+.input-addon--bot-avatar {
+  border-radius: 50%;
+  object-fit: cover;
+  pointer-events: none;
 }
 
 .message-input-trailing {
@@ -1589,6 +1741,7 @@ button {
   align-items: center;
   justify-content: center;
   border-radius: 4px;
+  margin-left: 8px;
 }
 
 .message-input-icon-btn svg,
@@ -1614,6 +1767,79 @@ button {
   color: var(--text-normal);
   font-size: 0.95rem;
   display: inline;
+}
+
+.slash-input-command-match {
+  font-weight: 600;
+  color: var(--header-primary);
+}
+
+.slash-input-command-rest {
+  font-weight: 400;
+  color: var(--text-normal);
+}
+
+.slash-input-row {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 4px;
+  min-height: 22px;
+  width: 100%;
+}
+
+.slash-command-prefix {
+  color: var(--text-normal);
+  font-size: 0.95rem;
+  white-space: pre;
+  flex-shrink: 0;
+}
+
+.slash-command-prefix--matched {
+  font-weight: 600;
+  color: var(--header-primary);
+}
+
+.slash-param {
+  display: inline-flex;
+  align-items: stretch;
+  border: 1px solid var(--border-pffff);
+  border-radius: 6px;
+  overflow: hidden;
+  font-size: 0.9rem;
+  line-height: 1.2;
+  flex-shrink: 0;
+}
+
+.slash-param--active {
+  border-color: #248046;
+}
+
+.slash-param-name {
+  padding: 2px 6px;
+  background: #3f4147;
+  color: var(--text-muted);
+  background: var(--bg-secondary);
+  font-size: 0.85rem;
+  font-weight: 400;
+}
+
+.slash-param-value {
+  display: inline-flex;
+  align-items: center;
+  min-width: 24px;
+  padding: 2px 6px;
+  background: var(--bg-input);
+  color: var(--text-normal);
+  font-weight: 400;
+}
+
+.slash-param-value-text {
+  color: var(--text-normal);
+}
+
+.slash-caret--param {
+  margin-left: 0;
 }
 
 .slash-caret {
