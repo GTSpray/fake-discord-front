@@ -24,7 +24,7 @@ export type ScenarioAction =
       /** Pause avant de commencer à taper (défaut : 1250 ms si le champ n'est pas vide) */
       delayBeforeMs?: number;
       revealSuggestions?: {
-        /** Optionnel en commandMatch (auto à 3 caractères après /) ; requis en subcommand */
+        /** Optionnel en commandMatch (auto dès /) ; requis en subcommand */
         after?: string;
         suggestions: import('./types.ts').SlashSuggestion[];
         /** subcommand (défaut) ou commandMatch (liste « COMMANDS MATCHING … ») */

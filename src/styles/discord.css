@@ -1553,8 +1553,17 @@ button {
 }
 
 .slash-suggestion-name {
+  color: var(--header-primary);
+}
+
+.slash-suggestion-name-match {
   font-weight: 600;
   color: var(--header-primary);
+}
+
+.slash-suggestion-name-rest {
+  font-weight: 400;
+  color: var(--text-muted);
 }
 
 .slash-suggestion-prefix {
@@ -1665,6 +1674,12 @@ button {
   height: 20px;
 }
 
+.input-addon--bot-avatar {
+  border-radius: 50%;
+  object-fit: cover;
+  pointer-events: none;
+}
+
 .message-input-trailing {
   display: flex;
   align-items: center;
@@ -1710,6 +1725,16 @@ button {
   display: inline;
 }
 
+.slash-input-command-match {
+  font-weight: 600;
+  color: var(--header-primary);
+}
+
+.slash-input-command-rest {
+  font-weight: 400;
+  color: var(--text-normal);
+}
+
 .slash-input-row {
   display: flex;
   align-items: center;
@@ -1719,18 +1744,16 @@ button {
   width: 100%;
 }
 
-.slash-command-icon {
-  width: 20px;
-  height: 20px;
-  border-radius: 50%;
-  flex-shrink: 0;
-}
-
 .slash-command-prefix {
   color: var(--text-normal);
   font-size: 0.95rem;
   white-space: pre;
   flex-shrink: 0;
+}
+
+.slash-command-prefix--matched {
+  font-weight: 600;
+  color: var(--header-primary);
 }
 
 .slash-param {
@@ -1754,6 +1777,7 @@ button {
   background: #3f4147;
   color: var(--text-muted);
   font-size: 0.85rem;
+  font-weight: 400;
 }
 
 .slash-param-value {
@@ -1763,6 +1787,7 @@ button {
   padding: 2px 6px;
   background: #1e1f22;
   color: var(--text-normal);
+  font-weight: 400;
 }
 
 .slash-param-value-text {

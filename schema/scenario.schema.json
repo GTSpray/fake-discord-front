@@ -287,7 +287,7 @@
           "properties": {
             "after": {
               "type": "string",
-              "description": "Révéler à ce préfixe (subcommand). commandMatch : auto à 3 caractères après /"
+              "description": "Révéler à ce préfixe (subcommand). commandMatch : auto dès /"
             },
             "suggestions": {
               "type": "array",
@@ -296,7 +296,7 @@
             "mode": {
               "enum": ["subcommand", "commandMatch"],
               "default": "subcommand",
-              "description": "commandMatch affiche « COMMANDS MATCHING … » à partir de 3 caractères"
+              "description": "commandMatch affiche « COMMANDS MATCHING … » dès /"
             },
             "activeIndex": {
               "type": "integer",

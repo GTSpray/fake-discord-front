@@ -6,12 +6,15 @@ export function DiscordMessageInput({
   children,
   variant = 'idle',
   flush = false,
+  botAvatarUrl,
 }: {
   channelName: string;
   children?: ReactNode;
   variant?: 'idle' | 'focused';
   /** Retire le padding horizontal (géré par le parent, ex. SlashBar) */
   flush?: boolean;
+  /** Remplace le bouton « + » par l’avatar du bot (commande slash sélectionnée) */
+  botAvatarUrl?: string;
 }) {
   return (
     <div
@@ -20,9 +23,19 @@ export function DiscordMessageInput({
       }`}
     >
       <div className={`message-input-bar message-input-bar--${variant}`}>
-        <button type="button" className="input-addon" disabled aria-label="Upload a File">
-          <IconAttach />
-        </button>
+        {botAvatarUrl ? (
+          <img
+            className="input-addon input-addon--bot-avatar"
+            src={botAvatarUrl}
+            alt=""
+            width={24}
+            height={24}
+          />
+        ) : (
+          <button type="button" className="input-addon" disabled aria-label="Upload a File">
+            <IconAttach />
+          </button>
+        )}
         <div className="message-input-wrapper">
           {children ?? <span className="message-input-placeholder">Message #{channelName}</span>}
         </div>

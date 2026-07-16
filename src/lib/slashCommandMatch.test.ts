@@ -4,7 +4,11 @@ import {
   commandMatchRevealAfter,
   filterSlashCommandMatches,
   resolveCommandMatchSuggestions,
+  resolveExactSlashCommandMatch,
   slashQueryLength,
+  splitMatchedCommandName,
+  splitSlashInputCommand,
+  isFullSlashCommandMatch,
 } from './slashCommandMatch.ts';
 
 const pool = [
@@ -21,21 +25,45 @@ describe('slashCommandMatch', () => {
     expect(slashQueryLength('/ali')).toBe(3);
   });
 
-  it('filters once three characters are typed after slash', () => {
-    expect(filterSlashCommandMatches('/al', pool)).toEqual([]);
+  it('filters from the slash character', () => {
+    expect(filterSlashCommandMatches('/', pool)).toHaveLength(4);
     expect(filterSlashCommandMatches('/ali', pool)).toHaveLength(3);
     expect(filterSlashCommandMatches('/poll', pool)).toHaveLength(1);
   });
 
-  it('reveals suggestions at the third character during typing', () => {
-    expect(commandMatchRevealAfter('', '/ali')).toBe('/ali');
-    expect(commandMatchRevealAfter('', '/alias set')).toBe('/ali');
-    expect(commandMatchRevealAfter('/ali', '/alias set')).toBeUndefined();
+  it('reveals suggestions as soon as slash is typed', () => {
+    expect(commandMatchRevealAfter('', '/')).toBe('/');
+    expect(commandMatchRevealAfter('', '/alias set')).toBe('/');
+    expect(commandMatchRevealAfter('/', '/a')).toBeUndefined();
+    expect(SLASH_COMMAND_MATCH_CHARS).toBe(0);
+  });
+
+  it('splits matched command names for display', () => {
+    expect(splitMatchedCommandName('/alias set', '/ali')).toEqual({
+      matched: '/ali',
+      rest: 'as set',
+    });
+    expect(splitSlashInputCommand('/ali', pool)).toEqual({
+      matched: '/ali',
+      rest: '',
+      isFullMatch: false,
+    });
+    expect(splitSlashInputCommand('/alias set', pool)).toEqual({
+      matched: '/alias set',
+      rest: '',
+      isFullMatch: true,
+    });
+    expect(isFullSlashCommandMatch('/alias set', pool)).toBe(true);
+    expect(isFullSlashCommandMatch('/ali', pool)).toBe(false);
+  });
+
+  it('resolves exact slash command matches', () => {
+    expect(resolveExactSlashCommandMatch('/alias set', pool)?.name).toBe('/alias set');
+    expect(resolveExactSlashCommandMatch('/ali', pool)).toBeUndefined();
   });
 
   it('resolves the preferred active command index', () => {
     const resolved = resolveCommandMatchSuggestions('/ali', pool, 2);
     expect(resolved?.activeIndex).toBe(2);
-    expect(SLASH_COMMAND_MATCH_CHARS).toBe(3);
   });
 });
