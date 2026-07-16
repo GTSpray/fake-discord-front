@@ -1,5 +1,12 @@
 import type { ReactNode } from 'react';
-import { IconApps, IconAttach, IconEmoji, IconGift } from './discordIcons.tsx';
+import {
+  IconApps,
+  IconAttach,
+  IconEmoji,
+  IconGif,
+  IconGift,
+  IconSticker,
+} from './discordIcons.tsx';
 
 export function DiscordMessageInput({
   channelName,
@@ -42,6 +49,17 @@ export function DiscordMessageInput({
         <div className="message-input-trailing">
           <button type="button" className="message-input-icon-btn" disabled aria-label="Send Gift">
             <IconGift />
+          </button>
+          <button type="button" className="message-input-icon-btn" disabled aria-label="add GIF">
+            <IconGif />
+          </button>
+          <button
+            type="button"
+            className="message-input-icon-btn"
+            disabled
+            aria-label="add Sticker"
+          >
+            <IconSticker />
           </button>
           <button
             type="button"
