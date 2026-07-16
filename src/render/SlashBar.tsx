@@ -33,9 +33,7 @@ function SlashSubcommandSuggestions({
           key={index}
           className={`slash-suggestion${index === activeIndex ? ' slash-suggestion--active' : ''}`}
         >
-          {commandPrefix && (
-            <span className="slash-suggestion-prefix">{commandPrefix}</span>
-          )}
+          {commandPrefix && <span className="slash-suggestion-prefix">{commandPrefix}</span>}
           <span className="slash-suggestion-name">{suggestion.name}</span>
           {suggestion.description && (
             <span className="slash-suggestion-desc">{suggestion.description}</span>
@@ -80,9 +78,7 @@ function SlashCommandMatchSuggestions({
                 const { matched, rest } = splitMatchedCommandName(suggestion.name, input);
                 return (
                   <>
-                    {matched && (
-                      <span className="slash-suggestion-name-match">{matched}</span>
-                    )}
+                    {matched && <span className="slash-suggestion-name-match">{matched}</span>}
                     {rest && <span className="slash-suggestion-name-rest">{rest}</span>}
                     {!matched && !rest && suggestion.name}
                   </>
@@ -93,9 +89,7 @@ function SlashCommandMatchSuggestions({
               <span className="slash-suggestion-desc">{suggestion.description}</span>
             )}
           </div>
-          <span className="slash-suggestion-bot">
-            {suggestion.botName ?? PTITPOTE_BOT_NAME}
-          </span>
+          <span className="slash-suggestion-bot">{suggestion.botName ?? PTITPOTE_BOT_NAME}</span>
         </div>
       ))}
     </div>
@@ -140,11 +134,7 @@ function SlashParamField({
     <span className={`slash-param${active ? ' slash-param--active' : ''}`}>
       <span className="slash-param-name">{param.name}</span>
       <span className="slash-param-value">
-        {showTyping ? (
-          <AnimatedSlashParamValue animation={typingAnimation} />
-        ) : (
-          param.value ?? ''
-        )}
+        {showTyping ? <AnimatedSlashParamValue animation={typingAnimation} /> : (param.value ?? '')}
         {active && !showTyping && <span className="slash-caret slash-caret--param" />}
       </span>
     </span>
@@ -171,12 +161,9 @@ export function SlashBar({ slash, channelName }: { slash: SlashLayer; channelNam
 
   const showParamHelp = Boolean(activeParam?.description) && focused && hasParams;
   const isTyping = Boolean(typingAnimation);
-  const isFullMatch =
-    hasParams || (!isTyping && isFullSlashCommandMatch(input, suggestions));
+  const isFullMatch = hasParams || (!isTyping && isFullSlashCommandMatch(input, suggestions));
   const exactMatch = isFullMatch ? resolveExactSlashCommandMatch(input, suggestions) : undefined;
-  const botAvatarUrl = isFullMatch
-    ? (exactMatch?.botAvatarUrl ?? PTITPOTE_AVATAR_URL)
-    : undefined;
+  const botAvatarUrl = isFullMatch ? (exactMatch?.botAvatarUrl ?? PTITPOTE_AVATAR_URL) : undefined;
 
   return (
     <div className="slash-bar">
@@ -203,39 +190,44 @@ export function SlashBar({ slash, channelName }: { slash: SlashLayer; channelNam
             <span className="slash-param-help-desc">{activeParam!.description}</span>
           </div>
         )}
-        <DiscordMessageInput channelName={channelName} variant="focused" flush botAvatarUrl={botAvatarUrl}>
-        <div className="slash-input-row">
-          {hasParams ? (
-            <>
-              <span
-                className={`slash-command-prefix${isFullMatch ? ' slash-command-prefix--matched' : ''}`}
-              >
-                {input}
-              </span>
-              {params!.map((param, index) => (
-                <SlashParamField
-                  key={param.name}
-                  param={param}
-                  active={index === activeParamIndex}
-                  typingAnimation={
-                    paramTypingAnimation?.paramIndex === index ? paramTypingAnimation : undefined
-                  }
+        <DiscordMessageInput
+          channelName={channelName}
+          variant="focused"
+          flush
+          botAvatarUrl={botAvatarUrl}
+        >
+          <div className="slash-input-row">
+            {hasParams ? (
+              <>
+                <span
+                  className={`slash-command-prefix${isFullMatch ? ' slash-command-prefix--matched' : ''}`}
+                >
+                  {input}
+                </span>
+                {params!.map((param, index) => (
+                  <SlashParamField
+                    key={param.name}
+                    param={param}
+                    active={index === activeParamIndex}
+                    typingAnimation={
+                      paramTypingAnimation?.paramIndex === index ? paramTypingAnimation : undefined
+                    }
+                  />
+                ))}
+              </>
+            ) : typingAnimation ? (
+              <AnimatedSlashInput animation={typingAnimation} />
+            ) : (
+              <>
+                <SlashInputDisplay
+                  input={input}
+                  suggestions={suggestions}
+                  isFullMatch={isFullMatch}
                 />
-              ))}
-            </>
-          ) : typingAnimation ? (
-            <AnimatedSlashInput animation={typingAnimation} />
-          ) : (
-            <>
-              <SlashInputDisplay
-                input={input}
-                suggestions={suggestions}
-                isFullMatch={isFullMatch}
-              />
-              {focused && <span className="slash-caret" />}
-            </>
-          )}
-        </div>
+                {focused && <span className="slash-caret" />}
+              </>
+            )}
+          </div>
         </DiscordMessageInput>
       </div>
     </div>

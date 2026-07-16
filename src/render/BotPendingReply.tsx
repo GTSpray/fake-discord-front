@@ -5,9 +5,7 @@ import { skyraAuthorProps, skyraCommand } from './skyraAuthor.ts';
 import { InteractionDots } from './InteractionDots.tsx';
 
 export function BotPendingReplyMessage({ pending }: { pending: PendingBotReply }) {
-  const authorProps = skyraAuthorProps(
-    pending.author ?? { name: DEFAULT_BOT_NAME, bot: true },
-  );
+  const authorProps = skyraAuthorProps(pending.author ?? { name: DEFAULT_BOT_NAME, bot: true });
 
   return (
     <DiscordMessage

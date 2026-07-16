@@ -3,11 +3,7 @@ import { TypeAnimation } from 'react-type-animation';
 import type { SlashParamTypingAnimation } from '../lib/types.ts';
 import { buildSlashTypingSequence } from './buildSlashTypingSequence.ts';
 
-export function AnimatedSlashParamValue({
-  animation,
-}: {
-  animation: SlashParamTypingAnimation;
-}) {
+export function AnimatedSlashParamValue({ animation }: { animation: SlashParamTypingAnimation }) {
   const sequence = useMemo(
     () => buildSlashTypingSequence(animation),
     [animation.id, animation.from, animation.to],

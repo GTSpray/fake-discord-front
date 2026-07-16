@@ -53,10 +53,7 @@ export function splitMatchedCommandName(
   };
 }
 
-export function isFullSlashCommandMatch(
-  input: string,
-  suggestions?: SlashSuggestion[],
-): boolean {
+export function isFullSlashCommandMatch(input: string, suggestions?: SlashSuggestion[]): boolean {
   return resolveExactSlashCommandMatch(input, suggestions) !== undefined;
 }
 

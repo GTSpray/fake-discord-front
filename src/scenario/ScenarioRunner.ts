@@ -582,8 +582,7 @@ export class ScenarioRunner {
       },
       onDone: () => {
         params[paramIndex] = { ...params[paramIndex], value: to };
-        const nextActiveIndex =
-          paramIndex + 1 < params.length ? paramIndex + 1 : paramIndex;
+        const nextActiveIndex = paramIndex + 1 < params.length ? paramIndex + 1 : paramIndex;
         this.patch({
           slash: {
             ...slashBase,
