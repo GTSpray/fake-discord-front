@@ -167,7 +167,9 @@ export function SlashBar({ slash, channelName }: { slash: SlashLayer; channelNam
   const isTyping = Boolean(typingAnimation);
   const isFullMatch = hasParams || (!isTyping && isFullSlashCommandMatch(input, suggestions));
   const exactMatch = isFullMatch ? resolveExactSlashCommandMatch(input, suggestions) : undefined;
-  const botAvatarUrl = isFullMatch ? (exactMatch?.botAvatarUrl ?? DEFAULT_BOT_AVATAR_URL) : undefined;
+  const botAvatarUrl = isFullMatch
+    ? (exactMatch?.botAvatarUrl ?? DEFAULT_BOT_AVATAR_URL)
+    : undefined;
 
   return (
     <div className="slash-bar">
