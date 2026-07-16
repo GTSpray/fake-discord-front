@@ -147,7 +147,8 @@ npm run capture -- --file examples/poll-moderator-flow.json
 ## CI expectations
 
 - `npm run build` must pass on every PR.
-- Captures are optional (manual or scheduled).
+- `npm run snapshots:check` must pass on every PR (snapshots + `manifest.json` MD5).
+- Captures are optional (manual or scheduled). Regenerate with `npm run snapshots`.
 
 ## What not to do
 

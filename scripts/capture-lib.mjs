@@ -1,5 +1,5 @@
 import { execSync } from 'node:child_process';
-import { existsSync, mkdirSync, readFileSync, readdirSync, renameSync } from 'node:fs';
+import { existsSync, mkdirSync, readFileSync, rmSync } from 'node:fs';
 import { join, relative, resolve } from 'node:path';
 import { chromium } from 'playwright';
 
@@ -43,9 +43,14 @@ export async function captureScenario({
 
   const ownsBrowser = !browser;
   const activeBrowser = browser ?? (await chromium.launch());
+  const videoDir = recordVideo ? join(outDir, `.capture-video-${prefix}`) : null;
+  if (videoDir) {
+    mkdirSync(videoDir, { recursive: true });
+  }
+
   const context = await activeBrowser.newContext({
     viewport: DEFAULT_VIEWPORT,
-    ...(recordVideo ? { recordVideo: { dir: outDir, size: DEFAULT_VIEWPORT } } : {}),
+    ...(videoDir ? { recordVideo: { dir: videoDir, size: DEFAULT_VIEWPORT } } : {}),
   });
 
   await context.addInitScript(
@@ -70,14 +75,15 @@ export async function captureScenario({
     await page.locator('[data-capture-root]').screenshot({ path: pngPath });
     outputs.png = pngPath;
   } finally {
+    const video = recordVideo ? page.video() : null;
     await context.close();
-    if (recordVideo) {
-      const videos = readdirSync(outDir).filter((f) => f.endsWith('.webm'));
-      if (videos.length > 0) {
-        const videoPath = join(outDir, `${prefix}.webm`);
-        renameSync(join(outDir, videos.at(-1)), videoPath);
-        outputs.webm = videoPath;
-      }
+    if (video) {
+      const videoPath = join(outDir, `${prefix}.webm`);
+      await video.saveAs(videoPath);
+      outputs.webm = videoPath;
+    }
+    if (videoDir) {
+      rmSync(videoDir, { recursive: true, force: true });
     }
     if (ownsBrowser) {
       await activeBrowser.close();

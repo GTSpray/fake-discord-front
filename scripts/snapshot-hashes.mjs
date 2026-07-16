@@ -4,6 +4,11 @@ import { join, relative } from 'node:path';
 
 export const MANIFEST_FILENAME = 'manifest.json';
 const SNAPSHOT_EXT = /\.(png|webm)$/i;
+const SNAPSHOT_FILE = /^[a-z0-9][a-z0-9-]*\.(png|webm)$/i;
+
+export function isSnapshotArtifact(name) {
+  return SNAPSHOT_EXT.test(name) && SNAPSHOT_FILE.test(name);
+}
 
 export function md5File(filePath) {
   const hash = createHash('md5');
@@ -15,7 +20,7 @@ export function hashSnapshotFiles(snapshotsDir) {
   const files = {};
 
   for (const name of readdirSync(snapshotsDir).sort()) {
-    if (!SNAPSHOT_EXT.test(name)) continue;
+    if (!isSnapshotArtifact(name)) continue;
     files[name] = md5File(join(snapshotsDir, name));
   }
 
@@ -70,6 +75,28 @@ export function diffHashes(previousFiles, currentFiles) {
 
 export function hasHashDiff(diff) {
   return diff.changed.length > 0 || diff.added.length > 0 || diff.removed.length > 0;
+}
+
+export function expectedSnapshotArtifacts(scenarioIds, { video = true } = {}) {
+  const artifacts = [];
+  for (const id of scenarioIds) {
+    artifacts.push(`${id}.png`);
+    if (video) artifacts.push(`${id}.webm`);
+  }
+  return artifacts;
+}
+
+export function findMissingArtifacts(expectedNames, availableNames) {
+  const available = new Set(availableNames);
+  return expectedNames.filter((name) => !available.has(name));
+}
+
+export function printMissingArtifacts(missing, { root, snapshotsDir }) {
+  const rel = (name) => relative(root, join(snapshotsDir, name));
+  console.log('\nSnapshots manquants:');
+  for (const name of missing) {
+    console.log(`  ! ${rel(name)}`);
+  }
 }
 
 export function printHashDiff(diff, { root, snapshotsDir }) {
