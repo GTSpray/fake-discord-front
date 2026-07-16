@@ -734,8 +734,14 @@ button {
 .user-panel__controls {
   display: flex;
   align-items: center;
-  gap: 2px;
+  gap: 8px;
   flex-shrink: 0;
+}
+
+.user-panel__split {
+  display: flex;
+  align-items: center;
+  gap: 1px;
 }
 
 .user-panel__pill {
@@ -747,7 +753,19 @@ button {
   display: flex;
   align-items: center;
   gap: 0;
-  border-radius: 4px;
+  border-radius: 8px;
+}
+
+.user-panel__pill--split-main {
+  padding: 0 4px;
+  border-top-right-radius: 0;
+  border-bottom-right-radius: 0;
+}
+
+.user-panel__pill--split-chevron {
+  padding: 0 2px;
+  border-top-left-radius: 0;
+  border-bottom-left-radius: 0;
 }
 
 .user-panel__pill--muted {
@@ -775,8 +793,8 @@ button {
 }
 
 .user-panel__pill-chevron {
-  width: 12px;
-  height: 12px;
+  width: 15px;
+  height: 15px;
   flex-shrink: 0;
   opacity: 0.85;
 }
@@ -843,7 +861,7 @@ button {
 .channel-toolbar__actions {
   display: flex;
   align-items: center;
-  gap: 4px;
+  gap: 8px;
   min-width: 0;
   flex: 1;
   justify-content: flex-end;

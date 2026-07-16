@@ -79,17 +79,26 @@ function UserPanel({ chrome, showGuildRail }: { chrome: Chrome; showGuildRail: b
           </div>
         </div>
         <div className="user-panel__controls">
-          <button
-            type="button"
-            className="user-panel__pill user-panel__pill--muted"
-            disabled
-            aria-label="Mute"
-          >
-            <span className="user-panel__pill-icon">
-              <IconMicMuted />
-            </span>
-            <IconChevronMicro className="user-panel__pill-chevron" />
-          </button>
+          <div className="user-panel__split">
+            <button
+              type="button"
+              className="user-panel__pill user-panel__pill--muted user-panel__pill--split-main"
+              disabled
+              aria-label="Mute"
+            >
+              <span className="user-panel__pill-icon">
+                <IconMicMuted />
+              </span>
+            </button>
+            <button
+              type="button"
+              className="user-panel__pill user-panel__pill--muted user-panel__pill--split-chevron"
+              disabled
+              aria-label="Input Options"
+            >
+              <IconChevronMicro className="user-panel__pill-chevron" />
+            </button>
+          </div>
           <button type="button" className="user-panel__pill" disabled aria-label="Deafen">
             <span className="user-panel__pill-icon">
               <IconHeadphones />
