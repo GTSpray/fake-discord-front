@@ -1,13 +1,13 @@
 # AGENTS.md
 
-Instructions for AI coding agents working on **ptitpote-doc-studio**.
+Instructions for AI coding agents working on **doc-studio**.
 
 ## What this project is
 
-**ptitpote-doc-studio** is a standalone documentation tool. Users upload a JSON
+**doc-studio** is a standalone documentation tool. Users upload a JSON
 playback file; the app renders an animated Discord-like UI (typing, modals,
-buttons). Output is used for screenshots and short screen recordings in the P'tit
-Pote bot user documentation (`docs/usage/` in the main bot repository).
+buttons). Output is used for screenshots and short screen recordings in
+technical documentation.
 
 This project does **not** run the bot, connect to Discord, or simulate command
 handlers.
@@ -28,8 +28,8 @@ handlers.
    via AJV). The CLI `npm run validate -- <file.json>` uses the same schema.
 3. **Playback JSON is self-contained.** No references to bundled scene files.
    Inline `chrome`, `modal`, `ephemeral`, `layers`, etc.
-4. **Copy uses resolved French strings**, matching P'tit Pote user-visible text.
-   Do not add i18n runtime logic unless explicitly requested.
+4. **Copy uses resolved French strings** when scenarios target French UX. Do not
+   add i18n runtime logic unless explicitly requested.
 5. **`custom_id` and Discord snowflakes are ignored** by the renderer. Only
    labels, content, styles, and component types matter visually.
 6. **Do not add bot business logic** (permissions, DB, vote counting, etc.).
@@ -116,7 +116,7 @@ Reference examples: `examples/poll-moderator-flow.json`, `examples/gimme-otter.j
 
 ## Renderer priorities
 
-When implementing component support, prioritize what P'tit Pote actually uses:
+When implementing component support, prioritize common Discord bot patterns:
 
 1. Buttons, ActionRow, ephemeral banner
 2. Modals (Label + TextInput, RoleSelect)
@@ -130,8 +130,7 @@ not fail silently.
 ## Visual guidelines
 
 - Default theme: Discord dark.
-- Bot avatar for P'tit Pote:
-  `https://raw.githubusercontent.com/GTSpray/P-titPote/main/assets/ptitpote.png`
+- Default bot name: `Bot` (generated avatar when none is provided).
 - Keep layouts readable at 1280×720 for doc embeds.
 - Sidebar can be hidden during capture (`S` key or `?capture=1` query param).
 
@@ -153,17 +152,17 @@ npm run capture -- --file examples/poll-moderator-flow.json
 ## What not to do
 
 - Do not call the Discord API.
-- Do not import code from the P'tit Pote bot repository.
+- Do not import code from external bot repositories.
 - Do not store secrets or real guild/user IDs.
 - Do not use Discord trademarks in a way that implies an official product.
 - Do not break backward compatibility of schema fields without a documented
   migration note in README.
 
-## Sync with the bot repo
+## Sync with documentation
 
-When P'tit Pote command UX changes:
+When command UX changes in the product you document:
 
-1. Update or create the matching playback JSON (kept in bot repo or shared assets).
+1. Update or create the matching playback JSON.
 2. Regenerate captures with `npm run capture`.
-3. Copy PNG/WebM assets into the bot repo `docs/usage/<command>/assets/`.
+3. Copy PNG/WebM assets into the target documentation repository.
 4. Reference them from the usage markdown.

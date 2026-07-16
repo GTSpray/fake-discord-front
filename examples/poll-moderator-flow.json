@@ -31,13 +31,11 @@
     },
     {
       "type": "type",
-      "text": "/poll",
-      "msPerChar": 80
+      "text": "/poll"
     },
     {
       "type": "type",
       "text": " create",
-      "msPerChar": 70,
       "revealSuggestions": {
         "after": "/poll ",
         "suggestions": [

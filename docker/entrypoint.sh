@@ -9,10 +9,10 @@ Doc Studio capture CLI
 
 Mount your scenarios and output directory on /work, then run:
 
-  docker run --rm -v "\$PWD:/work" ptitpote-doc-studio-capture \\
+  docker run --rm -v "\$PWD:/work" doc-studio-capture \\
     capture --file scenarios/my-flow.json
 
-  docker run --rm -v "\$PWD:/work" ptitpote-doc-studio-capture \\
+  docker run --rm -v "\$PWD:/work" doc-studio-capture \\
     capture-dir scenarios/
 
 Commands:

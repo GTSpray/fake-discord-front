@@ -1,4 +1,4 @@
-import { PTITPOTE_AVATAR_URL, PTITPOTE_BOT_NAME } from '../lib/ptitpoteAssets.ts';
+import { DEFAULT_BOT_NAME } from '../lib/types.ts';
 import {
   resolveExactSlashCommandMatch,
   splitMatchedCommandName,
@@ -10,6 +10,9 @@ import { AnimatedSlashInput } from './AnimatedSlashInput.tsx';
 import { AnimatedSlashParamValue } from './AnimatedSlashParamValue.tsx';
 import { DiscordMessageInput } from './DiscordMessageInput.tsx';
 import { IconSlashParamDismiss } from './discordIcons.tsx';
+import { defaultAvatar } from './skyraAuthor.ts';
+
+const DEFAULT_BOT_AVATAR_URL = defaultAvatar(DEFAULT_BOT_NAME);
 
 function slashCommandPrefix(input: string): string {
   const match = input.match(/^(\/\S+)\s/);
@@ -68,7 +71,7 @@ function SlashCommandMatchSuggestions({
         >
           <img
             className="slash-suggestion-avatar"
-            src={suggestion.botAvatarUrl ?? PTITPOTE_AVATAR_URL}
+            src={suggestion.botAvatarUrl ?? DEFAULT_BOT_AVATAR_URL}
             alt=""
             width={32}
             height={32}
@@ -90,7 +93,7 @@ function SlashCommandMatchSuggestions({
               <span className="slash-suggestion-desc">{suggestion.description}</span>
             )}
           </div>
-          <span className="slash-suggestion-bot">{suggestion.botName ?? PTITPOTE_BOT_NAME}</span>
+          <span className="slash-suggestion-bot">{suggestion.botName ?? DEFAULT_BOT_NAME}</span>
         </div>
       ))}
     </div>
@@ -164,7 +167,7 @@ export function SlashBar({ slash, channelName }: { slash: SlashLayer; channelNam
   const isTyping = Boolean(typingAnimation);
   const isFullMatch = hasParams || (!isTyping && isFullSlashCommandMatch(input, suggestions));
   const exactMatch = isFullMatch ? resolveExactSlashCommandMatch(input, suggestions) : undefined;
-  const botAvatarUrl = isFullMatch ? (exactMatch?.botAvatarUrl ?? PTITPOTE_AVATAR_URL) : undefined;
+  const botAvatarUrl = isFullMatch ? (exactMatch?.botAvatarUrl ?? DEFAULT_BOT_AVATAR_URL) : undefined;
 
   return (
     <div className="slash-bar">

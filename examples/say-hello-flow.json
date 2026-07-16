@@ -1,7 +1,7 @@
 {
   "$schema": "../schema/scenario.schema.json",
-  "id": "alias-set-flow",
-  "title": "Créer un alias (/alias set)",
+  "id": "say-hello-flow",
+  "title": "Dire bonjour (/say hello)",
   "chrome": {
     "guild": {
       "name": "Serveur de démo"
@@ -17,90 +17,95 @@
   },
   "actions": [
     {
+      "type": "wait",
+      "ms": 1500
+    },
+    {
       "type": "focusInput"
     },
     {
+      "type": "wait",
+      "ms": 1200
+    },
+    {
       "type": "type",
-      "text": "/alias set",
-      "msPerChar": 70,
+      "text": "/say hello",
       "revealSuggestions": {
         "mode": "commandMatch",
-        "activeIndex": 2,
+        "activeIndex": 0,
         "suggestions": [
           {
-            "name": "/alias ls",
-            "description": "liste les alias disponibles sur ton serveur",
-            "botName": "P'titPote"
+            "name": "/say hello",
+            "description": "dit bonjour à quelqu'un",
+            "botName": "Bot"
           },
           {
-            "name": "/alias say",
-            "description": "demande a p'titpote d'envoyer le message",
-            "botName": "P'titPote"
-          },
-          {
-            "name": "/alias set",
-            "description": "definit un alias message",
-            "botName": "P'titPote"
+            "name": "/say goodbye",
+            "description": "dit au revoir à quelqu'un",
+            "botName": "Bot"
           }
         ]
       }
     },
     {
       "type": "wait",
-      "ms": 900
+      "ms": 1200
     },
     {
       "type": "setSlashParams",
       "params": [
         {
-          "name": "alias",
-          "description": "alias du message"
+          "name": "firstname",
+          "description": "prénom"
         },
         {
-          "name": "message",
-          "description": "contenu du message"
+          "name": "secondname",
+          "description": "nom de famille"
         }
       ]
     },
     {
       "type": "typeSlashParam",
-      "param": "alias",
-      "text": "toto",
-      "msPerChar": 80
-    },
-    {
-      "type": "typeSlashParam",
-      "param": "message",
-      "text": "Bonjour tout le monde !",
-      "msPerChar": 55
+      "param": "firstname",
+      "text": "Jean"
     },
     {
       "type": "wait",
-      "ms": 800
+      "ms": 500
+    },
+    {
+      "type": "typeSlashParam",
+      "param": "secondname",
+      "text": "Dupont"
+    },
+    {
+      "type": "wait",
+      "ms": 900
     },
     {
       "type": "pressEnter"
     },
     {
       "type": "applyState",
+      "holdMs": 1000,
       "layers": {
         "messages": [
           {
             "author": {
-              "name": "P'titPote",
+              "name": "Bot",
               "bot": true
             },
             "interaction": {
               "type": 4,
               "data": {
-                "content": "Alias **toto** enregistré."
+                "content": "hello **Jean Dupont** !"
               }
             },
             "slashInvocation": {
               "user": {
                 "name": "Modo"
               },
-              "command": "alias set alias:toto message:Bonjour tout le monde !"
+              "command": "say hello"
             }
           }
         ]

@@ -274,7 +274,11 @@
       "properties": {
         "type": { "const": "type" },
         "text": { "type": "string" },
-        "msPerChar": { "type": "integer", "minimum": 1, "default": 50 },
+        "msPerChar": {
+          "type": "integer",
+          "minimum": 1,
+          "description": "Optional. Random 120–180 ms per character when omitted."
+        },
         "delayBeforeMs": {
           "type": "integer",
           "minimum": 0,
@@ -334,7 +338,11 @@
         "type": { "const": "typeSlashParam" },
         "param": { "type": "string", "minLength": 1 },
         "text": { "type": "string" },
-        "msPerChar": { "type": "integer", "minimum": 1, "default": 50 },
+        "msPerChar": {
+          "type": "integer",
+          "minimum": 1,
+          "description": "Optional. Random 120–180 ms per character when omitted."
+        },
         "delayBeforeMs": {
           "type": "integer",
           "minimum": 0,

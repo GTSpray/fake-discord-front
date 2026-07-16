@@ -50,7 +50,7 @@ describe('ScenarioRunner', () => {
 
   it('uses the interaction author for the pending bot reply', async () => {
     const botAuthor = {
-      name: "P'titPote",
+      name: 'Bot',
       bot: true,
       avatarUrl: 'https://example.com/bot.png',
     };
@@ -216,8 +216,8 @@ describe('ScenarioRunner', () => {
             mode: 'commandMatch',
             activeIndex: 2,
             suggestions: [
-              { name: '/alias ls', description: 'liste', botName: "P'titPote" },
-              { name: '/alias set', description: 'definit', botName: "P'titPote" },
+              { name: '/alias ls', description: 'liste', botName: 'Bot' },
+              { name: '/alias set', description: 'definit', botName: 'Bot' },
             ],
           },
         },
@@ -232,7 +232,7 @@ describe('ScenarioRunner', () => {
     expect(slash?.input).toBe('/alias set');
     expect(slash?.suggestionMode).toBe('commandMatch');
     expect(slash?.suggestions).toEqual([
-      { name: '/alias set', description: 'definit', botName: "P'titPote" },
+      { name: '/alias set', description: 'definit', botName: 'Bot' },
     ]);
   });
 });

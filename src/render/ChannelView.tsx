@@ -28,8 +28,7 @@ function SkyraMessageItem({
   return (
     <DiscordMessage
       {...skyraAuthorProps(author)}
-      timestamp={timestamp ?? null}
-      twentyFour={useTwentyFour}
+      {...(timestamp ? { timestamp, twentyFour: useTwentyFour } : {})}
     >
       {deletedReply && <DiscordReply slot="reply" deleted />}
       {slashInvocation && (

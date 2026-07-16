@@ -1,5 +1,5 @@
 {
-  "name": "ptitpote-doc-studio",
+  "name": "doc-studio",
   "private": true,
   "version": "0.1.0",
   "description": "Discord-like playback renderer for documentation captures",
