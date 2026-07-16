@@ -9,6 +9,7 @@ import type { SlashLayer, SlashSuggestion } from '../lib/types.ts';
 import { AnimatedSlashInput } from './AnimatedSlashInput.tsx';
 import { AnimatedSlashParamValue } from './AnimatedSlashParamValue.tsx';
 import { DiscordMessageInput } from './DiscordMessageInput.tsx';
+import { IconSlashParamDismiss } from './discordIcons.tsx';
 
 function slashCommandPrefix(input: string): string {
   const match = input.match(/^(\/\S+)\s/);
@@ -186,8 +187,13 @@ export function SlashBar({ slash, channelName }: { slash: SlashLayer; channelNam
       >
         {showParamHelp && (
           <div className="slash-param-help">
-            <strong className="slash-param-help-name">{activeParam!.name}</strong>
-            <span className="slash-param-help-desc">{activeParam!.description}</span>
+            <div className="slash-param-help-content">
+              <strong className="slash-param-help-name">{activeParam!.name}</strong>
+              <span className="slash-param-help-desc">{activeParam!.description}</span>
+            </div>
+            <button type="button" className="slash-param-help-dismiss" disabled aria-label="Fermer">
+              <IconSlashParamDismiss />
+            </button>
           </div>
         )}
         <DiscordMessageInput

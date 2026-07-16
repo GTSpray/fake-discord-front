@@ -6,7 +6,7 @@ import { buildSlashTypingSequence } from './buildSlashTypingSequence.ts';
 export function AnimatedSlashParamValue({ animation }: { animation: SlashParamTypingAnimation }) {
   const sequence = useMemo(
     () => buildSlashTypingSequence(animation),
-    [animation.id, animation.from, animation.to],
+    [animation],
   );
 
   return (

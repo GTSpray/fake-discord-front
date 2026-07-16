@@ -6,7 +6,7 @@ import { buildSlashTypingSequence } from './buildSlashTypingSequence.ts';
 export function AnimatedSlashInput({ animation }: { animation: SlashTypingAnimation }) {
   const sequence = useMemo(
     () => buildSlashTypingSequence(animation),
-    [animation.id, animation.from, animation.to, animation.revealAfter],
+    [animation],
   );
 
   return (

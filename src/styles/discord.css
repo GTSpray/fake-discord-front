@@ -7,7 +7,7 @@
   /* Discord dark theme — maquette */
   --bg-primary: #323339;
   --bg-secondary: #2c2d32;
-  --bg-secondary-alt: #36373e;
+  --bg-secondary-alt: #3c3d45;
   --bg-tertiary: #1e1f22;
   --bg-modifier-hover: #35373c;
   --bg-modifier-selected: #3f4147;
@@ -31,6 +31,7 @@
   --bottom-bar-gutter: 8px;
   --bottom-bar-zone: calc(var(--bottom-bar-height) + var(--bottom-bar-gutter));
   --border-subtle: #3d3e45;
+  --border-pffff: #2c2d32;
   --input-surface-bg: #2e2f34;
   --input-surface-radius: 4px;
   --header-shadow:
@@ -1625,16 +1626,40 @@ button {
 
 .slash-param-help {
   display: flex;
-  align-items: baseline;
+  align-items: center;
   gap: 8px;
   width: 100%;
   box-sizing: border-box;
   padding: 8px 12px;
   background: var(--bg-secondary-alt);
   border: 1px solid var(--border-subtle);
-  border-bottom: none;
   border-radius: 8px 8px 0 0;
   font-size: 0.85rem;
+}
+
+.slash-param-help-content {
+  display: flex;
+  align-items: baseline;
+  gap: 8px;
+  flex: 1;
+  min-width: 0;
+}
+
+.slash-param-help-dismiss {
+  width: 20px;
+  height: 20px;
+  border: none;
+  padding: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  background: none;
+}
+
+.slash-param-help-dismiss svg {
+  width: 16px;
+  height: 16px;
 }
 
 .slash-param-help-name {
@@ -1778,7 +1803,7 @@ button {
 .slash-param {
   display: inline-flex;
   align-items: stretch;
-  border: 1px solid var(--border-subtle);
+  border: 1px solid var(--border-pffff);
   border-radius: 6px;
   overflow: hidden;
   font-size: 0.9rem;
@@ -1788,13 +1813,13 @@ button {
 
 .slash-param--active {
   border-color: #248046;
-  box-shadow: 0 0 0 1px #248046;
 }
 
 .slash-param-name {
   padding: 2px 6px;
   background: #3f4147;
   color: var(--text-muted);
+  background: var(--bg-secondary);
   font-size: 0.85rem;
   font-weight: 400;
 }
@@ -1804,7 +1829,7 @@ button {
   align-items: center;
   min-width: 24px;
   padding: 2px 6px;
-  background: #1e1f22;
+  background: var(--bg-input);
   color: var(--text-normal);
   font-weight: 400;
 }
