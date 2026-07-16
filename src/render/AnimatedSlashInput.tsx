@@ -4,10 +4,7 @@ import type { SlashTypingAnimation } from '../lib/types.ts';
 import { buildSlashTypingSequence } from './buildSlashTypingSequence.ts';
 
 export function AnimatedSlashInput({ animation }: { animation: SlashTypingAnimation }) {
-  const sequence = useMemo(
-    () => buildSlashTypingSequence(animation),
-    [animation],
-  );
+  const sequence = useMemo(() => buildSlashTypingSequence(animation), [animation]);
 
   return (
     <TypeAnimation

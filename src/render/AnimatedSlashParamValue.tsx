@@ -4,10 +4,7 @@ import type { SlashParamTypingAnimation } from '../lib/types.ts';
 import { buildSlashTypingSequence } from './buildSlashTypingSequence.ts';
 
 export function AnimatedSlashParamValue({ animation }: { animation: SlashParamTypingAnimation }) {
-  const sequence = useMemo(
-    () => buildSlashTypingSequence(animation),
-    [animation],
-  );
+  const sequence = useMemo(() => buildSlashTypingSequence(animation), [animation]);
 
   return (
     <TypeAnimation
