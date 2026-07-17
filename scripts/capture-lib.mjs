@@ -55,9 +55,7 @@ function installCaptureClockInPage(fixedIso) {
 }
 
 async function waitForCaptureReady(page) {
-  await page.evaluate(async () => {
-    await document.fonts.ready;
-  });
+  await page.evaluate('document.fonts.ready');
   await page.waitForFunction(
     `() => {
       const root = document.querySelector('[data-capture-root]');

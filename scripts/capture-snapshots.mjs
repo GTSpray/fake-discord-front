@@ -6,6 +6,7 @@
  *   npm run snapshots
  *   npm run snapshots -- --no-video
  *   npm run snapshots:check
+ *   npm run snapshots:verify
  *   CAPTURE_BASE_URL=http://127.0.0.1:4173 npm run snapshots
  */
 import { spawn } from 'node:child_process';
@@ -48,12 +49,14 @@ const { values } = parseArgs({
     'base-url': { type: 'string' },
     'skip-build': { type: 'boolean', default: false },
     'check-only': { type: 'boolean', default: false },
+    verify: { type: 'boolean', default: false },
   },
 });
 
 const recordVideo = !values['no-video'];
 const requestedBaseUrl = values['base-url'] ?? DEFAULT_BASE_URL;
 const checkOnly = values['check-only'];
+const verifyMode = values.verify;
 
 async function waitForServer(url, timeoutMs = 60_000) {
   const deadline = Date.now() + timeoutMs;
@@ -130,11 +133,11 @@ async function stopPreviewServer(previewProc) {
   }
 }
 
-function verifySnapshotHashes({ updateManifest }) {
-  const previousManifest = loadManifest(manifestPath);
+function verifySnapshotHashes({ updateManifest, baselineHashes }) {
+  const previousManifest = baselineHashes ?? loadManifest(manifestPath)?.files ?? {};
   const currentHashes = hashSnapshotFiles(snapshotsDir);
   const scenarioIds = listScenarioIds();
-  const expectedArtifacts = expectedSnapshotArtifacts(scenarioIds);
+  const expectedArtifacts = expectedSnapshotArtifacts(scenarioIds, { video: recordVideo });
   const missingArtifacts = findMissingArtifacts(
     expectedArtifacts,
     listSnapshotArtifacts(snapshotsDir),
@@ -150,7 +153,7 @@ function verifySnapshotHashes({ updateManifest }) {
     return 1;
   }
 
-  const diff = diffHashes(previousManifest?.files ?? {}, currentHashes);
+  const diff = diffHashes(previousManifest, currentHashes);
   printHashDiff(diff, { root, snapshotsDir });
 
   if (updateManifest) {
@@ -159,14 +162,24 @@ function verifySnapshotHashes({ updateManifest }) {
   }
 
   if (hasHashDiff(diff)) {
-    if (!previousManifest) {
+    if (!Object.keys(previousManifest).length) {
       console.log('\nPremière génération du manifeste MD5.');
       return 0;
+    }
+    if (verifyMode) {
+      console.log(
+        '\nLes snapshots committés ne sont pas à jour. Lancez `make snapshots` puis committez.',
+      );
+      return 1;
     }
     console.log(
       '\nLes snapshots ont évolué. Committez les fichiers et le manifeste si c’est voulu.',
     );
-    return 1;
+    return 0;
+  }
+
+  if (verifyMode) {
+    console.log('\n✓ Snapshots committés à jour.');
   }
 
   return 0;
@@ -176,6 +189,15 @@ async function captureSnapshots() {
   if (checkOnly) {
     process.exit(verifySnapshotHashes({ updateManifest: false }));
   }
+
+  if (verifyMode && !existsSync(manifestPath)) {
+    console.error(
+      `Missing ${join('tests/snapshots', MANIFEST_FILENAME)}. Run make snapshots first.`,
+    );
+    process.exit(1);
+  }
+
+  const baselineHashes = verifyMode ? loadManifest(manifestPath)?.files : undefined;
 
   if (!values['skip-build']) {
     ensureBuilt(root);
@@ -216,7 +238,10 @@ async function captureSnapshots() {
     }
 
     console.log(`\n${files.length} snapshot(s) written to tests/snapshots/.`);
-    const exitCode = verifySnapshotHashes({ updateManifest: true });
+    const exitCode = verifySnapshotHashes({
+      updateManifest: !verifyMode,
+      baselineHashes,
+    });
     process.exit(exitCode);
   } finally {
     await closeBrowser(browser);

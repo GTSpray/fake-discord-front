@@ -56,6 +56,19 @@ Constants are defined in `src/scenario/ScenarioRunner.ts`.
 All payload data (`modal`, `ephemeral`, `layers`, `userMessage`, etc.) must be
 **inline** in the JSON file.
 
+## Snapshots (visual regression)
+
+PNG snapshots are captured in a pinned Docker image so output is identical locally and in CI.
+
+```bash
+make docker-build          # once, or before first run
+make snapshots             # regenerate tests/snapshots/ after UX changes
+make snapshots-verify      # recapture and fail if commit is stale
+make ci                    # full pipeline (used in GitHub Actions)
+```
+
+CI recaptures PNGs and compares them to the committed `manifest.json`. If the renderer changed but snapshots were not updated, the build fails.
+
 ## Capture
 
 Requires a built preview server:
@@ -80,6 +93,8 @@ Playwright. JSON validation happens in the studio when each scenario is loaded.
 ### Build
 
 ```bash
+docker build -f docker/Dockerfile.capture -t doc-studio-capture .
+# or (same image):
 docker build -t doc-studio-capture .
 ```
 

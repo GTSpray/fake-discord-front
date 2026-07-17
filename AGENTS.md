@@ -147,10 +147,11 @@ npm run capture -- --file examples/poll-moderator-flow.json
 
 ## CI expectations
 
-- `npm run build` must pass on every PR.
-- `npm run snapshots:check` must pass on every PR (PNG MD5 vs committed `manifest.json`; WebM is not hashed).
-- Regenerate locally with `npm run snapshots` after renderer changes; CI only verifies, it does not recapture.
-- Captures are optional (manual or scheduled). Regenerate with `npm run snapshots`.
+- `make ci` runs the full pipeline in Docker (format, lint, validate, build, test, snapshot verify).
+- GitHub Actions builds `doc-studio-dev` with layer cache, then runs `make ci-fast`.
+- Snapshot verify recaptures PNGs in the pinned Playwright image and compares them to the committed `manifest.json`.
+- After renderer changes, run `make snapshots` in Docker, then commit `tests/snapshots/*.png` and `manifest.json`.
+- WebM files are regenerated for review but are not MD5-checked (Playwright encoding is non-deterministic).
 
 ## What not to do
 
