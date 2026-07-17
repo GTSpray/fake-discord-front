@@ -21,4 +21,5 @@ jobs:
       - run: npm run lint
       - run: npm run build
       - run: npm test
+      - run: npm run snapshots
       - run: npm run snapshots:check
