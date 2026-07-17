@@ -993,7 +993,6 @@ button {
 }
 
 @keyframes interaction-dot {
-
   0%,
   60%,
   100% {
@@ -1813,7 +1812,7 @@ button {
 }
 
 .slash-param--active {
-  border-color: #11cc56;
+  border-color: #3502dc;
 }
 
 .slash-param-name {
