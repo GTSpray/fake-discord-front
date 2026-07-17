@@ -53,7 +53,7 @@ const { values } = parseArgs({
   },
 });
 
-const recordVideo = !values['no-video'];
+const recordVideo = verifyMode || !values['no-video'];
 const requestedBaseUrl = values['base-url'] ?? DEFAULT_BASE_URL;
 const checkOnly = values['check-only'];
 const verifyMode = values.verify;
@@ -137,7 +137,7 @@ function verifySnapshotHashes({ updateManifest, baselineHashes }) {
   const previousManifest = baselineHashes ?? loadManifest(manifestPath)?.files ?? {};
   const currentHashes = hashSnapshotFiles(snapshotsDir);
   const scenarioIds = listScenarioIds();
-  const expectedArtifacts = expectedSnapshotArtifacts(scenarioIds, { video: recordVideo });
+  const expectedArtifacts = expectedSnapshotArtifacts(scenarioIds);
   const missingArtifacts = findMissingArtifacts(
     expectedArtifacts,
     listSnapshotArtifacts(snapshotsDir),
@@ -168,7 +168,7 @@ function verifySnapshotHashes({ updateManifest, baselineHashes }) {
     }
     if (verifyMode) {
       console.log(
-        '\nLes snapshots committés ne sont pas à jour. Lancez `make snapshots` puis committez.',
+        '\nLes WebM committés ne sont pas à jour. Lancez `make snapshots` puis committez.',
       );
       return 1;
     }
@@ -179,7 +179,7 @@ function verifySnapshotHashes({ updateManifest, baselineHashes }) {
   }
 
   if (verifyMode) {
-    console.log('\n✓ Snapshots committés à jour.');
+    console.log('\n✓ WebM committés à jour.');
   }
 
   return 0;

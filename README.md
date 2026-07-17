@@ -58,16 +58,16 @@ All payload data (`modal`, `ephemeral`, `layers`, `userMessage`, etc.) must be
 
 ## Snapshots (visual regression)
 
-PNG snapshots are captured in a pinned Docker image so output is identical locally and in CI.
+Full-playback **WebM** files are hashed (MD5) to detect any visual change automatically — typing, slash params, modals, etc. Regenerate only in Docker:
 
 ```bash
-make docker-build          # once, or before first run
-make snapshots             # regenerate tests/snapshots/ after UX changes
-make snapshots-verify      # recapture and fail if commit is stale
-make ci                    # full pipeline (used in GitHub Actions)
+make docker-build
+make snapshots             # regenerate WebM + manifest after UX changes
+make snapshots-verify      # recapture WebM and fail if commit is stale
+make ci                    # lint + test + snapshots-verify
 ```
 
-CI recaptures PNGs and compares them to the committed `manifest.json`. If the renderer changed but snapshots were not updated, the build fails.
+CI runs three parallel jobs (`lint`, `test`, `snapshots-verify`). Only `snapshots-verify` compares WebM hashes.
 
 ## Capture
 

@@ -25,7 +25,7 @@ DOCKER_RUN = docker run --rm $(DOCKER_USER) \
 	$(DOCKER_IMAGE)
 
 .PHONY: help docker-build docker-build-capture install build test lint format-check \
-        validate snapshots snapshots-verify ci ci-fast clean
+        validate snapshots snapshots-verify ci ci-fast lint-ci test-ci snapshots-verify-ci clean
 
 help:
 	@echo "Doc Studio"
@@ -39,7 +39,10 @@ help:
 	@echo "  make validate            Validate example JSON files"
 	@echo "  make snapshots           Regenerate tests/snapshots/ (PNG + WebM)"
 	@echo "  make snapshots-verify    Recapture PNGs and fail if commit is stale"
-	@echo "  make ci                  Full CI pipeline (format, lint, build, test, snapshots-verify)"
+	@echo "  make ci                  Run lint-ci, test-ci, and snapshots-verify-ci"
+	@echo "  make lint-ci             format:check + lint (CI job)"
+	@echo "  make test-ci             validate + build + test (CI job)"
+	@echo "  make snapshots-verify-ci Recapture PNGs and fail if commit is stale (CI job)"
 	@echo ""
 	@echo "  make docker-build-capture   Build remote capture CLI ($(CAPTURE_IMAGE))"
 
@@ -74,6 +77,25 @@ validate: docker-build
 	$(DOCKER_RUN) npm ci
 	$(DOCKER_RUN) npm run validate -- examples/poll-moderator-flow.json examples/say-hello-flow.json examples/gimme-otter.json
 
+lint-ci:
+	$(DOCKER_RUN) sh -euc 'npm ci && npm run format:check && npm run lint'
+
+test-ci:
+	$(DOCKER_RUN) sh -euc '\
+		npm ci && \
+		npm run validate -- examples/poll-moderator-flow.json examples/say-hello-flow.json examples/gimme-otter.json && \
+		npm run build && \
+		npm test \
+	'
+
+snapshots-verify-ci:
+	$(DOCKER_RUN) sh -euc 'npm ci && npm run build && npm run snapshots:verify'
+
+ci: docker-build lint-ci test-ci snapshots-verify-ci
+
+ci-fast: lint-ci test-ci snapshots-verify-ci
+
+# Legacy alias — regenerates snapshots (PNG + WebM) inside Docker.
 snapshots: docker-build
 	$(DOCKER_RUN) npm ci
 	$(DOCKER_RUN) npm run build
@@ -83,29 +105,6 @@ snapshots-verify: docker-build
 	$(DOCKER_RUN) npm ci
 	$(DOCKER_RUN) npm run build
 	$(DOCKER_RUN) npm run snapshots:verify
-
-ci: docker-build
-	$(DOCKER_RUN) sh -euc '\
-		npm ci && \
-		npm run format:check && \
-		npm run lint && \
-		npm run validate -- examples/poll-moderator-flow.json examples/say-hello-flow.json examples/gimme-otter.json && \
-		npm run build && \
-		npm test && \
-		npm run snapshots:verify \
-	'
-
-# Assumes doc-studio-dev image is already built (GitHub Actions cache step).
-ci-fast:
-	$(DOCKER_RUN) sh -euc '\
-		npm ci && \
-		npm run format:check && \
-		npm run lint && \
-		npm run validate -- examples/poll-moderator-flow.json examples/say-hello-flow.json examples/gimme-otter.json && \
-		npm run build && \
-		npm test && \
-		npm run snapshots:verify \
-	'
 
 clean:
 	rm -rf dist node_modules coverage output

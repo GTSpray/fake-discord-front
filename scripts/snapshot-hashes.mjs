@@ -3,15 +3,9 @@ import { existsSync, readFileSync, readdirSync, writeFileSync } from 'node:fs';
 import { join, relative } from 'node:path';
 
 export const MANIFEST_FILENAME = 'manifest.json';
-const SNAPSHOT_EXT = /\.png$/i;
-const SNAPSHOT_FILE = /^[a-z0-9][a-z0-9-]*\.png$/i;
-/** WebM captures are kept for review but not MD5-checked (Playwright encoding is non-deterministic). */
+/** Full-playback WebM captures — MD5 detects any visual change during the scenario. */
 export const SNAPSHOT_VIDEO_EXT = /\.webm$/i;
 const SNAPSHOT_VIDEO_FILE = /^[a-z0-9][a-z0-9-]*\.webm$/i;
-
-export function isSnapshotArtifact(name) {
-  return SNAPSHOT_EXT.test(name) && SNAPSHOT_FILE.test(name);
-}
 
 export function isSnapshotVideoArtifact(name) {
   return SNAPSHOT_VIDEO_EXT.test(name) && SNAPSHOT_VIDEO_FILE.test(name);
@@ -19,7 +13,7 @@ export function isSnapshotVideoArtifact(name) {
 
 export function listSnapshotArtifacts(snapshotsDir) {
   return readdirSync(snapshotsDir)
-    .filter((name) => isSnapshotArtifact(name) || isSnapshotVideoArtifact(name))
+    .filter((name) => isSnapshotVideoArtifact(name))
     .sort();
 }
 
@@ -33,7 +27,7 @@ export function hashSnapshotFiles(snapshotsDir) {
   const files = {};
 
   for (const name of readdirSync(snapshotsDir).sort()) {
-    if (!isSnapshotArtifact(name)) continue;
+    if (!isSnapshotVideoArtifact(name)) continue;
     files[name] = md5File(join(snapshotsDir, name));
   }
 
@@ -54,6 +48,7 @@ export function loadManifest(manifestPath) {
 export function writeManifest(manifestPath, files) {
   const payload = {
     algorithm: 'md5',
+    artifact: 'webm',
     files,
   };
   writeFileSync(manifestPath, `${JSON.stringify(payload, null, 2)}\n`);
@@ -90,13 +85,8 @@ export function hasHashDiff(diff) {
   return diff.changed.length > 0 || diff.added.length > 0 || diff.removed.length > 0;
 }
 
-export function expectedSnapshotArtifacts(scenarioIds, { video = true } = {}) {
-  const artifacts = [];
-  for (const id of scenarioIds) {
-    artifacts.push(`${id}.png`);
-    if (video) artifacts.push(`${id}.webm`);
-  }
-  return artifacts;
+export function expectedSnapshotArtifacts(scenarioIds) {
+  return scenarioIds.map((id) => `${id}.webm`);
 }
 
 export function findMissingArtifacts(expectedNames, availableNames) {
@@ -116,14 +106,14 @@ export function printHashDiff(diff, { root, snapshotsDir }) {
   const rel = (name) => relative(root, join(snapshotsDir, name));
 
   if (!hasHashDiff(diff)) {
-    console.log('\nSnapshot MD5: aucune évolution détectée.');
+    console.log('\nSnapshot MD5 (WebM): aucune évolution détectée.');
     for (const { name, hash } of diff.unchanged) {
       console.log(`  = ${rel(name)}  ${hash}`);
     }
     return;
   }
 
-  console.log('\nSnapshot MD5: évolution détectée.');
+  console.log('\nSnapshot MD5 (WebM): évolution détectée.');
 
   for (const { name, hash } of diff.unchanged) {
     console.log(`  = ${rel(name)}  ${hash}`);

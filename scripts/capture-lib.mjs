@@ -1,5 +1,5 @@
 import { execSync } from 'node:child_process';
-import { existsSync, mkdirSync, readFileSync, rmSync } from 'node:fs';
+import { existsSync, mkdirSync, readFileSync, renameSync, rmSync } from 'node:fs';
 import { join, relative, resolve } from 'node:path';
 import { chromium } from 'playwright';
 
@@ -69,6 +69,35 @@ async function waitForCaptureReady(page) {
   );
 }
 
+/** Re-encode WebM with fixed settings so MD5 is stable in the pinned Docker image. */
+export function normalizeWebmVideo(filePath) {
+  const tmp = `${filePath}.norm.webm`;
+  execSync(
+    [
+      'ffmpeg -y -loglevel error',
+      `-i "${filePath}"`,
+      '-an',
+      '-c:v libvpx',
+      '-pix_fmt yuv420p',
+      '-r 30',
+      '-g 300',
+      '-keyint_min 300',
+      '-auto-alt-ref 0',
+      '-lag-in-frames 0',
+      '-deadline good',
+      '-cpu-used 0',
+      '-b:v 2M',
+      '-threads 1',
+      '-fflags +bitexact',
+      '-flags +bitexact',
+      `"${tmp}"`,
+    ].join(' '),
+    { stdio: 'inherit' },
+  );
+  rmSync(filePath, { force: true });
+  renameSync(tmp, filePath);
+}
+
 export async function captureScenario({
   scenario,
   outDir,
@@ -121,6 +150,7 @@ export async function captureScenario({
     if (video) {
       const videoPath = join(outDir, `${prefix}.webm`);
       await video.saveAs(videoPath);
+      normalizeWebmVideo(videoPath);
       outputs.webm = videoPath;
     }
     if (videoDir) {

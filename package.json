@@ -15,7 +15,7 @@
     "capture": "node scripts/capture.mjs",
     "snapshots": "node scripts/capture-snapshots.mjs",
     "snapshots:check": "node scripts/capture-snapshots.mjs --check-only",
-    "snapshots:verify": "node scripts/capture-snapshots.mjs --verify --no-video",
+    "snapshots:verify": "node scripts/capture-snapshots.mjs --verify",
     "test": "vitest run",
     "test:watch": "vitest",
     "test:coverage": "vitest run --coverage",

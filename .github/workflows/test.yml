@@ -10,14 +10,13 @@ env:
   PLAYWRIGHT_VERSION: '1.61.1'
 
 jobs:
-  test:
+  lint:
+    name: lint
     runs-on: ubuntu-latest
-    timeout-minutes: 30
+    timeout-minutes: 15
     steps:
       - uses: actions/checkout@v4
-
       - uses: docker/setup-buildx-action@v3
-
       - name: Build dev image
         uses: docker/build-push-action@v6
         with:
@@ -29,6 +28,44 @@ jobs:
           load: true
           cache-from: type=gha,scope=doc-studio-dev
           cache-to: type=gha,mode=max,scope=doc-studio-dev
+      - run: make lint-ci
 
-      - name: CI pipeline
-        run: make ci-fast
+  test:
+    name: test
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+      - uses: docker/setup-buildx-action@v3
+      - name: Build dev image
+        uses: docker/build-push-action@v6
+        with:
+          context: .
+          file: docker/Dockerfile.dev
+          build-args: |
+            PLAYWRIGHT_VERSION=${{ env.PLAYWRIGHT_VERSION }}
+          tags: doc-studio-dev
+          load: true
+          cache-from: type=gha,scope=doc-studio-dev
+          cache-to: type=gha,mode=max,scope=doc-studio-dev
+      - run: make test-ci
+
+  snapshots-verify:
+    name: snapshots-verify
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+      - uses: docker/setup-buildx-action@v3
+      - name: Build dev image
+        uses: docker/build-push-action@v6
+        with:
+          context: .
+          file: docker/Dockerfile.dev
+          build-args: |
+            PLAYWRIGHT_VERSION=${{ env.PLAYWRIGHT_VERSION }}
+          tags: doc-studio-dev
+          load: true
+          cache-from: type=gha,scope=doc-studio-dev
+          cache-to: type=gha,mode=max,scope=doc-studio-dev
+      - run: make snapshots-verify-ci

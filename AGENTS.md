@@ -147,11 +147,12 @@ npm run capture -- --file examples/poll-moderator-flow.json
 
 ## CI expectations
 
-- `make ci` runs the full pipeline in Docker (format, lint, validate, build, test, snapshot verify).
-- GitHub Actions builds `doc-studio-dev` with layer cache, then runs `make ci-fast`.
-- Snapshot verify recaptures PNGs in the pinned Playwright image and compares them to the committed `manifest.json`.
-- After renderer changes, run `make snapshots` in Docker, then commit `tests/snapshots/*.png` and `manifest.json`.
-- WebM files are regenerated for review but are not MD5-checked (Playwright encoding is non-deterministic).
+- `make ci` runs `lint-ci`, `test-ci`, and `snapshots-verify-ci` in Docker.
+- GitHub Actions runs **three parallel jobs**: `lint`, `test`, `snapshots-verify`.
+- **Visual regression = MD5 of full-playback WebM files** in `tests/snapshots/`. Any change during the animation (typing, params, modals…) changes the hash — no manual capture frame to configure.
+- WebM is re-encoded with fixed ffmpeg settings in the Docker image so hashes are reproducible.
+- PNG files in `tests/snapshots/` are optional previews (final frame); they are **not** hashed.
+- After renderer changes, run `make snapshots` in Docker, then commit `tests/snapshots/*.webm` and `manifest.json`.
 
 ## What not to do
 
