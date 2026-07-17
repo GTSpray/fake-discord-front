@@ -200,7 +200,7 @@
                     "accessory": {
                       "type": 11,
                       "media": {
-                        "url": "https://placehold.co/80x80/png"
+                        "url": "/fixtures/poll-thumb.png"
                       }
                     }
                   },

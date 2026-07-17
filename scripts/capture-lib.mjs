@@ -54,6 +54,23 @@ function installCaptureClockInPage(fixedIso) {
   window.Date = FixedDate;
 }
 
+async function waitForCaptureReady(page) {
+  await page.evaluate(async () => {
+    await document.fonts.ready;
+  });
+  await page.waitForFunction(
+    `() => {
+      const root = document.querySelector('[data-capture-root]');
+      if (!root) return false;
+      return [...root.querySelectorAll('img')].every(
+        (img) => img.complete && img.naturalWidth > 0,
+      );
+    }`,
+    undefined,
+    { timeout: 15_000 },
+  );
+}
+
 export async function captureScenario({
   scenario,
   outDir,
@@ -94,6 +111,7 @@ export async function captureScenario({
     await page.waitForFunction('window.__SCENARIO_PLAYER__?.status === "done"', undefined, {
       timeout: 120_000,
     });
+    await waitForCaptureReady(page);
     await page.waitForTimeout(400);
 
     const pngPath = join(outDir, `${prefix}.png`);

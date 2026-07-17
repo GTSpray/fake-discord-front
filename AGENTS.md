@@ -148,7 +148,8 @@ npm run capture -- --file examples/poll-moderator-flow.json
 ## CI expectations
 
 - `npm run build` must pass on every PR.
-- `npm run snapshots:check` must pass on every PR (PNG snapshots + `manifest.json` MD5; WebM is not hashed).
+- `npm run snapshots:check` must pass on every PR (PNG MD5 vs committed `manifest.json`; WebM is not hashed).
+- Regenerate locally with `npm run snapshots` after renderer changes; CI only verifies, it does not recapture.
 - Captures are optional (manual or scheduled). Regenerate with `npm run snapshots`.
 
 ## What not to do
