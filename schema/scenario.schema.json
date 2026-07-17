@@ -28,6 +28,12 @@
           "type": "string",
           "default": "Sending command...",
           "description": "Texte du message bot différé pendant l’attente"
+        },
+        "msPerChar": {
+          "type": "integer",
+          "minimum": 1,
+          "default": 185,
+          "description": "Délai entre chaque caractère pour type et typeSlashParam (défaut 185 ms)"
         }
       }
     },
@@ -277,7 +283,7 @@
         "msPerChar": {
           "type": "integer",
           "minimum": 1,
-          "description": "Optional. Random 120–180 ms per character when omitted."
+          "description": "Optional. Hérite de defaults.msPerChar (185 ms) when omitted."
         },
         "delayBeforeMs": {
           "type": "integer",
@@ -341,7 +347,7 @@
         "msPerChar": {
           "type": "integer",
           "minimum": 1,
-          "description": "Optional. Random 120–180 ms per character when omitted."
+          "description": "Optional. Hérite de defaults.msPerChar (185 ms) when omitted."
         },
         "delayBeforeMs": {
           "type": "integer",

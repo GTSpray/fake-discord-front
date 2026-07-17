@@ -48,6 +48,27 @@ describe('ScenarioRunner', () => {
     expect(snapshot.slash).toEqual({ input: '', focused: true, suggestions: undefined });
   });
 
+  it('uses defaults.msPerChar when action omits msPerChar', async () => {
+    let capturedMsPerChar: number | undefined;
+    const runner = new ScenarioRunner(
+      makeScenario(
+        [{ type: 'focusInput' }, { type: 'type', text: '/poll' }],
+        { defaults: { msPerChar: 42 } },
+      ),
+    );
+
+    runner.subscribe((snapshot) => {
+      const ms = snapshot.state.slash?.typingAnimation?.msPerChar;
+      if (ms !== undefined) capturedMsPerChar = ms;
+    });
+
+    const playPromise = runner.play();
+    await vi.runAllTimersAsync();
+    await playPromise;
+
+    expect(capturedMsPerChar).toBe(42);
+  });
+
   it('uses the interaction author for the pending bot reply', async () => {
     const botAuthor = {
       name: 'Bot',

@@ -38,15 +38,7 @@ const DEFAULT_DELAY_BEFORE_MODAL_FIELD_MS = 900;
 /** Pause avant modale / éphémère / message bot */
 const DEFAULT_BOT_RESPONSE_MS = 1200;
 const DEFAULT_BOT_PENDING_TEXT = 'Sending command...';
-const DEFAULT_MS_PER_CHAR_MIN = 150;
-const DEFAULT_MS_PER_CHAR_MAX = 220;
-
-function randomMsPerChar(): number {
-  return (
-    Math.floor(Math.random() * (DEFAULT_MS_PER_CHAR_MAX - DEFAULT_MS_PER_CHAR_MIN + 1)) +
-    DEFAULT_MS_PER_CHAR_MIN
-  );
-}
+export const DEFAULT_MS_PER_CHAR = 185;
 
 function defaultBotAuthor(): Author {
   return { name: DEFAULT_BOT_NAME, bot: true };
@@ -453,6 +445,10 @@ export class ScenarioRunner {
     };
   }
 
+  private resolveMsPerChar(actionMsPerChar?: number): number {
+    return actionMsPerChar ?? this.scenario.defaults?.msPerChar ?? DEFAULT_MS_PER_CHAR;
+  }
+
   private resolveRevealAfter(
     action: Extract<ScenarioAction, { type: 'type' }>,
     from: string,
@@ -468,7 +464,7 @@ export class ScenarioRunner {
   }
 
   private async typeText(action: Extract<ScenarioAction, { type: 'type' }>, signal: AbortSignal) {
-    const ms = action.msPerChar ?? randomMsPerChar();
+    const ms = this.resolveMsPerChar(action.msPerChar);
     const current = this.state.slash ?? { input: '', focused: true };
     const from = current.input;
     const to = from + action.text;
@@ -556,7 +552,7 @@ export class ScenarioRunner {
     const paramIndex = this.state.slash.params.findIndex((param) => param.name === action.param);
     if (paramIndex < 0) return;
 
-    const ms = action.msPerChar ?? randomMsPerChar();
+    const ms = this.resolveMsPerChar(action.msPerChar);
     const params = this.state.slash.params.map((param) => ({ ...param }));
     const from = params[paramIndex].value ?? '';
     const to = from + action.text;

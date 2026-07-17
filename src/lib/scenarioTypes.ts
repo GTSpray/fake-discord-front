@@ -91,6 +91,8 @@ export interface ScenarioDefaults {
   botResponseMs?: number;
   /** Texte affiché pendant l’attente (défaut : « Envoi de la commande... ») */
   botPendingText?: string;
+  /** Délai entre chaque caractère pour type et typeSlashParam (défaut 185 ms) */
+  msPerChar?: number;
 }
 
 /** Message bot « en cours » affiché pendant le délai de réponse (interaction différée). */

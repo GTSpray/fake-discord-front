@@ -51,7 +51,7 @@ A playback file describes an **animated sequence**:
 
 - `chrome` — guild name, channel name, theme
 - `actions` — ordered steps (`type`, `openModal`, `clickButton`, `applyState`, …)
-- `defaults` — optional timing overrides (`botResponseMs`, `botPendingText`)
+- `defaults` — optional timing overrides (`botResponseMs`, `botPendingText`, `msPerChar`)
 - `output` — optional capture hints (`directory`, `prefix`, `video`)
 
 Bot messages use either plain `content` (user messages) or `interaction`
@@ -90,10 +90,11 @@ Defined in `src/scenario/ScenarioRunner.ts`:
 | `DEFAULT_DELAY_BEFORE_TYPING_MS`      | 1250  | `type` action and slash input already has text                                          |
 | `DEFAULT_DELAY_BEFORE_MODAL_FIELD_MS` | 900   | before each field in `fillModal`                                                        |
 | `DEFAULT_BOT_RESPONSE_MS`             | 1200  | after `pressEnter`, `submitModal`, or `clickButton` when the next action is a bot reply |
+| `DEFAULT_MS_PER_CHAR`                 | 185   | `type` and `typeSlashParam` when neither action nor `defaults.msPerChar` is set         |
 
 Override per action with `delayBeforeMs` (`type`), `delayBeforeFieldMs`
-(`fillModal`), or `responseDelayMs` on bot reply actions (`openModal`,
-`showEphemeral`, `applyState`). Scenario-wide default: `defaults.botResponseMs`.
+(`fillModal`), `msPerChar` (`type`, `typeSlashParam`), or `responseDelayMs` on bot reply actions (`openModal`,
+`showEphemeral`, `applyState`). Scenario-wide defaults: `defaults.botResponseMs`, `defaults.msPerChar`.
 
 While waiting, a deferred bot message is shown (slash invocation + animated dots
 
