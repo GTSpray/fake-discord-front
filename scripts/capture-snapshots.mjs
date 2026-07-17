@@ -28,6 +28,7 @@ import {
   findMissingArtifacts,
   hashSnapshotFiles,
   hasHashDiff,
+  listSnapshotArtifacts,
   loadManifest,
   MANIFEST_FILENAME,
   printHashDiff,
@@ -134,7 +135,10 @@ function verifySnapshotHashes({ updateManifest }) {
   const currentHashes = hashSnapshotFiles(snapshotsDir);
   const scenarioIds = listScenarioIds();
   const expectedArtifacts = expectedSnapshotArtifacts(scenarioIds);
-  const missingArtifacts = findMissingArtifacts(expectedArtifacts, Object.keys(currentHashes));
+  const missingArtifacts = findMissingArtifacts(
+    expectedArtifacts,
+    listSnapshotArtifacts(snapshotsDir),
+  );
 
   if (Object.keys(currentHashes).length === 0) {
     throw new Error(`No snapshot files found in tests/snapshots/. Run npm run snapshots first.`);

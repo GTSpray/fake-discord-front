@@ -2,10 +2,7 @@
   "algorithm": "md5",
   "files": {
     "gimme-otter.png": "c6889e0ff954efc8954893145399627f",
-    "gimme-otter.webm": "09fcccdacf5ed531ffb13f46e4b9edb9",
     "poll-moderator-flow.png": "f2cfc854d1d85ad1ed2ff918a8a7793b",
-    "poll-moderator-flow.webm": "a9970545cc2ff86deafbd15ea16aaabd",
-    "say-hello-flow.png": "edeb977cc4031db643400d52180c2c7b",
-    "say-hello-flow.webm": "6ea7a7ef191cb443b93a92fe5a686b79"
+    "say-hello-flow.png": "15ddaff8b8a29970ae053a401e46e3a4"
   }
 }

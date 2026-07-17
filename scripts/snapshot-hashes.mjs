@@ -3,11 +3,24 @@ import { existsSync, readFileSync, readdirSync, writeFileSync } from 'node:fs';
 import { join, relative } from 'node:path';
 
 export const MANIFEST_FILENAME = 'manifest.json';
-const SNAPSHOT_EXT = /\.(png|webm)$/i;
-const SNAPSHOT_FILE = /^[a-z0-9][a-z0-9-]*\.(png|webm)$/i;
+const SNAPSHOT_EXT = /\.png$/i;
+const SNAPSHOT_FILE = /^[a-z0-9][a-z0-9-]*\.png$/i;
+/** WebM captures are kept for review but not MD5-checked (Playwright encoding is non-deterministic). */
+export const SNAPSHOT_VIDEO_EXT = /\.webm$/i;
+const SNAPSHOT_VIDEO_FILE = /^[a-z0-9][a-z0-9-]*\.webm$/i;
 
 export function isSnapshotArtifact(name) {
   return SNAPSHOT_EXT.test(name) && SNAPSHOT_FILE.test(name);
+}
+
+export function isSnapshotVideoArtifact(name) {
+  return SNAPSHOT_VIDEO_EXT.test(name) && SNAPSHOT_VIDEO_FILE.test(name);
+}
+
+export function listSnapshotArtifacts(snapshotsDir) {
+  return readdirSync(snapshotsDir)
+    .filter((name) => isSnapshotArtifact(name) || isSnapshotVideoArtifact(name))
+    .sort();
 }
 
 export function md5File(filePath) {

@@ -31,6 +31,29 @@ async function waitForScenarioReady(page) {
   }
 }
 
+export const CAPTURE_FIXED_DATE_ISO = '2026-06-16T12:17:00.000Z';
+
+function installCaptureClockInPage(fixedIso) {
+  const fixedMs = Date.parse(fixedIso);
+  const OriginalDate = Date;
+
+  function FixedDate(...args) {
+    if (new.target !== undefined) {
+      if (args.length === 0) return new OriginalDate(fixedMs);
+      return new OriginalDate(...args);
+    }
+    if (args.length === 0) return OriginalDate(fixedMs);
+    return OriginalDate(...args);
+  }
+
+  FixedDate.prototype = OriginalDate.prototype;
+  FixedDate.now = () => fixedMs;
+  FixedDate.parse = OriginalDate.parse;
+  FixedDate.UTC = OriginalDate.UTC;
+  // eslint-disable-next-line no-undef
+  window.Date = FixedDate;
+}
+
 export async function captureScenario({
   scenario,
   outDir,
@@ -52,6 +75,8 @@ export async function captureScenario({
     viewport: DEFAULT_VIEWPORT,
     ...(videoDir ? { recordVideo: { dir: videoDir, size: DEFAULT_VIEWPORT } } : {}),
   });
+
+  await context.addInitScript(installCaptureClockInPage, CAPTURE_FIXED_DATE_ISO);
 
   await context.addInitScript(
     ({ key, data }) => {

@@ -8,6 +8,7 @@ import {
   findMissingArtifacts,
   hasHashDiff,
   hashSnapshotFiles,
+  listSnapshotArtifacts,
   md5File,
 } from '../../scripts/snapshot-hashes.mjs';
 
@@ -20,14 +21,14 @@ describe('snapshot-hashes', () => {
     expect(md5File(filePath)).toBe('5d41402abc4b2a76b9719d911017c592');
   });
 
-  it('hashes only png and webm files in a directory', () => {
+  it('hashes only png files in a directory', () => {
     const dir = mkdtempSync(join(tmpdir(), 'snapshot-hash-'));
     writeFileSync(join(dir, 'a.png'), 'png');
     writeFileSync(join(dir, 'b.webm'), 'webm');
     writeFileSync(join(dir, 'manifest.json'), '{}');
     writeFileSync(join(dir, 'notes.txt'), 'ignore');
 
-    expect(Object.keys(hashSnapshotFiles(dir)).sort()).toEqual(['a.png', 'b.webm']);
+    expect(Object.keys(hashSnapshotFiles(dir)).sort()).toEqual(['a.png']);
   });
 
   it('detects added, changed, removed and unchanged files', () => {
@@ -48,6 +49,15 @@ describe('snapshot-hashes', () => {
     expect(diff.added).toEqual([{ name: 'new.png', hash: '444' }]);
     expect(diff.removed).toEqual([]);
     expect(hasHashDiff(diff)).toBe(true);
+  });
+
+  it('lists png and webm artifacts on disk', () => {
+    const dir = mkdtempSync(join(tmpdir(), 'snapshot-hash-'));
+    writeFileSync(join(dir, 'a.png'), 'png');
+    writeFileSync(join(dir, 'b.webm'), 'webm');
+    writeFileSync(join(dir, 'manifest.json'), '{}');
+
+    expect(listSnapshotArtifacts(dir)).toEqual(['a.png', 'b.webm']);
   });
 
   it('lists missing snapshot artifacts for examples', () => {
