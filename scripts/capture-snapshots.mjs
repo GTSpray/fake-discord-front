@@ -110,6 +110,25 @@ function listScenarioIds() {
   return listExampleFiles().map((file) => readScenarioFile(join('examples', file)).scenario.id);
 }
 
+async function closeBrowser(browser) {
+  if (!browser) return;
+  await Promise.race([
+    browser.close(),
+    sleep(5_000).then(() => {
+      console.warn('browser.close() timed out after 5s — forcing exit');
+    }),
+  ]);
+}
+
+async function stopPreviewServer(previewProc) {
+  if (!previewProc) return;
+  previewProc.kill('SIGTERM');
+  await Promise.race([new Promise((resolve) => previewProc.once('exit', resolve)), sleep(2000)]);
+  if (!previewProc.killed) {
+    previewProc.kill('SIGKILL');
+  }
+}
+
 function verifySnapshotHashes({ updateManifest }) {
   const previousManifest = loadManifest(manifestPath);
   const currentHashes = hashSnapshotFiles(snapshotsDir);
@@ -151,8 +170,7 @@ function verifySnapshotHashes({ updateManifest }) {
 
 async function captureSnapshots() {
   if (checkOnly) {
-    process.exitCode = verifySnapshotHashes({ updateManifest: false });
-    return;
+    process.exit(verifySnapshotHashes({ updateManifest: false }));
   }
 
   if (!values['skip-build']) {
@@ -167,10 +185,14 @@ async function captureSnapshots() {
     process.exit(2);
   }
 
-  const previewProc = await startPreviewServer(requestedBaseUrl);
-  const browser = await chromium.launch();
+  let exitCode = 0;
+  let previewProc;
+  let browser;
 
   try {
+    previewProc = await startPreviewServer(requestedBaseUrl);
+    browser = await chromium.launch();
+
     console.log(`Capturing ${files.length} example(s) → tests/snapshots/`);
 
     for (const file of files) {
@@ -191,20 +213,13 @@ async function captureSnapshots() {
     }
 
     console.log(`\n${files.length} snapshot(s) written to tests/snapshots/.`);
-    process.exitCode = verifySnapshotHashes({ updateManifest: true });
+    exitCode = verifySnapshotHashes({ updateManifest: true });
   } finally {
-    await browser.close();
-    if (previewProc) {
-      previewProc.kill('SIGTERM');
-      await Promise.race([
-        new Promise((resolve) => previewProc.once('exit', resolve)),
-        sleep(2000),
-      ]);
-      if (!previewProc.killed) {
-        previewProc.kill('SIGKILL');
-      }
-    }
+    await closeBrowser(browser);
+    await stopPreviewServer(previewProc);
   }
+
+  process.exit(exitCode);
 }
 
 captureSnapshots().catch((err) => {
