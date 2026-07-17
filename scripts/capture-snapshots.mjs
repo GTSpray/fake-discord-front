@@ -185,7 +185,6 @@ async function captureSnapshots() {
     process.exit(2);
   }
 
-  let exitCode = 0;
   let previewProc;
   let browser;
 
@@ -213,13 +212,14 @@ async function captureSnapshots() {
     }
 
     console.log(`\n${files.length} snapshot(s) written to tests/snapshots/.`);
-    exitCode = verifySnapshotHashes({ updateManifest: true });
+    const exitCode = verifySnapshotHashes({ updateManifest: true });
+    process.exit(exitCode);
   } finally {
     await closeBrowser(browser);
     await stopPreviewServer(previewProc);
   }
 
-  process.exit(exitCode);
+  process.exit(0);
 }
 
 captureSnapshots().catch((err) => {
