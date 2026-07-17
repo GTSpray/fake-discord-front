@@ -53,10 +53,10 @@ const { values } = parseArgs({
   },
 });
 
-const recordVideo = verifyMode || !values['no-video'];
 const requestedBaseUrl = values['base-url'] ?? DEFAULT_BASE_URL;
 const checkOnly = values['check-only'];
 const verifyMode = values.verify;
+const recordVideo = verifyMode || !values['no-video'];
 
 async function waitForServer(url, timeoutMs = 60_000) {
   const deadline = Date.now() + timeoutMs;

@@ -1,8 +1,9 @@
 {
   "algorithm": "md5",
+  "artifact": "webm",
   "files": {
-    "gimme-otter.png": "51db6604d6e3ff3f5f77e9b74a260e41",
-    "poll-moderator-flow.png": "1910d173921ace36ffa32adb4b1b3c0a",
-    "say-hello-flow.png": "75b0c0125c59493bdc9f77f9128c34ea"
+    "gimme-otter.webm": "4c6fb7b76f574346a29f2773f893b943",
+    "poll-moderator-flow.webm": "935a990f727db1408b3a2ba72c87a4d7",
+    "say-hello-flow.webm": "25db315bccd9b51cb651f35921b32051"
   }
 }

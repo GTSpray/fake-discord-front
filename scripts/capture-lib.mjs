@@ -1,4 +1,4 @@
-import { execSync } from 'node:child_process';
+import { execFileSync, execSync } from 'node:child_process';
 import { existsSync, mkdirSync, readFileSync, renameSync, rmSync } from 'node:fs';
 import { join, relative, resolve } from 'node:path';
 import { chromium } from 'playwright';
@@ -70,28 +70,59 @@ async function waitForCaptureReady(page) {
 }
 
 /** Re-encode WebM with fixed settings so MD5 is stable in the pinned Docker image. */
+export function resolveFfmpegBinary() {
+  if (process.env.FFMPEG_PATH && existsSync(process.env.FFMPEG_PATH)) {
+    return process.env.FFMPEG_PATH;
+  }
+  try {
+    return execSync('command -v ffmpeg', { encoding: 'utf8' }).trim();
+  } catch {
+    throw new Error(
+      'ffmpeg not found. Use the doc-studio-dev Docker image (make snapshots) or install ffmpeg on the host.',
+    );
+  }
+}
+
 export function normalizeWebmVideo(filePath) {
+  const ffmpeg = resolveFfmpegBinary();
   const tmp = `${filePath}.norm.webm`;
-  execSync(
+  execFileSync(
+    ffmpeg,
     [
-      'ffmpeg -y -loglevel error',
-      `-i "${filePath}"`,
+      '-y',
+      '-loglevel',
+      'error',
+      '-i',
+      filePath,
       '-an',
-      '-c:v libvpx',
-      '-pix_fmt yuv420p',
-      '-r 30',
-      '-g 300',
-      '-keyint_min 300',
-      '-auto-alt-ref 0',
-      '-lag-in-frames 0',
-      '-deadline good',
-      '-cpu-used 0',
-      '-b:v 2M',
-      '-threads 1',
-      '-fflags +bitexact',
-      '-flags +bitexact',
-      `"${tmp}"`,
-    ].join(' '),
+      '-c:v',
+      'libvpx',
+      '-pix_fmt',
+      'yuv420p',
+      '-r',
+      '30',
+      '-g',
+      '300',
+      '-keyint_min',
+      '300',
+      '-auto-alt-ref',
+      '0',
+      '-lag-in-frames',
+      '0',
+      '-deadline',
+      'good',
+      '-cpu-used',
+      '0',
+      '-b:v',
+      '2M',
+      '-threads',
+      '1',
+      '-fflags',
+      '+bitexact',
+      '-flags',
+      '+bitexact',
+      tmp,
+    ],
     { stdio: 'inherit' },
   );
   rmSync(filePath, { force: true });
