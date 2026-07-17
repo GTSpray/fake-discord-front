@@ -51,10 +51,9 @@ describe('ScenarioRunner', () => {
   it('uses defaults.msPerChar when action omits msPerChar', async () => {
     let capturedMsPerChar: number | undefined;
     const runner = new ScenarioRunner(
-      makeScenario(
-        [{ type: 'focusInput' }, { type: 'type', text: '/poll' }],
-        { defaults: { msPerChar: 42 } },
-      ),
+      makeScenario([{ type: 'focusInput' }, { type: 'type', text: '/poll' }], {
+        defaults: { msPerChar: 42 },
+      }),
     );
 
     runner.subscribe((snapshot) => {
