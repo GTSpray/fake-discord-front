@@ -24,7 +24,7 @@ DOCKER_RUN = docker run --rm $(DOCKER_USER) \
 	$(DOCKER_IMAGE)
 
 .PHONY: help docker-build docker-build-capture install build test lint format-check \
-        validate snapshots snapshots-refresh snapshots-refresh snapshots-verify \
+        validate snapshots snapshots-refresh snapshots-refresh-ci snapshots-verify \
         ci ci-fast lint-ci test-ci clean
 
 help:
@@ -37,7 +37,7 @@ help:
 	@echo "  make lint                  ESLint (in Docker)"
 	@echo "  make format-check          Prettier check (in Docker)"
 	@echo "  make validate              Validate example JSON files"
-	@echo "  make snapshots-refresh     Refresh snapshots (exit 0 if none, 1 if updated)"
+	@echo "  make snapshots-refresh     Refresh snapshots (exit 0 if none, 1 if updated; max 2 retries)"
 	@echo "  make ci                    Run lint-ci, test-ci, and snapshots-refresh"
 	@echo "  make lint-ci               format:check + lint (CI job)"
 	@echo "  make test-ci               validate + build + test (CI job)"

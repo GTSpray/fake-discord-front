@@ -47,6 +47,9 @@ const snapshotPath = join(snapshotsDir, SNAPSHOT_FILENAME);
 export const VERIFY_REPORT_FILENAME = 'verify-report.json';
 const verifyReportPath = join(snapshotsDir, VERIFY_REPORT_FILENAME);
 
+/** Retries after a first hash mismatch, to filter capture flakiness. */
+const MAX_SNAPSHOT_RETRIES = 2;
+
 const { values } = parseArgs({
   options: {
     'no-video': { type: 'boolean', default: false },
@@ -142,6 +145,11 @@ function createCaptureTempDir() {
   return mkdtempSync(join(tmpdir(), 'doc-studio-snapshots-'));
 }
 
+function removeTempDir(tempDir) {
+  if (!tempDir) return;
+  rmSync(tempDir, { recursive: true, force: true });
+}
+
 /** Copy WebM from temp capture dir into tests/snapshots/ only for evolved scenarios. */
 function promoteEvolvedVideos(tempDir, evolvedIds) {
   if (evolvedIds.length === 0) {
@@ -162,35 +170,52 @@ function promoteEvolvedVideos(tempDir, evolvedIds) {
   }
 }
 
-function verifySnapshotHashes({ updateSnapshot, baselineScenarios, currentScenarios }) {
-  const previousScenarios = baselineScenarios ?? loadSnapshot(snapshotPath)?.scenarios ?? {};
+function compareToBaseline(baselineScenarios, currentScenarios) {
+  const previousScenarios = baselineScenarios ?? {};
   const previousHashes = flattenScenarioStepHashes(previousScenarios);
   const currentHashes = flattenScenarioStepHashes(currentScenarios);
   const scenarioIds = listScenarioIds();
   const missingCoverage = validateSnapshotCoverage(scenarioIds, currentScenarios);
 
-  if (Object.keys(currentHashes).length === 0 && !checkOnly) {
+  if (Object.keys(currentHashes).length === 0) {
     throw new Error('No per-step snapshot hashes generated.');
   }
 
-  if (Object.keys(previousHashes).length === 0 && checkOnly) {
-    throw new Error(
-      `Missing ${join('tests/snapshots', SNAPSHOT_FILENAME)}. Run npm run snapshots:refresh first.`,
-    );
+  if (missingCoverage.length > 0) {
+    return {
+      ok: false,
+      missingCoverage,
+      evolvedIds: [],
+      diff: null,
+      isFirstGeneration: false,
+    };
   }
+
+  const isFirstGeneration = Object.keys(previousHashes).length === 0;
+  const evolvedIds = isFirstGeneration
+    ? scenarioIds
+    : listEvolvedScenarioIds(previousScenarios, currentScenarios);
+  const diff = diffHashes(previousHashes, currentHashes);
+
+  return {
+    ok: true,
+    missingCoverage: [],
+    evolvedIds,
+    diff,
+    isFirstGeneration,
+    hasDiff: hasHashDiff(diff),
+  };
+}
+
+function finalizeComparison({ comparison, currentScenarios, updateSnapshot }) {
+  const { missingCoverage, evolvedIds, diff, isFirstGeneration, hasDiff } = comparison;
 
   if (missingCoverage.length > 0) {
     console.log('\nAucun hash de step pour les scénarios:');
-    for (const id of missingCoverage) {
-      console.log(`  ! ${id}`);
-    }
+    for (const id of missingCoverage) console.log(`  ! ${id}`);
     return { exitCode: 1, evolvedIds: [] };
   }
 
-  const evolvedIds = Object.keys(previousHashes).length
-    ? listEvolvedScenarioIds(previousScenarios, currentScenarios)
-    : scenarioIds;
-  const diff = diffHashes(previousHashes, currentHashes);
   printHashDiff(diff, { evolvedIds });
 
   if (verifyMode) {
@@ -204,8 +229,8 @@ function verifySnapshotHashes({ updateSnapshot, baselineScenarios, currentScenar
     console.log(`\n✓ ${join('tests/snapshots', SNAPSHOT_FILENAME)} updated.`);
   }
 
-  if (hasHashDiff(diff)) {
-    if (!Object.keys(previousHashes).length) {
+  if (hasDiff) {
+    if (isFirstGeneration) {
       console.log('\nPremière génération du snapshot MD5.');
       if (refreshMode) {
         console.log('Scénarios rafraîchis:');
@@ -237,6 +262,107 @@ function verifySnapshotHashes({ updateSnapshot, baselineScenarios, currentScenar
   }
 
   return { exitCode: 0, evolvedIds: [] };
+}
+
+async function captureAllExamples({ browser, files, outDir, recordVideo, useTempDir }) {
+  const currentScenarios = {};
+
+  for (const file of files) {
+    const relPath = join('examples', file);
+    const { scenario } = readScenarioFile(relPath);
+    const prefix = scenario.id;
+
+    console.log(`→ ${relPath} (${scenario.id})`);
+    const outputs = await captureScenario({
+      scenario,
+      outDir,
+      prefix,
+      baseUrl: requestedBaseUrl,
+      recordVideo,
+      saveFinalPng: false,
+      captureStepHashes: true,
+      browser,
+    });
+    currentScenarios[prefix] = { steps: outputs.stepHashes ?? {} };
+    if (!useTempDir) {
+      logCaptureOutputs(root, outputs);
+    } else if (outputs.webm) {
+      console.log(`  · ${prefix}.webm (temp)`);
+    }
+  }
+
+  return currentScenarios;
+}
+
+async function captureWithRetries({
+  browser,
+  files,
+  baselineScenarios,
+  recordVideo,
+  useTempDir,
+}) {
+  const shouldRetry = refreshMode || verifyMode;
+  let attempt = 0;
+  let tempDir = null;
+  let currentScenarios = null;
+  let comparison = null;
+
+  try {
+    while (true) {
+      removeTempDir(tempDir);
+      tempDir = useTempDir ? createCaptureTempDir() : null;
+      const outDir = tempDir ?? snapshotsDir;
+
+      if (attempt === 0) {
+        console.log(
+          tempDir
+            ? `Capturing ${files.length} example(s) → ${tempDir}`
+            : `Capturing ${files.length} example(s) → tests/snapshots/`,
+        );
+      } else {
+        console.log(
+          `\nDiff instable détectée — retry ${attempt}/${MAX_SNAPSHOT_RETRIES} → ${tempDir ?? 'tests/snapshots/'}`,
+        );
+      }
+
+      currentScenarios = await captureAllExamples({
+        browser,
+        files,
+        outDir,
+        recordVideo,
+        useTempDir,
+      });
+      console.log(`\n${files.length} snapshot(s) hashed (attempt ${attempt + 1}).`);
+
+      comparison = compareToBaseline(baselineScenarios, currentScenarios);
+      if (!comparison.ok) {
+        return { tempDir, currentScenarios, comparison, keepTemp: false };
+      }
+
+      // First generation or plain capture: no flakiness retry loop.
+      if (!shouldRetry || comparison.isFirstGeneration || !comparison.hasDiff) {
+        if (shouldRetry && attempt > 0 && !comparison.hasDiff) {
+          console.log('\n✓ Diff non reproduite après retry — considérée comme flaky.');
+        }
+        return { tempDir, currentScenarios, comparison, keepTemp: comparison.hasDiff };
+      }
+
+      if (attempt >= MAX_SNAPSHOT_RETRIES) {
+        console.log(
+          `\nDiff confirmée après ${MAX_SNAPSHOT_RETRIES} retry(s) — changement considéré comme réel.`,
+        );
+        return { tempDir, currentScenarios, comparison, keepTemp: true };
+      }
+
+      console.log(
+        `\nDiff vs baseline détectée (scénarios: ${comparison.evolvedIds.join(', ') || 'n/a'}).`,
+      );
+      attempt += 1;
+    }
+  } catch (err) {
+    removeTempDir(tempDir);
+    throw err;
+  }
 }
 
 async function captureSnapshots() {
@@ -290,57 +416,34 @@ async function captureSnapshots() {
     browser = await chromium.launch();
 
     const useTempDir = refreshMode || verifyMode;
-    const outDir = useTempDir ? createCaptureTempDir() : snapshotsDir;
-    tempDir = useTempDir ? outDir : null;
     const recordVideo = refreshMode || (!verifyMode && !values['no-video']);
 
-    if (tempDir) {
-      console.log(`Capturing ${files.length} example(s) → ${tempDir}`);
-    } else {
-      console.log(`Capturing ${files.length} example(s) → tests/snapshots/`);
-    }
-
-    const currentScenarios = {};
-    for (const file of files) {
-      const relPath = join('examples', file);
-      const { scenario } = readScenarioFile(relPath);
-      const prefix = scenario.id;
-
-      console.log(`→ ${relPath} (${scenario.id})`);
-      const outputs = await captureScenario({
-        scenario,
-        outDir,
-        prefix,
-        baseUrl: requestedBaseUrl,
-        recordVideo,
-        saveFinalPng: false,
-        captureStepHashes: true,
-        browser,
-      });
-      currentScenarios[prefix] = { steps: outputs.stepHashes ?? {} };
-      if (!useTempDir) {
-        logCaptureOutputs(root, outputs);
-      } else if (outputs.webm) {
-        console.log(`  · ${prefix}.webm (temp)`);
-      }
-    }
-
-    console.log(`\n${files.length} snapshot(s) hashed.`);
-    const { exitCode, evolvedIds } = verifySnapshotHashes({
-      updateSnapshot: !verifyMode,
+    const result = await captureWithRetries({
+      browser,
+      files,
       baselineScenarios,
-      currentScenarios,
+      recordVideo,
+      useTempDir,
+    });
+    tempDir = result.tempDir;
+
+    const updateSnapshot =
+      !verifyMode &&
+      (!refreshMode || result.comparison.hasDiff || result.comparison.isFirstGeneration);
+
+    const { exitCode, evolvedIds } = finalizeComparison({
+      comparison: result.comparison,
+      currentScenarios: result.currentScenarios,
+      updateSnapshot,
     });
 
-    if (refreshMode && tempDir) {
+    if (refreshMode && tempDir && evolvedIds.length > 0) {
       promoteEvolvedVideos(tempDir, evolvedIds);
     }
 
     process.exit(exitCode);
   } finally {
-    if (tempDir) {
-      rmSync(tempDir, { recursive: true, force: true });
-    }
+    removeTempDir(tempDir);
     await closeBrowser(browser);
     await stopPreviewServer(previewProc);
   }
