@@ -216,6 +216,52 @@ export function normalizeWebmVideo(filePath) {
   renameSync(tmp, filePath);
 }
 
+async function createCaptureContext(browser, { scenario, videoDir = null }) {
+  const context = await browser.newContext({
+    viewport: DEFAULT_VIEWPORT,
+    ...(videoDir ? { recordVideo: { dir: videoDir, size: DEFAULT_VIEWPORT } } : {}),
+  });
+
+  await context.addInitScript(installCaptureClockInPage, CAPTURE_FIXED_DATE_ISO);
+  await context.addInitScript(
+    ({ key, data }) => {
+      sessionStorage.setItem(key, data);
+    },
+    { key: UPLOAD_SCENARIO_STORAGE_KEY, data: JSON.stringify(scenario) },
+  );
+
+  return context;
+}
+
+/**
+ * Play a scenario once.
+ * - captureSteps: short-circuit animations, pause per action, return step PNG MD5s
+ * - otherwise: full playback (typing animations included)
+ */
+async function playScenarioCapture(page, { baseUrl, captureSteps = false }) {
+  const captureUrl = new URL(baseUrl);
+  captureUrl.searchParams.set('capture', '1');
+  captureUrl.searchParams.set('autoplay', '1');
+  if (captureSteps) {
+    captureUrl.searchParams.set('capture_steps', '1');
+  }
+
+  await page.goto(captureUrl.toString(), { waitUntil: 'networkidle' });
+  await waitForScenarioReady(page);
+  await waitForCaptureReady(page);
+
+  if (captureSteps) {
+    await disableRuntimeAnimations(page);
+    return captureStepPngHashes(page);
+  }
+
+  await page.waitForFunction('window.__SCENARIO_PLAYER__?.status === "done"', undefined, {
+    timeout: 120_000,
+  });
+  await page.waitForTimeout(400);
+  return null;
+}
+
 export async function captureScenario({
   scenario,
   outDir,
@@ -230,66 +276,60 @@ export async function captureScenario({
 
   const ownsBrowser = !browser;
   const activeBrowser = browser ?? (await chromium.launch());
-  const videoDir = recordVideo ? join(outDir, `.capture-video-${prefix}`) : null;
-  if (videoDir) {
-    mkdirSync(videoDir, { recursive: true });
-  }
-
-  const context = await activeBrowser.newContext({
-    viewport: DEFAULT_VIEWPORT,
-    ...(videoDir ? { recordVideo: { dir: videoDir, size: DEFAULT_VIEWPORT } } : {}),
-  });
-
-  await context.addInitScript(installCaptureClockInPage, CAPTURE_FIXED_DATE_ISO);
-
-  await context.addInitScript(
-    ({ key, data }) => {
-      sessionStorage.setItem(key, data);
-    },
-    { key: UPLOAD_SCENARIO_STORAGE_KEY, data: JSON.stringify(scenario) },
-  );
-
-  const page = await context.newPage();
   const outputs = { png: null, webm: null, stepHashes: null };
 
   try {
-    const captureUrl = new URL(baseUrl);
-    captureUrl.searchParams.set('capture', '1');
-    captureUrl.searchParams.set('autoplay', '1');
+    // Step hashes need capture_steps (no typing). WebM needs full playback.
+    // When both are requested, run two passes so review videos keep typingAnimation.
     if (captureStepHashes) {
-      captureUrl.searchParams.set('capture_steps', '1');
+      const hashContext = await createCaptureContext(activeBrowser, { scenario });
+      try {
+        const hashPage = await hashContext.newPage();
+        outputs.stepHashes = await playScenarioCapture(hashPage, {
+          baseUrl,
+          captureSteps: true,
+        });
+        if (saveFinalPng && !recordVideo) {
+          const pngPath = join(outDir, `${prefix}.png`);
+          await hashPage.locator('[data-capture-root]').screenshot({ path: pngPath });
+          outputs.png = pngPath;
+        }
+      } finally {
+        await hashContext.close();
+      }
     }
-    await page.goto(captureUrl.toString(), { waitUntil: 'networkidle' });
-    await waitForScenarioReady(page);
-    await waitForCaptureReady(page);
 
-    if (captureStepHashes) {
-      await disableRuntimeAnimations(page);
-      outputs.stepHashes = await captureStepPngHashes(page);
-    }
+    if (recordVideo || (saveFinalPng && !outputs.png)) {
+      const videoDir = recordVideo ? join(outDir, `.capture-video-${prefix}`) : null;
+      if (videoDir) {
+        mkdirSync(videoDir, { recursive: true });
+      }
 
-    await page.waitForFunction('window.__SCENARIO_PLAYER__?.status === "done"', undefined, {
-      timeout: 120_000,
-    });
-    await page.waitForTimeout(400);
+      const playContext = await createCaptureContext(activeBrowser, { scenario, videoDir });
+      const playPage = await playContext.newPage();
+      const pageVideo = recordVideo ? playPage.video() : null;
+      try {
+        await playScenarioCapture(playPage, { baseUrl, captureSteps: false });
 
-    if (saveFinalPng) {
-      const pngPath = join(outDir, `${prefix}.png`);
-      await page.locator('[data-capture-root]').screenshot({ path: pngPath });
-      outputs.png = pngPath;
+        if (saveFinalPng && !outputs.png) {
+          const pngPath = join(outDir, `${prefix}.png`);
+          await playPage.locator('[data-capture-root]').screenshot({ path: pngPath });
+          outputs.png = pngPath;
+        }
+      } finally {
+        await playContext.close();
+        if (pageVideo) {
+          const videoPath = join(outDir, `${prefix}.webm`);
+          await pageVideo.saveAs(videoPath);
+          normalizeWebmVideo(videoPath);
+          outputs.webm = videoPath;
+        }
+        if (videoDir) {
+          rmSync(videoDir, { recursive: true, force: true });
+        }
+      }
     }
   } finally {
-    const video = recordVideo ? page.video() : null;
-    await context.close();
-    if (video) {
-      const videoPath = join(outDir, `${prefix}.webm`);
-      await video.saveAs(videoPath);
-      normalizeWebmVideo(videoPath);
-      outputs.webm = videoPath;
-    }
-    if (videoDir) {
-      rmSync(videoDir, { recursive: true, force: true });
-    }
     if (ownsBrowser) {
       await activeBrowser.close();
     }

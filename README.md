@@ -59,8 +59,10 @@ All payload data (`modal`, `ephemeral`, `layers`, `userMessage`, etc.) must be
 ## Snapshots (visual regression)
 
 Only **evolved** WebM files are updated after a refresh. Capture runs in a temp directory;
-step PNG frames are hashed (MD5) into `tests/snapshots/snapshot.json`. When hashes differ,
-the matching WebM files are copied into `tests/snapshots/` — existing videos are never deleted.
+step PNG frames are hashed (MD5) into `tests/snapshots/snapshot.json` (stable, no typing
+animation). When hashes differ, matching WebMs are copied into `tests/snapshots/` — those
+videos are recorded in a second full-playback pass (typing included). Existing videos are
+never deleted.
 
 ```bash
 make docker-build

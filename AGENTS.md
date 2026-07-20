@@ -152,6 +152,7 @@ npm run capture -- --file examples/poll-moderator-flow.json
 - **Visual regression = MD5 of per-step PNG captures** stored in `tests/snapshots/snapshot.json`. Step PNGs are generated during capture only (not versioned).
 - **Versioned artifacts**: `tests/snapshots/snapshot.json` (CI gate) + `tests/snapshots/*.webm` for human review (updated only when step hashes evolve).
 - Capture uses `?capture=1&capture_steps=1` to pause after each action and hash a stable frame.
+- Snapshot WebMs are recorded in a **second pass** without `capture_steps`, so typing animations remain visible for review.
 - `make snapshots-refresh`: capture in a temp dir, update `snapshot.json`, copy only evolved WebMs. On hash mismatch, retry capture up to **2 times** to filter flakiness. **Exit 0** if nothing to refresh, **exit 1** if snapshots were refreshed (commit them). Existing videos are never deleted.
 
 ## What not to do
