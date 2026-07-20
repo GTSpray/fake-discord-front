@@ -294,20 +294,15 @@ async function captureAllExamples({ browser, files, outDir, recordVideo, useTemp
   return currentScenarios;
 }
 
-async function captureWithRetries({
-  browser,
-  files,
-  baselineScenarios,
-  recordVideo,
-  useTempDir,
-}) {
-  const shouldRetry = refreshMode || verifyMode;
-  let attempt = 0;
+async function captureWithRetries({ browser, files, baselineScenarios, recordVideo, useTempDir }) {
   let tempDir = null;
-  let currentScenarios = null;
-  let comparison = null;
-
   try {
+    const shouldRetry = refreshMode || verifyMode;
+    let attempt = 0;
+
+    let currentScenarios = null;
+    let comparison = null;
+
     while (true) {
       removeTempDir(tempDir);
       tempDir = useTempDir ? createCaptureTempDir() : null;
