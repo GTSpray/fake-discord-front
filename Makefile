@@ -65,6 +65,11 @@ test: docker-build
 	$(DOCKER_RUN) npm ci
 	$(DOCKER_RUN) npm test
 
+pretty: 
+	$(DOCKER_RUN) npm ci
+	$(DOCKER_RUN) npm run lint
+	$(DOCKER_RUN) npm run format
+
 lint: docker-build
 	$(DOCKER_RUN) npm ci
 	$(DOCKER_RUN) npm run lint
