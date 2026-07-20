@@ -3,17 +3,17 @@ import { existsSync, readFileSync, readdirSync, writeFileSync } from 'node:fs';
 import { join, relative } from 'node:path';
 
 export const MANIFEST_FILENAME = 'manifest.json';
-/** Full-playback WebM captures — MD5 detects any visual change during the scenario. */
-export const SNAPSHOT_VIDEO_EXT = /\.webm$/i;
-const SNAPSHOT_VIDEO_FILE = /^[a-z0-9][a-z0-9-]*\.webm$/i;
+/** Final-frame PNG captures are stable across runs and safe to gate in CI. */
+export const SNAPSHOT_IMAGE_EXT = /\.png$/i;
+const SNAPSHOT_IMAGE_FILE = /^[a-z0-9][a-z0-9-]*\.png$/i;
 
-export function isSnapshotVideoArtifact(name) {
-  return SNAPSHOT_VIDEO_EXT.test(name) && SNAPSHOT_VIDEO_FILE.test(name);
+export function isSnapshotImageArtifact(name) {
+  return SNAPSHOT_IMAGE_EXT.test(name) && SNAPSHOT_IMAGE_FILE.test(name);
 }
 
 export function listSnapshotArtifacts(snapshotsDir) {
   return readdirSync(snapshotsDir)
-    .filter((name) => isSnapshotVideoArtifact(name))
+    .filter((name) => isSnapshotImageArtifact(name))
     .sort();
 }
 
@@ -27,7 +27,7 @@ export function hashSnapshotFiles(snapshotsDir) {
   const files = {};
 
   for (const name of readdirSync(snapshotsDir).sort()) {
-    if (!isSnapshotVideoArtifact(name)) continue;
+    if (!isSnapshotImageArtifact(name)) continue;
     files[name] = md5File(join(snapshotsDir, name));
   }
 
@@ -48,7 +48,7 @@ export function loadManifest(manifestPath) {
 export function writeManifest(manifestPath, files) {
   const payload = {
     algorithm: 'md5',
-    artifact: 'webm',
+    artifact: 'png',
     files,
   };
   writeFileSync(manifestPath, `${JSON.stringify(payload, null, 2)}\n`);
@@ -86,7 +86,7 @@ export function hasHashDiff(diff) {
 }
 
 export function expectedSnapshotArtifacts(scenarioIds) {
-  return scenarioIds.map((id) => `${id}.webm`);
+  return scenarioIds.map((id) => `${id}.png`);
 }
 
 export function findMissingArtifacts(expectedNames, availableNames) {
@@ -106,14 +106,14 @@ export function printHashDiff(diff, { root, snapshotsDir }) {
   const rel = (name) => relative(root, join(snapshotsDir, name));
 
   if (!hasHashDiff(diff)) {
-    console.log('\nSnapshot MD5 (WebM): aucune évolution détectée.');
+    console.log('\nSnapshot MD5 (PNG): aucune évolution détectée.');
     for (const { name, hash } of diff.unchanged) {
       console.log(`  = ${rel(name)}  ${hash}`);
     }
     return;
   }
 
-  console.log('\nSnapshot MD5 (WebM): évolution détectée.');
+  console.log('\nSnapshot MD5 (PNG): évolution détectée.');
 
   for (const { name, hash } of diff.unchanged) {
     console.log(`  = ${rel(name)}  ${hash}`);

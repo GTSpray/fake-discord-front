@@ -1,6 +1,6 @@
 #!/usr/bin/env node
 /**
- * Capture every example playback file into tests/snapshots/ and compare MD5 hashes.
+ * Capture every example playback file into tests/snapshots/ and compare PNG MD5 hashes.
  *
  * Usage:
  *   npm run snapshots
@@ -144,7 +144,7 @@ function verifySnapshotHashes({ updateManifest, baselineHashes }) {
   );
 
   if (Object.keys(currentHashes).length === 0) {
-    throw new Error(`No snapshot files found in tests/snapshots/. Run npm run snapshots first.`);
+    throw new Error(`No snapshot PNG files found in tests/snapshots/. Run npm run snapshots first.`);
   }
 
   if (missingArtifacts.length > 0) {
@@ -167,9 +167,7 @@ function verifySnapshotHashes({ updateManifest, baselineHashes }) {
       return 0;
     }
     if (verifyMode) {
-      console.log(
-        '\nLes WebM committés ne sont pas à jour. Lancez `make snapshots` puis committez.',
-      );
+      console.log('\nLes PNG committés ne sont pas à jour. Lancez `make snapshots` puis committez.');
       return 1;
     }
     console.log(
@@ -179,7 +177,7 @@ function verifySnapshotHashes({ updateManifest, baselineHashes }) {
   }
 
   if (verifyMode) {
-    console.log('\n✓ WebM committés à jour.');
+    console.log('\n✓ PNG committés à jour.');
   }
 
   return 0;

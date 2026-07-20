@@ -58,16 +58,16 @@ All payload data (`modal`, `ephemeral`, `layers`, `userMessage`, etc.) must be
 
 ## Snapshots (visual regression)
 
-Full-playback **WebM** files are hashed (MD5) to detect any visual change automatically — typing, slash params, modals, etc. Regenerate only in Docker:
+Final-frame **PNG** files are hashed (MD5) to gate visual regressions deterministically in CI. Full-playback **WebM** files are still generated for human review in PRs. Regenerate only in Docker:
 
 ```bash
 make docker-build
-make snapshots             # regenerate WebM + manifest after UX changes
-make snapshots-verify      # recapture WebM and fail if commit is stale
+make snapshots             # regenerate PNG + WebM + manifest after UX changes
+make snapshots-verify      # recapture PNG + WebM and fail if committed PNGs are stale
 make ci                    # lint + test + snapshots-verify
 ```
 
-CI runs three parallel jobs (`lint`, `test`, `snapshots-verify`). Only `snapshots-verify` compares WebM hashes.
+CI runs three parallel jobs (`lint`, `test`, `snapshots-verify`). Only `snapshots-verify` compares PNG hashes.
 
 ## Capture
 
