@@ -225,7 +225,9 @@ function verifySnapshotHashes({ updateSnapshot, baselineScenarios, currentScenar
     if (refreshMode) {
       console.log('\nÉvolution détectée. Committez snapshot.json et les WebM conservés.');
     } else {
-      console.log('\nLes snapshots ont évolué. Committez les WebM et snapshot.json si c’est voulu.');
+      console.log(
+        '\nLes snapshots ont évolué. Committez les WebM et snapshot.json si c’est voulu.',
+      );
     }
     return { exitCode: 0, evolvedIds, previousHashes };
   }
