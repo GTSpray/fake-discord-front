@@ -7,3 +7,4 @@ output/
 .env.*
 tests/snapshots/*.png
 tests/snapshots/verify-report.json
+.vscode

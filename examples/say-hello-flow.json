@@ -16,7 +16,7 @@
     }
   },
   "defaults": {
-    "msPerChar": 150
+    "msPerChar": 250
   },
   "actions": [
     {
