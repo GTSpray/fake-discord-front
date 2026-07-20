@@ -140,7 +140,10 @@ function verifySnapshotHashes({ updateSnapshot, baselineScenarios, currentScenar
   const currentHashes = flattenScenarioStepHashes(currentScenarios);
   const scenarioIds = listScenarioIds();
   const expectedArtifacts = expectedSnapshotArtifacts(scenarioIds);
-  const missingArtifacts = findMissingArtifacts(expectedArtifacts, listSnapshotVideos(snapshotsDir));
+  const missingArtifacts = findMissingArtifacts(
+    expectedArtifacts,
+    listSnapshotVideos(snapshotsDir),
+  );
   const missingCoverage = validateSnapshotCoverage(scenarioIds, currentScenarios);
 
   if (Object.keys(currentHashes).length === 0 && !checkOnly) {
@@ -148,7 +151,9 @@ function verifySnapshotHashes({ updateSnapshot, baselineScenarios, currentScenar
   }
 
   if (Object.keys(previousHashes).length === 0 && checkOnly) {
-    throw new Error(`Missing ${join('tests/snapshots', SNAPSHOT_FILENAME)}. Run npm run snapshots first.`);
+    throw new Error(
+      `Missing ${join('tests/snapshots', SNAPSHOT_FILENAME)}. Run npm run snapshots first.`,
+    );
   }
 
   if (missingArtifacts.length > 0) {
@@ -179,12 +184,12 @@ function verifySnapshotHashes({ updateSnapshot, baselineScenarios, currentScenar
       return 0;
     }
     if (verifyMode) {
-      console.log('\nLes snapshots de steps ne sont pas à jour. Lancez `make snapshots` puis committez.');
+      console.log(
+        '\nLes snapshots de steps ne sont pas à jour. Lancez `make snapshots` puis committez.',
+      );
       return 1;
     }
-    console.log(
-      '\nLes snapshots ont évolué. Committez les WebM et snapshot.json si c’est voulu.',
-    );
+    console.log('\nLes snapshots ont évolué. Committez les WebM et snapshot.json si c’est voulu.');
     return 0;
   }
 
@@ -200,7 +205,10 @@ async function captureSnapshots() {
     const scenarioIds = listScenarioIds();
     const baseline = loadSnapshot(snapshotPath)?.scenarios ?? {};
     const expectedArtifacts = expectedSnapshotArtifacts(scenarioIds);
-    const missingArtifacts = findMissingArtifacts(expectedArtifacts, listSnapshotVideos(snapshotsDir));
+    const missingArtifacts = findMissingArtifacts(
+      expectedArtifacts,
+      listSnapshotVideos(snapshotsDir),
+    );
     if (missingArtifacts.length > 0) {
       printMissingArtifacts(missingArtifacts, { root, snapshotsDir });
       process.exit(1);

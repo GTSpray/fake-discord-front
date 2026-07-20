@@ -89,7 +89,7 @@ export function printMissingArtifacts(missing, { root, snapshotsDir }) {
   }
 }
 
-export function printHashDiff(diff, { root, snapshotsDir }) {
+export function printHashDiff(diff) {
   if (!hasHashDiff(diff)) {
     console.log('\nSnapshot MD5 (step PNG): aucune évolution détectée.');
     for (const { name, hash } of diff.unchanged) {
