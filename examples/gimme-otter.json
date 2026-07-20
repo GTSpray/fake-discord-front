@@ -88,7 +88,7 @@
                       {
                         "description": "otter",
                         "media": {
-                          "url": "/fixtures/otter.png"
+                          "url": "https://placehold.co/400x300/png?text=Otter"
                         }
                       }
                     ]
