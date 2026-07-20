@@ -64,14 +64,13 @@ the matching WebM files are copied into `tests/snapshots/` — existing videos a
 
 ```bash
 make docker-build
-make snapshots-refresh     # update snapshot.json; copy WebM only for evolved scenarios
-make snapshots-verify      # recapture and fail if snapshot.json is stale
-make ci                    # lint + test + snapshots-verify
+make snapshots-refresh     # exit 0 if up to date, exit 1 if refreshed (then commit)
+make ci                    # lint + test + snapshots-refresh
 ```
 
-CI runs three parallel jobs (`lint`, `test`, `snapshots-verify`). Only `snapshots-verify`
-compares per-step PNG hashes from `snapshot.json`. WebM files are optional review
-artifacts and are not required for CI to pass.
+CI runs three parallel jobs (`lint`, `test`, `snapshots-refresh`). `snapshots-refresh`
+compares per-step PNG hashes, updates `snapshot.json`, and copies only evolved WebMs.
+Exit code 1 means the commit is stale and the refreshed files are in the CI artifact.
 
 ## Capture
 

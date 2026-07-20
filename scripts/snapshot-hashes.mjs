@@ -89,20 +89,21 @@ export function printMissingArtifacts(missing, { root, snapshotsDir }) {
   }
 }
 
-export function printHashDiff(diff) {
+export function printHashDiff(diff, { evolvedIds = [] } = {}) {
   if (!hasHashDiff(diff)) {
     console.log('\nSnapshot MD5 (step PNG): aucune évolution détectée.');
-    for (const { name, hash } of diff.unchanged) {
-      console.log(`  = ${name}  ${hash}`);
-    }
+    console.log(`  ${diff.unchanged.length} step(s) inchangé(s).`);
     return;
   }
 
   console.log('\nSnapshot MD5 (step PNG): évolution détectée.');
-
-  for (const { name, hash } of diff.unchanged) {
-    console.log(`  = ${name}  ${hash}`);
+  if (evolvedIds.length > 0) {
+    console.log(`Scénarios impactés: ${evolvedIds.join(', ')}`);
   }
+  console.log(
+    `  ~${diff.changed.length}  +${diff.added.length}  -${diff.removed.length}  =${diff.unchanged.length}`,
+  );
+
   for (const { name, hash } of diff.added) {
     console.log(`  + ${name}  ${hash}`);
   }
@@ -114,6 +115,26 @@ export function printHashDiff(diff) {
   for (const { name, hash } of diff.removed) {
     console.log(`  - ${name}  ${hash}`);
   }
+}
+
+export function buildVerifyReport({ evolvedIds, diff, currentScenarios }) {
+  return {
+    evolvedScenarioIds: evolvedIds,
+    summary: {
+      changed: diff.changed.length,
+      added: diff.added.length,
+      removed: diff.removed.length,
+      unchanged: diff.unchanged.length,
+    },
+    changed: diff.changed,
+    added: diff.added,
+    removed: diff.removed,
+    scenarios: currentScenarios,
+  };
+}
+
+export function writeVerifyReport(reportPath, report) {
+  writeFileSync(reportPath, `${JSON.stringify(report, null, 2)}\n`);
 }
 
 export function flattenScenarioStepHashes(scenarios) {

@@ -24,28 +24,28 @@ DOCKER_RUN = docker run --rm $(DOCKER_USER) \
 	$(DOCKER_IMAGE)
 
 .PHONY: help docker-build docker-build-capture install build test lint format-check \
-        validate snapshots snapshots-refresh snapshots-verify ci ci-fast lint-ci test-ci \
-        snapshots-verify-ci clean
+        validate snapshots snapshots-refresh snapshots-refresh-ci snapshots-verify \
+        ci ci-fast lint-ci test-ci clean
 
 help:
 	@echo "Doc Studio"
 	@echo ""
-	@echo "  make docker-build        Build the dev/CI image ($(DOCKER_IMAGE))"
-	@echo "  make install             npm ci (in Docker)"
-	@echo "  make build               Production build (in Docker)"
-	@echo "  make test                Unit tests (in Docker)"
-	@echo "  make lint                ESLint (in Docker)"
-	@echo "  make format-check        Prettier check (in Docker)"
-	@echo "  make validate            Validate example JSON files"
-	@echo "  make snapshots           Regenerate all WebM + snapshot.json"
-	@echo "  make snapshots-refresh   Update snapshot.json; copy WebM only when step hashes evolve"
-	@echo "  make snapshots-verify    Recapture and fail if snapshot.json is stale"
-	@echo "  make ci                  Run lint-ci, test-ci, and snapshots-verify-ci"
-	@echo "  make lint-ci             format:check + lint (CI job)"
-	@echo "  make test-ci             validate + build + test (CI job)"
-	@echo "  make snapshots-verify-ci Recapture and fail if snapshot.json is stale (CI job)"
+	@echo "  make docker-build          Build the dev/CI image ($(DOCKER_IMAGE))"
+	@echo "  make install               npm ci (in Docker)"
+	@echo "  make build                 Production build (in Docker)"
+	@echo "  make test                  Unit tests (in Docker)"
+	@echo "  make lint                  ESLint (in Docker)"
+	@echo "  make format-check          Prettier check (in Docker)"
+	@echo "  make validate              Validate example JSON files"
+	@echo "  make snapshots             Regenerate all WebM + snapshot.json"
+	@echo "  make snapshots-refresh     Refresh snapshots (exit 0 if none, 1 if updated)"
+	@echo "  make snapshots-refresh-ci  Same as snapshots-refresh for CI"
+	@echo "  make snapshots-verify      Check snapshot.json without writing"
+	@echo "  make ci                    Run lint-ci, test-ci, and snapshots-refresh-ci"
+	@echo "  make lint-ci               format:check + lint (CI job)"
+	@echo "  make test-ci               validate + build + test (CI job)"
 	@echo ""
-	@echo "  make docker-build-capture   Build remote capture CLI ($(CAPTURE_IMAGE))"
+	@echo "  make docker-build-capture  Build remote capture CLI ($(CAPTURE_IMAGE))"
 
 docker-build:
 	docker build -f $(DOCKERFILE_DEV) \
@@ -66,7 +66,7 @@ test: docker-build
 	$(DOCKER_RUN) npm ci
 	$(DOCKER_RUN) npm test
 
-pretty: 
+pretty:
 	$(DOCKER_RUN) npm ci
 	$(DOCKER_RUN) npm run lint
 	$(DOCKER_RUN) npm run format
@@ -94,29 +94,30 @@ test-ci:
 		npm test \
 	'
 
-snapshots-verify-ci:
-	$(DOCKER_RUN) sh -euc 'npm ci && npm run build && npm run snapshots:verify'
-
-ci: docker-build lint-ci test-ci snapshots-verify-ci
-
-ci-fast: lint-ci test-ci snapshots-verify-ci
-
-# Regenerates snapshots (WebM + snapshot.json) inside Docker.
-snapshots: docker-build
-	$(DOCKER_RUN) npm ci
-	$(DOCKER_RUN) npm run build
-	$(DOCKER_RUN) npm run snapshots
-
-# Updates snapshot.json; captures in /tmp then copies WebM only for evolved scenarios.
+# Capture in /tmp, update snapshot.json, copy WebM only for evolved scenarios.
+# Exit 0 = nothing to refresh. Exit 1 = snapshots were refreshed (commit them).
 snapshots-refresh: docker-build
 	$(DOCKER_RUN) npm ci
 	$(DOCKER_RUN) npm run build
 	$(DOCKER_RUN) npm run snapshots:refresh
 
+snapshots-refresh-ci:
+	$(DOCKER_RUN) sh -euc 'npm ci && npm run build && npm run snapshots:refresh'
+
 snapshots-verify: docker-build
 	$(DOCKER_RUN) npm ci
 	$(DOCKER_RUN) npm run build
 	$(DOCKER_RUN) npm run snapshots:verify
+
+# Regenerates all WebM + snapshot.json inside Docker.
+snapshots: docker-build
+	$(DOCKER_RUN) npm ci
+	$(DOCKER_RUN) npm run build
+	$(DOCKER_RUN) npm run snapshots
+
+ci: docker-build lint-ci test-ci snapshots-refresh-ci
+
+ci-fast: lint-ci test-ci snapshots-refresh-ci
 
 clean:
 	rm -rf dist node_modules coverage output

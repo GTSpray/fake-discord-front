@@ -3,6 +3,7 @@ import { join } from 'node:path';
 import { tmpdir } from 'node:os';
 import { describe, expect, it } from 'vitest';
 import {
+  buildVerifyReport,
   diffHashes,
   expectedSnapshotArtifacts,
   findMissingArtifacts,
@@ -90,5 +91,20 @@ describe('snapshot-hashes', () => {
     };
 
     expect(listEvolvedScenarioIds(previous, current)).toEqual(['added', 'changed', 'removed']);
+  });
+
+  it('builds a compact verify report', () => {
+    const previous = { a: { steps: { '000-done': 'old' } } };
+    const current = { a: { steps: { '000-done': 'new' } } };
+    const diff = diffHashes(flattenScenarioStepHashes(previous), flattenScenarioStepHashes(current));
+    const report = buildVerifyReport({
+      evolvedIds: ['a'],
+      diff,
+      currentScenarios: current,
+    });
+
+    expect(report.evolvedScenarioIds).toEqual(['a']);
+    expect(report.summary.changed).toBe(1);
+    expect(report.changed[0].name).toBe('a#000-done');
   });
 });

@@ -26,6 +26,7 @@ import {
   logCaptureOutputs,
 } from './capture-lib.mjs';
 import {
+  buildVerifyReport,
   diffHashes,
   flattenScenarioStepHashes,
   hasHashDiff,
@@ -35,6 +36,7 @@ import {
   SNAPSHOT_FILENAME,
   validateSnapshotCoverage,
   writeSnapshot,
+  writeVerifyReport,
 } from './snapshot-hashes.mjs';
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
@@ -42,6 +44,8 @@ const root = resolve(__dirname, '..');
 const examplesDir = join(root, 'examples');
 const snapshotsDir = join(root, 'tests/snapshots');
 const snapshotPath = join(snapshotsDir, SNAPSHOT_FILENAME);
+export const VERIFY_REPORT_FILENAME = 'verify-report.json';
+const verifyReportPath = join(snapshotsDir, VERIFY_REPORT_FILENAME);
 
 const { values } = parseArgs({
   options: {
@@ -183,12 +187,17 @@ function verifySnapshotHashes({ updateSnapshot, baselineScenarios, currentScenar
     return { exitCode: 1, evolvedIds: [] };
   }
 
-  const diff = diffHashes(previousHashes, currentHashes);
-  printHashDiff(diff);
-
   const evolvedIds = Object.keys(previousHashes).length
     ? listEvolvedScenarioIds(previousScenarios, currentScenarios)
     : scenarioIds;
+  const diff = diffHashes(previousHashes, currentHashes);
+  printHashDiff(diff, { evolvedIds });
+
+  if (verifyMode) {
+    const report = buildVerifyReport({ evolvedIds, diff, currentScenarios });
+    writeVerifyReport(verifyReportPath, report);
+    console.log(`\n✓ Rapport écrit: ${relative(root, verifyReportPath)}`);
+  }
 
   if (updateSnapshot) {
     writeSnapshot(snapshotPath, currentScenarios);
@@ -198,28 +207,33 @@ function verifySnapshotHashes({ updateSnapshot, baselineScenarios, currentScenar
   if (hasHashDiff(diff)) {
     if (!Object.keys(previousHashes).length) {
       console.log('\nPremière génération du snapshot MD5.');
+      if (refreshMode) {
+        console.log('Scénarios rafraîchis:');
+        for (const id of evolvedIds) console.log(`  + ${id}`);
+        return { exitCode: 1, evolvedIds };
+      }
       return { exitCode: 0, evolvedIds };
     }
     if (verifyMode) {
-      console.log(
-        '\nLes snapshots de steps ne sont pas à jour. Lancez `make snapshots-refresh` puis committez.',
-      );
+      console.log('\nScénarios à rafraîchir:');
+      for (const id of evolvedIds) console.log(`  ~ ${id}`);
+      console.log('\nLancez `make snapshots-refresh`, puis committez.');
       return { exitCode: 1, evolvedIds };
     }
     if (refreshMode) {
-      console.log('\nÉvolution détectée. Committez snapshot.json et les WebM mis à jour.');
-    } else {
-      console.log(
-        '\nLes snapshots ont évolué. Committez les WebM et snapshot.json si c’est voulu.',
-      );
+      console.log('\nScénarios rafraîchis:');
+      for (const id of evolvedIds) console.log(`  ~ ${id}`);
+      console.log('\nCommittez snapshot.json et les WebM mis à jour.');
+      return { exitCode: 1, evolvedIds };
     }
+    console.log('\nLes snapshots ont évolué. Committez les WebM et snapshot.json si c’est voulu.');
     return { exitCode: 0, evolvedIds };
   }
 
   if (verifyMode) {
     console.log('\n✓ Snapshots de steps à jour.');
   } else if (refreshMode) {
-    console.log('\nAucune évolution visuelle. snapshot.json est à jour.');
+    console.log('\n✓ Aucun snapshot à rafraîchir.');
   }
 
   return { exitCode: 0, evolvedIds: [] };

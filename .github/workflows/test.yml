@@ -50,8 +50,8 @@ jobs:
           cache-to: type=gha,mode=max,scope=doc-studio-dev
       - run: make test-ci
 
-  snapshots-verify:
-    name: snapshots-verify
+  snapshots-refresh:
+    name: snapshots-refresh
     runs-on: ubuntu-latest
     timeout-minutes: 20
     steps:
@@ -68,32 +68,12 @@ jobs:
           load: true
           cache-from: type=gha,scope=doc-studio-dev
           cache-to: type=gha,mode=max,scope=doc-studio-dev
-      - name: Verify snapshots
-        id: snapshots_verify
-        run: make snapshots-verify-ci
-        continue-on-error: true
+      - name: Refresh snapshots
+        run: make snapshots-refresh-ci
       - name: Upload snapshot artifacts
-        if: always()
+        if: failure()
         uses: actions/upload-artifact@v4
         with:
           name: snapshots-${{ github.run_id }}-${{ github.run_attempt }}
           path: tests/snapshots/
           retention-days: 7
-      - name: Summarize snapshot differences
-        if: steps.snapshots_verify.outcome == 'failure'
-        run: |
-          echo "Snapshot verification detected visual changes."
-          echo ""
-          echo "Changed files in tests/snapshots/:"
-          git status --short tests/snapshots || true
-          echo ""
-          echo "Snapshot JSON diff (if any):"
-          git diff -- tests/snapshots/snapshot.json || true
-          echo ""
-          echo "Download artifact snapshots-${{ github.run_id }}-${{ github.run_attempt }} to review."
-          echo "Then run: make snapshots-refresh"
-      - name: Fail if snapshot verification failed
-        if: steps.snapshots_verify.outcome == 'failure'
-        run: |
-          echo "Snapshot verification failed: committed snapshots are stale."
-          exit 1
