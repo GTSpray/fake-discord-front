@@ -38,11 +38,11 @@ help:
 	@echo "  make format-check        Prettier check (in Docker)"
 	@echo "  make validate            Validate example JSON files"
 	@echo "  make snapshots           Regenerate tests/snapshots/ (PNG + WebM)"
-	@echo "  make snapshots-verify    Recapture PNGs and fail if commit is stale"
+	@echo "  make snapshots-verify    Recapture WebM and fail if commit is stale"
 	@echo "  make ci                  Run lint-ci, test-ci, and snapshots-verify-ci"
 	@echo "  make lint-ci             format:check + lint (CI job)"
 	@echo "  make test-ci             validate + build + test (CI job)"
-	@echo "  make snapshots-verify-ci Recapture PNGs and fail if commit is stale (CI job)"
+	@echo "  make snapshots-verify-ci Recapture WebM and fail if commit is stale (CI job)"
 	@echo ""
 	@echo "  make docker-build-capture   Build remote capture CLI ($(CAPTURE_IMAGE))"
 

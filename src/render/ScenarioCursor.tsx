@@ -139,7 +139,7 @@ export function ScenarioCursor({
 
       const from = lastPos.current ?? defaultOrigin(canvasRef.current);
       const to = rect ? buttonCenter(rect) : from;
-      const start = performance.now();
+      let animationStart: number | null = null;
 
       await new Promise<void>((resolve) => {
         const frame = (now: number) => {
@@ -147,7 +147,10 @@ export function ScenarioCursor({
             resolve();
             return;
           }
-          const t = Math.min(1, (now - start) / MOVE_DURATION_MS);
+          // Use the rAF timeline only so capture playback remains stable
+          // regardless of when this effect starts on a given machine.
+          animationStart ??= now;
+          const t = Math.min(1, (now - animationStart) / MOVE_DURATION_MS);
           const e = easeInOutCubic(t);
           setPose({
             x: from.x + (to.x - from.x) * e,
