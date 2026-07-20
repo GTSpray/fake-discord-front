@@ -58,13 +58,13 @@ All payload data (`modal`, `ephemeral`, `layers`, `userMessage`, etc.) must be
 
 ## Snapshots (visual regression)
 
-Only **evolved** WebM files are kept for human review after a refresh. During capture,
-step-by-step **PNG** frames are generated on the fly, hashed (MD5), then stored in
-`tests/snapshots/snapshot.json` for CI verification.
+Only **evolved** WebM files are updated after a refresh. Capture runs in a temp directory;
+step PNG frames are hashed (MD5) into `tests/snapshots/snapshot.json`. When hashes differ,
+the matching WebM files are copied into `tests/snapshots/` — existing videos are never deleted.
 
 ```bash
 make docker-build
-make snapshots-refresh     # update snapshot.json; keep WebM only for evolved scenarios
+make snapshots-refresh     # update snapshot.json; copy WebM only for evolved scenarios
 make snapshots-verify      # recapture and fail if snapshot.json is stale
 make ci                    # lint + test + snapshots-verify
 ```

@@ -11,7 +11,8 @@
  *   CAPTURE_BASE_URL=http://127.0.0.1:4173 npm run snapshots
  */
 import { spawn } from 'node:child_process';
-import { existsSync, readdirSync, rmSync } from 'node:fs';
+import { copyFileSync, existsSync, mkdtempSync, readdirSync, rmSync } from 'node:fs';
+import { tmpdir } from 'node:os';
 import { dirname, join, relative, resolve } from 'node:path';
 import { setTimeout as sleep } from 'node:timers/promises';
 import { fileURLToPath } from 'node:url';
@@ -29,7 +30,6 @@ import {
   flattenScenarioStepHashes,
   hasHashDiff,
   listEvolvedScenarioIds,
-  listSnapshotVideos,
   loadSnapshot,
   printHashDiff,
   SNAPSHOT_FILENAME,
@@ -134,43 +134,27 @@ async function stopPreviewServer(previewProc) {
   }
 }
 
-function pruneUnchangedVideos(scenarioIds, evolvedIds) {
-  const evolved = new Set(evolvedIds);
-  const kept = [];
-  const removed = [];
+function createCaptureTempDir() {
+  return mkdtempSync(join(tmpdir(), 'doc-studio-snapshots-'));
+}
 
-  for (const id of scenarioIds) {
-    const videoPath = join(snapshotsDir, `${id}.webm`);
-    if (!existsSync(videoPath)) continue;
-    if (evolved.has(id)) {
-      kept.push(id);
+/** Copy WebM from temp capture dir into tests/snapshots/ only for evolved scenarios. */
+function promoteEvolvedVideos(tempDir, evolvedIds) {
+  if (evolvedIds.length === 0) {
+    console.log('\nAucune évolution: WebM existants non modifiés.');
+    return;
+  }
+
+  console.log(`\nCopie des WebM évolués → ${relative(root, snapshotsDir)}:`);
+  for (const id of evolvedIds) {
+    const from = join(tempDir, `${id}.webm`);
+    const to = join(snapshotsDir, `${id}.webm`);
+    if (!existsSync(from)) {
+      console.warn(`  ! manquant dans le temporaire: ${id}.webm`);
       continue;
     }
-    rmSync(videoPath, { force: true });
-    removed.push(id);
-  }
-
-  for (const name of listSnapshotVideos(snapshotsDir)) {
-    const id = name.replace(/\.webm$/i, '');
-    if (scenarioIds.includes(id)) continue;
-    rmSync(join(snapshotsDir, name), { force: true });
-    removed.push(id);
-  }
-
-  if (kept.length > 0) {
-    console.log('\nWebM conservés (scénarios évolués):');
-    for (const id of kept) {
-      console.log(`  ✓ ${relative(root, join(snapshotsDir, `${id}.webm`))}`);
-    }
-  } else {
-    console.log('\nAucun WebM à conserver (aucune évolution visuelle).');
-  }
-
-  if (removed.length > 0) {
-    console.log('WebM retirés (inchangés ou orphelins):');
-    for (const id of removed) {
-      console.log(`  × ${relative(root, join(snapshotsDir, `${id}.webm`))}`);
-    }
+    copyFileSync(from, to);
+    console.log(`  ✓ ${relative(root, to)}`);
   }
 }
 
@@ -196,7 +180,7 @@ function verifySnapshotHashes({ updateSnapshot, baselineScenarios, currentScenar
     for (const id of missingCoverage) {
       console.log(`  ! ${id}`);
     }
-    return { exitCode: 1, evolvedIds: [], previousHashes };
+    return { exitCode: 1, evolvedIds: [] };
   }
 
   const diff = diffHashes(previousHashes, currentHashes);
@@ -214,22 +198,22 @@ function verifySnapshotHashes({ updateSnapshot, baselineScenarios, currentScenar
   if (hasHashDiff(diff)) {
     if (!Object.keys(previousHashes).length) {
       console.log('\nPremière génération du snapshot MD5.');
-      return { exitCode: 0, evolvedIds, previousHashes };
+      return { exitCode: 0, evolvedIds };
     }
     if (verifyMode) {
       console.log(
         '\nLes snapshots de steps ne sont pas à jour. Lancez `make snapshots-refresh` puis committez.',
       );
-      return { exitCode: 1, evolvedIds, previousHashes };
+      return { exitCode: 1, evolvedIds };
     }
     if (refreshMode) {
-      console.log('\nÉvolution détectée. Committez snapshot.json et les WebM conservés.');
+      console.log('\nÉvolution détectée. Committez snapshot.json et les WebM mis à jour.');
     } else {
       console.log(
         '\nLes snapshots ont évolué. Committez les WebM et snapshot.json si c’est voulu.',
       );
     }
-    return { exitCode: 0, evolvedIds, previousHashes };
+    return { exitCode: 0, evolvedIds };
   }
 
   if (verifyMode) {
@@ -238,41 +222,7 @@ function verifySnapshotHashes({ updateSnapshot, baselineScenarios, currentScenar
     console.log('\nAucune évolution visuelle. snapshot.json est à jour.');
   }
 
-  return { exitCode: 0, evolvedIds: [], previousHashes };
-}
-
-async function captureScenarioById(browser, file) {
-  const relPath = join('examples', file);
-  const { scenario } = readScenarioFile(relPath);
-  const prefix = scenario.id;
-  console.log(`→ ${relPath} (${scenario.id})`);
-  const outputs = await captureScenario({
-    scenario,
-    outDir: snapshotsDir,
-    prefix,
-    baseUrl: requestedBaseUrl,
-    recordVideo: false,
-    saveFinalPng: false,
-    captureStepHashes: true,
-    browser,
-  });
-  return { prefix, scenario, outputs };
-}
-
-async function captureVideoForScenario(browser, scenario) {
-  const prefix = scenario.id;
-  console.log(`→ video ${prefix}`);
-  const outputs = await captureScenario({
-    scenario,
-    outDir: snapshotsDir,
-    prefix,
-    baseUrl: requestedBaseUrl,
-    recordVideo: true,
-    saveFinalPng: false,
-    captureStepHashes: false,
-    browser,
-  });
-  logCaptureOutputs(root, outputs);
+  return { exitCode: 0, evolvedIds: [] };
 }
 
 async function captureSnapshots() {
@@ -302,7 +252,6 @@ async function captureSnapshots() {
     process.exit(1);
   }
 
-  // Refresh always compares against the committed snapshot.json baseline.
   const baselineScenarios =
     verifyMode || refreshMode ? loadSnapshot(snapshotPath)?.scenarios : undefined;
 
@@ -320,39 +269,46 @@ async function captureSnapshots() {
 
   let previewProc;
   let browser;
+  let tempDir;
 
   try {
     previewProc = await startPreviewServer(requestedBaseUrl);
     browser = await chromium.launch();
 
-    console.log(`Capturing ${files.length} example(s) → tests/snapshots/`);
+    const useTempDir = refreshMode || verifyMode;
+    const outDir = useTempDir ? createCaptureTempDir() : snapshotsDir;
+    tempDir = useTempDir ? outDir : null;
+    const recordVideo = refreshMode || (!verifyMode && !values['no-video']);
+
+    if (tempDir) {
+      console.log(`Capturing ${files.length} example(s) → ${tempDir}`);
+    } else {
+      console.log(`Capturing ${files.length} example(s) → tests/snapshots/`);
+    }
 
     const currentScenarios = {};
-    const scenariosById = {};
     for (const file of files) {
-      if (refreshMode || verifyMode || values['no-video']) {
-        const { prefix, scenario, outputs } = await captureScenarioById(browser, file);
-        scenariosById[prefix] = scenario;
-        currentScenarios[prefix] = { steps: outputs.stepHashes ?? {} };
-        continue;
-      }
-
       const relPath = join('examples', file);
       const { scenario } = readScenarioFile(relPath);
       const prefix = scenario.id;
+
       console.log(`→ ${relPath} (${scenario.id})`);
       const outputs = await captureScenario({
         scenario,
-        outDir: snapshotsDir,
+        outDir,
         prefix,
         baseUrl: requestedBaseUrl,
-        recordVideo: true,
+        recordVideo,
         saveFinalPng: false,
         captureStepHashes: true,
         browser,
       });
       currentScenarios[prefix] = { steps: outputs.stepHashes ?? {} };
-      logCaptureOutputs(root, outputs);
+      if (!useTempDir) {
+        logCaptureOutputs(root, outputs);
+      } else if (outputs.webm) {
+        console.log(`  · ${prefix}.webm (temp)`);
+      }
     }
 
     console.log(`\n${files.length} snapshot(s) hashed.`);
@@ -362,22 +318,15 @@ async function captureSnapshots() {
       currentScenarios,
     });
 
-    if (refreshMode) {
-      const scenarioIds = Object.keys(currentScenarios).sort();
-      if (evolvedIds.length === 0) {
-        console.log('\nAucune évolution: WebM existants laissés inchangés.');
-      } else {
-        console.log(`\nRecapture vidéo pour ${evolvedIds.length} scénario(s) évolué(s)…`);
-        for (const id of evolvedIds) {
-          if (!scenariosById[id]) continue;
-          await captureVideoForScenario(browser, scenariosById[id]);
-        }
-        pruneUnchangedVideos(scenarioIds, evolvedIds);
-      }
+    if (refreshMode && tempDir) {
+      promoteEvolvedVideos(tempDir, evolvedIds);
     }
 
     process.exit(exitCode);
   } finally {
+    if (tempDir) {
+      rmSync(tempDir, { recursive: true, force: true });
+    }
     await closeBrowser(browser);
     await stopPreviewServer(previewProc);
   }
