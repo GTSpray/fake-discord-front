@@ -4,14 +4,15 @@
  *
  * Usage:
  *   npm run snapshots
+ *   npm run snapshots:refresh
  *   npm run snapshots -- --no-video
  *   npm run snapshots:check
  *   npm run snapshots:verify
  *   CAPTURE_BASE_URL=http://127.0.0.1:4173 npm run snapshots
  */
 import { spawn } from 'node:child_process';
-import { existsSync, readdirSync } from 'node:fs';
-import { dirname, join, resolve } from 'node:path';
+import { existsSync, readdirSync, rmSync } from 'node:fs';
+import { dirname, join, relative, resolve } from 'node:path';
 import { setTimeout as sleep } from 'node:timers/promises';
 import { fileURLToPath } from 'node:url';
 import { parseArgs } from 'node:util';
@@ -25,14 +26,12 @@ import {
 } from './capture-lib.mjs';
 import {
   diffHashes,
-  expectedSnapshotArtifacts,
   flattenScenarioStepHashes,
-  findMissingArtifacts,
   hasHashDiff,
+  listEvolvedScenarioIds,
   listSnapshotVideos,
   loadSnapshot,
   printHashDiff,
-  printMissingArtifacts,
   SNAPSHOT_FILENAME,
   validateSnapshotCoverage,
   writeSnapshot,
@@ -51,13 +50,14 @@ const { values } = parseArgs({
     'skip-build': { type: 'boolean', default: false },
     'check-only': { type: 'boolean', default: false },
     verify: { type: 'boolean', default: false },
+    refresh: { type: 'boolean', default: false },
   },
 });
 
 const requestedBaseUrl = values['base-url'] ?? DEFAULT_BASE_URL;
 const checkOnly = values['check-only'];
 const verifyMode = values.verify;
-const recordVideo = verifyMode || !values['no-video'];
+const refreshMode = values.refresh;
 
 async function waitForServer(url, timeoutMs = 60_000) {
   const deadline = Date.now() + timeoutMs;
@@ -134,16 +134,51 @@ async function stopPreviewServer(previewProc) {
   }
 }
 
+function pruneUnchangedVideos(scenarioIds, evolvedIds) {
+  const evolved = new Set(evolvedIds);
+  const kept = [];
+  const removed = [];
+
+  for (const id of scenarioIds) {
+    const videoPath = join(snapshotsDir, `${id}.webm`);
+    if (!existsSync(videoPath)) continue;
+    if (evolved.has(id)) {
+      kept.push(id);
+      continue;
+    }
+    rmSync(videoPath, { force: true });
+    removed.push(id);
+  }
+
+  for (const name of listSnapshotVideos(snapshotsDir)) {
+    const id = name.replace(/\.webm$/i, '');
+    if (scenarioIds.includes(id)) continue;
+    rmSync(join(snapshotsDir, name), { force: true });
+    removed.push(id);
+  }
+
+  if (kept.length > 0) {
+    console.log('\nWebM conservés (scénarios évolués):');
+    for (const id of kept) {
+      console.log(`  ✓ ${relative(root, join(snapshotsDir, `${id}.webm`))}`);
+    }
+  } else {
+    console.log('\nAucun WebM à conserver (aucune évolution visuelle).');
+  }
+
+  if (removed.length > 0) {
+    console.log('WebM retirés (inchangés ou orphelins):');
+    for (const id of removed) {
+      console.log(`  × ${relative(root, join(snapshotsDir, `${id}.webm`))}`);
+    }
+  }
+}
+
 function verifySnapshotHashes({ updateSnapshot, baselineScenarios, currentScenarios }) {
   const previousScenarios = baselineScenarios ?? loadSnapshot(snapshotPath)?.scenarios ?? {};
   const previousHashes = flattenScenarioStepHashes(previousScenarios);
   const currentHashes = flattenScenarioStepHashes(currentScenarios);
   const scenarioIds = listScenarioIds();
-  const expectedArtifacts = expectedSnapshotArtifacts(scenarioIds);
-  const missingArtifacts = findMissingArtifacts(
-    expectedArtifacts,
-    listSnapshotVideos(snapshotsDir),
-  );
   const missingCoverage = validateSnapshotCoverage(scenarioIds, currentScenarios);
 
   if (Object.keys(currentHashes).length === 0 && !checkOnly) {
@@ -152,14 +187,8 @@ function verifySnapshotHashes({ updateSnapshot, baselineScenarios, currentScenar
 
   if (Object.keys(previousHashes).length === 0 && checkOnly) {
     throw new Error(
-      `Missing ${join('tests/snapshots', SNAPSHOT_FILENAME)}. Run npm run snapshots first.`,
+      `Missing ${join('tests/snapshots', SNAPSHOT_FILENAME)}. Run npm run snapshots:refresh first.`,
     );
-  }
-
-  if (missingArtifacts.length > 0) {
-    printMissingArtifacts(missingArtifacts, { root, snapshotsDir });
-    console.log('\nLancez npm run snapshots pour générer les captures manquantes.');
-    return 1;
   }
 
   if (missingCoverage.length > 0) {
@@ -167,11 +196,15 @@ function verifySnapshotHashes({ updateSnapshot, baselineScenarios, currentScenar
     for (const id of missingCoverage) {
       console.log(`  ! ${id}`);
     }
-    return 1;
+    return { exitCode: 1, evolvedIds: [], previousHashes };
   }
 
   const diff = diffHashes(previousHashes, currentHashes);
-  printHashDiff(diff, { root, snapshotsDir });
+  printHashDiff(diff);
+
+  const evolvedIds = Object.keys(previousHashes).length
+    ? listEvolvedScenarioIds(previousScenarios, currentScenarios)
+    : scenarioIds;
 
   if (updateSnapshot) {
     writeSnapshot(snapshotPath, currentScenarios);
@@ -181,36 +214,73 @@ function verifySnapshotHashes({ updateSnapshot, baselineScenarios, currentScenar
   if (hasHashDiff(diff)) {
     if (!Object.keys(previousHashes).length) {
       console.log('\nPremière génération du snapshot MD5.');
-      return 0;
+      return { exitCode: 0, evolvedIds, previousHashes };
     }
     if (verifyMode) {
       console.log(
-        '\nLes snapshots de steps ne sont pas à jour. Lancez `make snapshots` puis committez.',
+        '\nLes snapshots de steps ne sont pas à jour. Lancez `make snapshots-refresh` puis committez.',
       );
-      return 1;
+      return { exitCode: 1, evolvedIds, previousHashes };
     }
-    console.log('\nLes snapshots ont évolué. Committez les WebM et snapshot.json si c’est voulu.');
-    return 0;
+    if (refreshMode) {
+      console.log('\nÉvolution détectée. Committez snapshot.json et les WebM conservés.');
+    } else {
+      console.log('\nLes snapshots ont évolué. Committez les WebM et snapshot.json si c’est voulu.');
+    }
+    return { exitCode: 0, evolvedIds, previousHashes };
   }
 
   if (verifyMode) {
     console.log('\n✓ Snapshots de steps à jour.');
+  } else if (refreshMode) {
+    console.log('\nAucune évolution visuelle. snapshot.json est à jour.');
   }
 
-  return 0;
+  return { exitCode: 0, evolvedIds: [], previousHashes };
+}
+
+async function captureScenarioById(browser, file) {
+  const relPath = join('examples', file);
+  const { scenario } = readScenarioFile(relPath);
+  const prefix = scenario.id;
+  console.log(`→ ${relPath} (${scenario.id})`);
+  const outputs = await captureScenario({
+    scenario,
+    outDir: snapshotsDir,
+    prefix,
+    baseUrl: requestedBaseUrl,
+    recordVideo: false,
+    saveFinalPng: false,
+    captureStepHashes: true,
+    browser,
+  });
+  return { prefix, scenario, outputs };
+}
+
+async function captureVideoForScenario(browser, scenario) {
+  const prefix = scenario.id;
+  console.log(`→ video ${prefix}`);
+  const outputs = await captureScenario({
+    scenario,
+    outDir: snapshotsDir,
+    prefix,
+    baseUrl: requestedBaseUrl,
+    recordVideo: true,
+    saveFinalPng: false,
+    captureStepHashes: false,
+    browser,
+  });
+  logCaptureOutputs(root, outputs);
 }
 
 async function captureSnapshots() {
   if (checkOnly) {
     const scenarioIds = listScenarioIds();
     const baseline = loadSnapshot(snapshotPath)?.scenarios ?? {};
-    const expectedArtifacts = expectedSnapshotArtifacts(scenarioIds);
-    const missingArtifacts = findMissingArtifacts(
-      expectedArtifacts,
-      listSnapshotVideos(snapshotsDir),
-    );
-    if (missingArtifacts.length > 0) {
-      printMissingArtifacts(missingArtifacts, { root, snapshotsDir });
+    if (!existsSync(snapshotPath)) {
+      console.error(
+        `Missing ${join('tests/snapshots', SNAPSHOT_FILENAME)}. Run make snapshots-refresh first.`,
+      );
       process.exit(1);
     }
     const missingCoverage = validateSnapshotCoverage(scenarioIds, baseline);
@@ -225,12 +295,14 @@ async function captureSnapshots() {
 
   if (verifyMode && !existsSync(snapshotPath)) {
     console.error(
-      `Missing ${join('tests/snapshots', SNAPSHOT_FILENAME)}. Run make snapshots first.`,
+      `Missing ${join('tests/snapshots', SNAPSHOT_FILENAME)}. Run make snapshots-refresh first.`,
     );
     process.exit(1);
   }
 
-  const baselineScenarios = verifyMode ? loadSnapshot(snapshotPath)?.scenarios : undefined;
+  // Refresh always compares against the committed snapshot.json baseline.
+  const baselineScenarios =
+    verifyMode || refreshMode ? loadSnapshot(snapshotPath)?.scenarios : undefined;
 
   if (!values['skip-build']) {
     ensureBuilt(root);
@@ -254,18 +326,25 @@ async function captureSnapshots() {
     console.log(`Capturing ${files.length} example(s) → tests/snapshots/`);
 
     const currentScenarios = {};
+    const scenariosById = {};
     for (const file of files) {
+      if (refreshMode || verifyMode || values['no-video']) {
+        const { prefix, scenario, outputs } = await captureScenarioById(browser, file);
+        scenariosById[prefix] = scenario;
+        currentScenarios[prefix] = { steps: outputs.stepHashes ?? {} };
+        continue;
+      }
+
       const relPath = join('examples', file);
       const { scenario } = readScenarioFile(relPath);
       const prefix = scenario.id;
-
       console.log(`→ ${relPath} (${scenario.id})`);
       const outputs = await captureScenario({
         scenario,
         outDir: snapshotsDir,
         prefix,
         baseUrl: requestedBaseUrl,
-        recordVideo,
+        recordVideo: true,
         saveFinalPng: false,
         captureStepHashes: true,
         browser,
@@ -274,12 +353,27 @@ async function captureSnapshots() {
       logCaptureOutputs(root, outputs);
     }
 
-    console.log(`\n${files.length} snapshot(s) written to tests/snapshots/.`);
-    const exitCode = verifySnapshotHashes({
+    console.log(`\n${files.length} snapshot(s) hashed.`);
+    const { exitCode, evolvedIds } = verifySnapshotHashes({
       updateSnapshot: !verifyMode,
       baselineScenarios,
       currentScenarios,
     });
+
+    if (refreshMode) {
+      const scenarioIds = Object.keys(currentScenarios).sort();
+      if (evolvedIds.length === 0) {
+        console.log('\nAucune évolution: WebM existants laissés inchangés.');
+      } else {
+        console.log(`\nRecapture vidéo pour ${evolvedIds.length} scénario(s) évolué(s)…`);
+        for (const id of evolvedIds) {
+          if (!scenariosById[id]) continue;
+          await captureVideoForScenario(browser, scenariosById[id]);
+        }
+        pruneUnchangedVideos(scenarioIds, evolvedIds);
+      }
+    }
+
     process.exit(exitCode);
   } finally {
     await closeBrowser(browser);

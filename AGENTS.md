@@ -150,9 +150,9 @@ npm run capture -- --file examples/poll-moderator-flow.json
 - `make ci` runs `lint-ci`, `test-ci`, and `snapshots-verify-ci` in Docker.
 - GitHub Actions runs **three parallel jobs**: `lint`, `test`, `snapshots-verify`.
 - **Visual regression = MD5 of per-step PNG captures** stored in `tests/snapshots/snapshot.json`. Step PNGs are generated during capture only (not versioned).
-- **Versioned artifacts**: `tests/snapshots/*.webm` (human review in PRs) + `tests/snapshots/snapshot.json` (CI gate).
+- **Versioned artifacts**: `tests/snapshots/snapshot.json` (CI gate) + `tests/snapshots/*.webm` only for scenarios that evolved (human review in PRs).
 - Capture uses `?capture=1&capture_steps=1` to pause after each action and hash a stable frame.
-- After renderer changes, run `make snapshots` in Docker, then commit `tests/snapshots/*.webm` and `snapshot.json`.
+- After renderer changes, run `make snapshots-refresh` in Docker, then commit `snapshot.json` and any kept WebM files.
 
 ## What not to do
 

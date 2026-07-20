@@ -137,3 +137,25 @@ export function validateSnapshotCoverage(scenarioIds, scenarios) {
   }
   return missing;
 }
+
+/** Scenario ids whose step hashes changed, were added, or were removed. */
+export function listEvolvedScenarioIds(previousScenarios, currentScenarios) {
+  const previous = previousScenarios ?? {};
+  const current = currentScenarios ?? {};
+  const previousHashes = flattenScenarioStepHashes(previous);
+  const currentHashes = flattenScenarioStepHashes(current);
+  const diff = diffHashes(previousHashes, currentHashes);
+  const evolved = new Set();
+
+  for (const { name } of [...diff.changed, ...diff.added, ...diff.removed]) {
+    evolved.add(name.split('#')[0]);
+  }
+  for (const id of Object.keys(current)) {
+    if (!(id in previous)) evolved.add(id);
+  }
+  for (const id of Object.keys(previous)) {
+    if (!(id in current)) evolved.add(id);
+  }
+
+  return [...evolved].sort();
+}

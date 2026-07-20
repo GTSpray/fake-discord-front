@@ -58,16 +58,20 @@ All payload data (`modal`, `ephemeral`, `layers`, `userMessage`, etc.) must be
 
 ## Snapshots (visual regression)
 
-Only **WebM** files are versioned as visual artifacts. During capture, step-by-step **PNG** frames are generated on the fly, hashed (MD5), then stored in `tests/snapshots/snapshot.json` for CI verification.
+Only **evolved** WebM files are kept for human review after a refresh. During capture,
+step-by-step **PNG** frames are generated on the fly, hashed (MD5), then stored in
+`tests/snapshots/snapshot.json` for CI verification.
 
 ```bash
 make docker-build
-make snapshots             # regenerate WebM + snapshot.json after UX changes
+make snapshots-refresh     # update snapshot.json; keep WebM only for evolved scenarios
 make snapshots-verify      # recapture and fail if snapshot.json is stale
 make ci                    # lint + test + snapshots-verify
 ```
 
-CI runs three parallel jobs (`lint`, `test`, `snapshots-verify`). Only `snapshots-verify` compares per-step PNG hashes from `snapshot.json`.
+CI runs three parallel jobs (`lint`, `test`, `snapshots-verify`). Only `snapshots-verify`
+compares per-step PNG hashes from `snapshot.json`. WebM files are optional review
+artifacts and are not required for CI to pass.
 
 ## Capture
 

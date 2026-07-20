@@ -24,7 +24,8 @@ DOCKER_RUN = docker run --rm $(DOCKER_USER) \
 	$(DOCKER_IMAGE)
 
 .PHONY: help docker-build docker-build-capture install build test lint format-check \
-        validate snapshots snapshots-verify ci ci-fast lint-ci test-ci snapshots-verify-ci clean
+        validate snapshots snapshots-refresh snapshots-verify ci ci-fast lint-ci test-ci \
+        snapshots-verify-ci clean
 
 help:
 	@echo "Doc Studio"
@@ -36,7 +37,8 @@ help:
 	@echo "  make lint                ESLint (in Docker)"
 	@echo "  make format-check        Prettier check (in Docker)"
 	@echo "  make validate            Validate example JSON files"
-	@echo "  make snapshots           Regenerate tests/snapshots/ (WebM + snapshot.json)"
+	@echo "  make snapshots           Regenerate all WebM + snapshot.json"
+	@echo "  make snapshots-refresh   Update snapshot.json; keep WebM only for evolved scenarios"
 	@echo "  make snapshots-verify    Recapture and fail if snapshot.json is stale"
 	@echo "  make ci                  Run lint-ci, test-ci, and snapshots-verify-ci"
 	@echo "  make lint-ci             format:check + lint (CI job)"
@@ -99,11 +101,17 @@ ci: docker-build lint-ci test-ci snapshots-verify-ci
 
 ci-fast: lint-ci test-ci snapshots-verify-ci
 
-# Legacy alias — regenerates snapshots (WebM + snapshot.json) inside Docker.
+# Regenerates snapshots (WebM + snapshot.json) inside Docker.
 snapshots: docker-build
 	$(DOCKER_RUN) npm ci
 	$(DOCKER_RUN) npm run build
 	$(DOCKER_RUN) npm run snapshots
+
+# Updates snapshot.json and keeps WebM only for scenarios whose step hashes changed.
+snapshots-refresh: docker-build
+	$(DOCKER_RUN) npm ci
+	$(DOCKER_RUN) npm run build
+	$(DOCKER_RUN) npm run snapshots:refresh
 
 snapshots-verify: docker-build
 	$(DOCKER_RUN) npm ci

@@ -90,7 +90,8 @@ jobs:
           echo "Snapshot JSON diff (if any):"
           git diff -- tests/snapshots/snapshot.json || true
           echo ""
-          echo "Download artifact snapshots-${{ github.run_id }}-${{ github.run_attempt }} to review WebM files."
+          echo "Download artifact snapshots-${{ github.run_id }}-${{ github.run_attempt }} to review."
+          echo "Then run: make snapshots-refresh"
       - name: Fail if snapshot verification failed
         if: steps.snapshots_verify.outcome == 'failure'
         run: |

@@ -8,6 +8,7 @@ import {
   findMissingArtifacts,
   flattenScenarioStepHashes,
   hasHashDiff,
+  listEvolvedScenarioIds,
   listSnapshotVideos,
   md5File,
   validateSnapshotCoverage,
@@ -74,5 +75,20 @@ describe('snapshot-hashes', () => {
       b: { steps: {} },
     });
     expect(missing).toEqual(['b']);
+  });
+
+  it('lists evolved scenario ids from step hash diffs', () => {
+    const previous = {
+      same: { steps: { '000-done': 'aaa' } },
+      changed: { steps: { '000-done': 'bbb' } },
+      removed: { steps: { '000-done': 'ccc' } },
+    };
+    const current = {
+      same: { steps: { '000-done': 'aaa' } },
+      changed: { steps: { '000-done': 'ddd' } },
+      added: { steps: { '000-done': 'eee' } },
+    };
+
+    expect(listEvolvedScenarioIds(previous, current)).toEqual(['added', 'changed', 'removed']);
   });
 });
