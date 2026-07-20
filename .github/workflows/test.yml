@@ -79,8 +79,20 @@ jobs:
           name: snapshots-${{ github.run_id }}-${{ github.run_attempt }}
           path: tests/snapshots/
           retention-days: 7
+      - name: Summarize snapshot differences
+        if: steps.snapshots_verify.outcome == 'failure'
+        run: |
+          echo "Snapshot verification detected visual changes."
+          echo ""
+          echo "Changed files in tests/snapshots/:"
+          git status --short tests/snapshots || true
+          echo ""
+          echo "Manifest diff (if any):"
+          git diff -- tests/snapshots/manifest.json || true
+          echo ""
+          echo "Download artifact snapshots-${{ github.run_id }}-${{ github.run_attempt }} to review WebM files."
       - name: Fail if snapshot verification failed
         if: steps.snapshots_verify.outcome == 'failure'
         run: |
-          echo "Snapshot verification failed. Download artifacts to inspect WebM differences."
+          echo "Snapshot verification failed: committed snapshots are stale."
           exit 1
