@@ -149,10 +149,10 @@ npm run capture -- --file examples/poll-moderator-flow.json
 
 - `make ci` runs `lint-ci`, `test-ci`, and `snapshots-verify-ci` in Docker.
 - GitHub Actions runs **three parallel jobs**: `lint`, `test`, `snapshots-verify`.
-- **Visual regression = MD5 of full-playback WebM files** in `tests/snapshots/`. Any change during the animation (typing, params, modals…) changes the hash — no manual capture frame to configure.
-- WebM is re-encoded with fixed ffmpeg settings in the Docker image so hashes are reproducible.
-- PNG files in `tests/snapshots/` are optional previews (final frame); they are **not** hashed.
-- After renderer changes, run `make snapshots` in Docker, then commit `tests/snapshots/*.webm` and `manifest.json`.
+- **Visual regression = MD5 of per-step PNG captures** stored in `tests/snapshots/snapshot.json`. Step PNGs are generated during capture only (not versioned).
+- **Versioned artifacts**: `tests/snapshots/*.webm` (human review in PRs) + `tests/snapshots/snapshot.json` (CI gate).
+- Capture uses `?capture=1&capture_steps=1` to pause after each action and hash a stable frame.
+- After renderer changes, run `make snapshots` in Docker, then commit `tests/snapshots/*.webm` and `snapshot.json`.
 
 ## What not to do
 

@@ -1,3 +1,4 @@
+import { createHash } from 'node:crypto';
 import { execFileSync, execSync } from 'node:child_process';
 import { existsSync, mkdirSync, readFileSync, renameSync, rmSync } from 'node:fs';
 import { join, relative, resolve } from 'node:path';
@@ -69,6 +70,92 @@ async function waitForCaptureReady(page) {
   );
 }
 
+async function waitForStepCaptureReady(page) {
+  await page.evaluate('document.fonts.ready');
+  await page.waitForFunction(
+    `() => {
+      const root = document.querySelector('[data-capture-root]');
+      if (!root) return false;
+      const imagesReady = [...root.querySelectorAll('img')].every(
+        (img) => img.complete && img.naturalWidth > 0,
+      );
+      if (!imagesReady) return false;
+
+      const modalHost = document.querySelector('.skyra-modal-host');
+      if (!modalHost) return true;
+
+      const skyraModal = modalHost.querySelector('discord-modal');
+      const shadow = skyraModal?.shadowRoot;
+      const dialog = shadow?.querySelector('dialog');
+      const box = shadow?.querySelector('.discord-modal-box');
+      if (!dialog || !box) return false;
+
+      const boxVisible = window.getComputedStyle(box).display !== 'none';
+      return dialog.open && boxVisible;
+    }`,
+    undefined,
+    { timeout: 15_000 },
+  );
+  await page.waitForTimeout(200);
+}
+
+async function disableRuntimeAnimations(page) {
+  await page.addStyleTag({
+    content: `
+      *,
+      *::before,
+      *::after {
+        animation: none !important;
+        transition: none !important;
+        caret-color: transparent !important;
+      }
+      .scenario-cursor-host {
+        display: none !important;
+      }
+    `,
+  });
+}
+
+function md5Buffer(data) {
+  const hash = createHash('md5');
+  hash.update(data);
+  return hash.digest('hex');
+}
+
+async function captureStepPngHashes(page, timeoutMs = 120_000) {
+  const stepHashes = {};
+  let lastCompletedStep = -1;
+  const startedAt = Date.now();
+  const root = page.locator('[data-capture-root]');
+
+  while (Date.now() - startedAt < timeoutMs) {
+    const player = await page.evaluate('window.__SCENARIO_PLAYER__ ?? null');
+
+    if (
+      player &&
+      typeof player.completedActionIndex === 'number' &&
+      typeof player.status === 'string'
+    ) {
+      if (player.completedActionIndex > lastCompletedStep) {
+        const stepKey = `${String(player.completedActionIndex).padStart(3, '0')}-done`;
+        await waitForStepCaptureReady(page);
+        const png = await root.screenshot();
+        stepHashes[stepKey] = md5Buffer(png);
+        lastCompletedStep = player.completedActionIndex;
+        await page.evaluate('window.__SCENARIO_CAPTURE_NEXT_STEP__?.()');
+      }
+
+      if (player.status === 'done' && player.completedActionIndex >= 0) {
+        return stepHashes;
+      }
+    }
+
+    await page.waitForTimeout(70);
+  }
+
+  throw new Error('Timed out while capturing per-step PNG hashes.');
+}
+
 /** Re-encode WebM with fixed settings so MD5 is stable in the pinned Docker image. */
 export function resolveFfmpegBinary() {
   if (process.env.FFMPEG_PATH && existsSync(process.env.FFMPEG_PATH)) {
@@ -135,6 +222,8 @@ export async function captureScenario({
   prefix,
   baseUrl = DEFAULT_BASE_URL,
   recordVideo = true,
+  saveFinalPng = true,
+  captureStepHashes = false,
   browser,
 }) {
   mkdirSync(outDir, { recursive: true });
@@ -161,20 +250,34 @@ export async function captureScenario({
   );
 
   const page = await context.newPage();
-  const outputs = { png: null, webm: null };
+  const outputs = { png: null, webm: null, stepHashes: null };
 
   try {
-    await page.goto(`${baseUrl}/?capture=1&autoplay=1`, { waitUntil: 'networkidle' });
+    const captureUrl = new URL(baseUrl);
+    captureUrl.searchParams.set('capture', '1');
+    captureUrl.searchParams.set('autoplay', '1');
+    if (captureStepHashes) {
+      captureUrl.searchParams.set('capture_steps', '1');
+    }
+    await page.goto(captureUrl.toString(), { waitUntil: 'networkidle' });
     await waitForScenarioReady(page);
+    await waitForCaptureReady(page);
+
+    if (captureStepHashes) {
+      await disableRuntimeAnimations(page);
+      outputs.stepHashes = await captureStepPngHashes(page);
+    }
+
     await page.waitForFunction('window.__SCENARIO_PLAYER__?.status === "done"', undefined, {
       timeout: 120_000,
     });
-    await waitForCaptureReady(page);
     await page.waitForTimeout(400);
 
-    const pngPath = join(outDir, `${prefix}.png`);
-    await page.locator('[data-capture-root]').screenshot({ path: pngPath });
-    outputs.png = pngPath;
+    if (saveFinalPng) {
+      const pngPath = join(outDir, `${prefix}.png`);
+      await page.locator('[data-capture-root]').screenshot({ path: pngPath });
+      outputs.png = pngPath;
+    }
   } finally {
     const video = recordVideo ? page.video() : null;
     await context.close();

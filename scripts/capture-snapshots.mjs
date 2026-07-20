@@ -1,6 +1,6 @@
 #!/usr/bin/env node
 /**
- * Capture every example playback file into tests/snapshots/ and compare PNG MD5 hashes.
+ * Capture every example playback file into tests/snapshots/ and compare per-step PNG MD5 hashes.
  *
  * Usage:
  *   npm run snapshots
@@ -26,22 +26,23 @@ import {
 import {
   diffHashes,
   expectedSnapshotArtifacts,
+  flattenScenarioStepHashes,
   findMissingArtifacts,
-  hashSnapshotFiles,
   hasHashDiff,
-  listSnapshotArtifacts,
-  loadManifest,
-  MANIFEST_FILENAME,
+  listSnapshotVideos,
+  loadSnapshot,
   printHashDiff,
   printMissingArtifacts,
-  writeManifest,
+  SNAPSHOT_FILENAME,
+  validateSnapshotCoverage,
+  writeSnapshot,
 } from './snapshot-hashes.mjs';
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
 const root = resolve(__dirname, '..');
 const examplesDir = join(root, 'examples');
 const snapshotsDir = join(root, 'tests/snapshots');
-const manifestPath = join(snapshotsDir, MANIFEST_FILENAME);
+const snapshotPath = join(snapshotsDir, SNAPSHOT_FILENAME);
 
 const { values } = parseArgs({
   options: {
@@ -133,18 +134,21 @@ async function stopPreviewServer(previewProc) {
   }
 }
 
-function verifySnapshotHashes({ updateManifest, baselineHashes }) {
-  const previousManifest = baselineHashes ?? loadManifest(manifestPath)?.files ?? {};
-  const currentHashes = hashSnapshotFiles(snapshotsDir);
+function verifySnapshotHashes({ updateSnapshot, baselineScenarios, currentScenarios }) {
+  const previousScenarios = baselineScenarios ?? loadSnapshot(snapshotPath)?.scenarios ?? {};
+  const previousHashes = flattenScenarioStepHashes(previousScenarios);
+  const currentHashes = flattenScenarioStepHashes(currentScenarios);
   const scenarioIds = listScenarioIds();
   const expectedArtifacts = expectedSnapshotArtifacts(scenarioIds);
-  const missingArtifacts = findMissingArtifacts(
-    expectedArtifacts,
-    listSnapshotArtifacts(snapshotsDir),
-  );
+  const missingArtifacts = findMissingArtifacts(expectedArtifacts, listSnapshotVideos(snapshotsDir));
+  const missingCoverage = validateSnapshotCoverage(scenarioIds, currentScenarios);
 
-  if (Object.keys(currentHashes).length === 0) {
-    throw new Error(`No snapshot PNG files found in tests/snapshots/. Run npm run snapshots first.`);
+  if (Object.keys(currentHashes).length === 0 && !checkOnly) {
+    throw new Error('No per-step snapshot hashes generated.');
+  }
+
+  if (Object.keys(previousHashes).length === 0 && checkOnly) {
+    throw new Error(`Missing ${join('tests/snapshots', SNAPSHOT_FILENAME)}. Run npm run snapshots first.`);
   }
 
   if (missingArtifacts.length > 0) {
@@ -153,31 +157,39 @@ function verifySnapshotHashes({ updateManifest, baselineHashes }) {
     return 1;
   }
 
-  const diff = diffHashes(previousManifest, currentHashes);
+  if (missingCoverage.length > 0) {
+    console.log('\nAucun hash de step pour les scénarios:');
+    for (const id of missingCoverage) {
+      console.log(`  ! ${id}`);
+    }
+    return 1;
+  }
+
+  const diff = diffHashes(previousHashes, currentHashes);
   printHashDiff(diff, { root, snapshotsDir });
 
-  if (updateManifest) {
-    writeManifest(manifestPath, currentHashes);
-    console.log(`\n✓ ${join('tests/snapshots', MANIFEST_FILENAME)} updated.`);
+  if (updateSnapshot) {
+    writeSnapshot(snapshotPath, currentScenarios);
+    console.log(`\n✓ ${join('tests/snapshots', SNAPSHOT_FILENAME)} updated.`);
   }
 
   if (hasHashDiff(diff)) {
-    if (!Object.keys(previousManifest).length) {
-      console.log('\nPremière génération du manifeste MD5.');
+    if (!Object.keys(previousHashes).length) {
+      console.log('\nPremière génération du snapshot MD5.');
       return 0;
     }
     if (verifyMode) {
-      console.log('\nLes PNG committés ne sont pas à jour. Lancez `make snapshots` puis committez.');
+      console.log('\nLes snapshots de steps ne sont pas à jour. Lancez `make snapshots` puis committez.');
       return 1;
     }
     console.log(
-      '\nLes snapshots ont évolué. Committez les fichiers et le manifeste si c’est voulu.',
+      '\nLes snapshots ont évolué. Committez les WebM et snapshot.json si c’est voulu.',
     );
     return 0;
   }
 
   if (verifyMode) {
-    console.log('\n✓ PNG committés à jour.');
+    console.log('\n✓ Snapshots de steps à jour.');
   }
 
   return 0;
@@ -185,17 +197,32 @@ function verifySnapshotHashes({ updateManifest, baselineHashes }) {
 
 async function captureSnapshots() {
   if (checkOnly) {
-    process.exit(verifySnapshotHashes({ updateManifest: false }));
+    const scenarioIds = listScenarioIds();
+    const baseline = loadSnapshot(snapshotPath)?.scenarios ?? {};
+    const expectedArtifacts = expectedSnapshotArtifacts(scenarioIds);
+    const missingArtifacts = findMissingArtifacts(expectedArtifacts, listSnapshotVideos(snapshotsDir));
+    if (missingArtifacts.length > 0) {
+      printMissingArtifacts(missingArtifacts, { root, snapshotsDir });
+      process.exit(1);
+    }
+    const missingCoverage = validateSnapshotCoverage(scenarioIds, baseline);
+    if (missingCoverage.length > 0) {
+      console.log('\nAucun hash de step pour les scénarios:');
+      for (const id of missingCoverage) console.log(`  ! ${id}`);
+      process.exit(1);
+    }
+    console.log(`\n✓ ${join('tests/snapshots', SNAPSHOT_FILENAME)} couvre tous les scénarios.`);
+    process.exit(0);
   }
 
-  if (verifyMode && !existsSync(manifestPath)) {
+  if (verifyMode && !existsSync(snapshotPath)) {
     console.error(
-      `Missing ${join('tests/snapshots', MANIFEST_FILENAME)}. Run make snapshots first.`,
+      `Missing ${join('tests/snapshots', SNAPSHOT_FILENAME)}. Run make snapshots first.`,
     );
     process.exit(1);
   }
 
-  const baselineHashes = verifyMode ? loadManifest(manifestPath)?.files : undefined;
+  const baselineScenarios = verifyMode ? loadSnapshot(snapshotPath)?.scenarios : undefined;
 
   if (!values['skip-build']) {
     ensureBuilt(root);
@@ -218,6 +245,7 @@ async function captureSnapshots() {
 
     console.log(`Capturing ${files.length} example(s) → tests/snapshots/`);
 
+    const currentScenarios = {};
     for (const file of files) {
       const relPath = join('examples', file);
       const { scenario } = readScenarioFile(relPath);
@@ -230,15 +258,19 @@ async function captureSnapshots() {
         prefix,
         baseUrl: requestedBaseUrl,
         recordVideo,
+        saveFinalPng: false,
+        captureStepHashes: true,
         browser,
       });
+      currentScenarios[prefix] = { steps: outputs.stepHashes ?? {} };
       logCaptureOutputs(root, outputs);
     }
 
     console.log(`\n${files.length} snapshot(s) written to tests/snapshots/.`);
     const exitCode = verifySnapshotHashes({
-      updateManifest: !verifyMode,
-      baselineHashes,
+      updateSnapshot: !verifyMode,
+      baselineScenarios,
+      currentScenarios,
     });
     process.exit(exitCode);
   } finally {

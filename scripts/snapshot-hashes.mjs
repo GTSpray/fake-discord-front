@@ -2,18 +2,16 @@ import { createHash } from 'node:crypto';
 import { existsSync, readFileSync, readdirSync, writeFileSync } from 'node:fs';
 import { join, relative } from 'node:path';
 
-export const MANIFEST_FILENAME = 'manifest.json';
-/** Final-frame PNG captures are stable across runs and safe to gate in CI. */
-export const SNAPSHOT_IMAGE_EXT = /\.png$/i;
-const SNAPSHOT_IMAGE_FILE = /^[a-z0-9][a-z0-9-]*\.png$/i;
+export const SNAPSHOT_FILENAME = 'snapshot.json';
+const SNAPSHOT_VIDEO_FILE = /^[a-z0-9][a-z0-9-]*\.webm$/i;
 
-export function isSnapshotImageArtifact(name) {
-  return SNAPSHOT_IMAGE_EXT.test(name) && SNAPSHOT_IMAGE_FILE.test(name);
+export function isSnapshotVideoArtifact(name) {
+  return SNAPSHOT_VIDEO_FILE.test(name);
 }
 
-export function listSnapshotArtifacts(snapshotsDir) {
+export function listSnapshotVideos(snapshotsDir) {
   return readdirSync(snapshotsDir)
-    .filter((name) => isSnapshotImageArtifact(name))
+    .filter((name) => isSnapshotVideoArtifact(name))
     .sort();
 }
 
@@ -23,35 +21,24 @@ export function md5File(filePath) {
   return hash.digest('hex');
 }
 
-export function hashSnapshotFiles(snapshotsDir) {
-  const files = {};
+export function loadSnapshot(snapshotPath) {
+  if (!existsSync(snapshotPath)) return null;
 
-  for (const name of readdirSync(snapshotsDir).sort()) {
-    if (!isSnapshotImageArtifact(name)) continue;
-    files[name] = md5File(join(snapshotsDir, name));
-  }
-
-  return files;
-}
-
-export function loadManifest(manifestPath) {
-  if (!existsSync(manifestPath)) return null;
-
-  const raw = JSON.parse(readFileSync(manifestPath, 'utf8'));
-  if (!raw?.files || typeof raw.files !== 'object') {
-    throw new Error(`Invalid snapshot manifest: ${manifestPath}`);
+  const raw = JSON.parse(readFileSync(snapshotPath, 'utf8'));
+  if (!raw?.scenarios || typeof raw.scenarios !== 'object') {
+    throw new Error(`Invalid snapshot file: ${snapshotPath}`);
   }
 
   return raw;
 }
 
-export function writeManifest(manifestPath, files) {
+export function writeSnapshot(snapshotPath, scenarios) {
   const payload = {
     algorithm: 'md5',
-    artifact: 'png',
-    files,
+    artifact: 'step-png',
+    scenarios,
   };
-  writeFileSync(manifestPath, `${JSON.stringify(payload, null, 2)}\n`);
+  writeFileSync(snapshotPath, `${JSON.stringify(payload, null, 2)}\n`);
 }
 
 export function diffHashes(previousFiles, currentFiles) {
@@ -86,7 +73,7 @@ export function hasHashDiff(diff) {
 }
 
 export function expectedSnapshotArtifacts(scenarioIds) {
-  return scenarioIds.map((id) => `${id}.png`);
+  return scenarioIds.map((id) => `${id}.webm`);
 }
 
 export function findMissingArtifacts(expectedNames, availableNames) {
@@ -103,30 +90,50 @@ export function printMissingArtifacts(missing, { root, snapshotsDir }) {
 }
 
 export function printHashDiff(diff, { root, snapshotsDir }) {
-  const rel = (name) => relative(root, join(snapshotsDir, name));
-
   if (!hasHashDiff(diff)) {
-    console.log('\nSnapshot MD5 (PNG): aucune évolution détectée.');
+    console.log('\nSnapshot MD5 (step PNG): aucune évolution détectée.');
     for (const { name, hash } of diff.unchanged) {
-      console.log(`  = ${rel(name)}  ${hash}`);
+      console.log(`  = ${name}  ${hash}`);
     }
     return;
   }
 
-  console.log('\nSnapshot MD5 (PNG): évolution détectée.');
+  console.log('\nSnapshot MD5 (step PNG): évolution détectée.');
 
   for (const { name, hash } of diff.unchanged) {
-    console.log(`  = ${rel(name)}  ${hash}`);
+    console.log(`  = ${name}  ${hash}`);
   }
   for (const { name, hash } of diff.added) {
-    console.log(`  + ${rel(name)}  ${hash}`);
+    console.log(`  + ${name}  ${hash}`);
   }
   for (const { name, previous, current } of diff.changed) {
-    console.log(`  ~ ${rel(name)}`);
+    console.log(`  ~ ${name}`);
     console.log(`      was ${previous}`);
     console.log(`      now ${current}`);
   }
   for (const { name, hash } of diff.removed) {
-    console.log(`  - ${rel(name)}  ${hash}`);
+    console.log(`  - ${name}  ${hash}`);
   }
+}
+
+export function flattenScenarioStepHashes(scenarios) {
+  const flat = {};
+  for (const [scenarioId, data] of Object.entries(scenarios)) {
+    const steps = data?.steps ?? {};
+    for (const [stepKey, hash] of Object.entries(steps)) {
+      flat[`${scenarioId}#${stepKey}`] = hash;
+    }
+  }
+  return flat;
+}
+
+export function validateSnapshotCoverage(scenarioIds, scenarios) {
+  const missing = [];
+  for (const id of scenarioIds) {
+    const stepEntries = Object.entries(scenarios?.[id]?.steps ?? {});
+    if (stepEntries.length === 0) {
+      missing.push(id);
+    }
+  }
+  return missing;
 }

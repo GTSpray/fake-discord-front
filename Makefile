@@ -1,8 +1,7 @@
 # Doc Studio — Docker-wrapped dev and CI commands.
 #
-# Snapshots are always captured inside the dev image so PNG output is identical
-# locally and in CI. Use `make snapshots` to regenerate, `make snapshots-verify`
-# to assert committed snapshots match the current renderer.
+# Snapshots are always captured inside the dev image. We version WebM files and
+# a snapshot.json containing MD5 hashes of per-step PNG captures.
 
 DOCKER_IMAGE ?= doc-studio-dev
 CAPTURE_IMAGE ?= doc-studio-capture
@@ -37,12 +36,12 @@ help:
 	@echo "  make lint                ESLint (in Docker)"
 	@echo "  make format-check        Prettier check (in Docker)"
 	@echo "  make validate            Validate example JSON files"
-	@echo "  make snapshots           Regenerate tests/snapshots/ (PNG + WebM)"
-	@echo "  make snapshots-verify    Recapture WebM and fail if commit is stale"
+	@echo "  make snapshots           Regenerate tests/snapshots/ (WebM + snapshot.json)"
+	@echo "  make snapshots-verify    Recapture and fail if snapshot.json is stale"
 	@echo "  make ci                  Run lint-ci, test-ci, and snapshots-verify-ci"
 	@echo "  make lint-ci             format:check + lint (CI job)"
 	@echo "  make test-ci             validate + build + test (CI job)"
-	@echo "  make snapshots-verify-ci Recapture WebM and fail if commit is stale (CI job)"
+	@echo "  make snapshots-verify-ci Recapture and fail if snapshot.json is stale (CI job)"
 	@echo ""
 	@echo "  make docker-build-capture   Build remote capture CLI ($(CAPTURE_IMAGE))"
 
@@ -100,7 +99,7 @@ ci: docker-build lint-ci test-ci snapshots-verify-ci
 
 ci-fast: lint-ci test-ci snapshots-verify-ci
 
-# Legacy alias — regenerates snapshots (PNG + WebM) inside Docker.
+# Legacy alias — regenerates snapshots (WebM + snapshot.json) inside Docker.
 snapshots: docker-build
 	$(DOCKER_RUN) npm ci
 	$(DOCKER_RUN) npm run build

@@ -6,10 +6,11 @@ import {
   diffHashes,
   expectedSnapshotArtifacts,
   findMissingArtifacts,
+  flattenScenarioStepHashes,
   hasHashDiff,
-  hashSnapshotFiles,
-  listSnapshotArtifacts,
+  listSnapshotVideos,
   md5File,
+  validateSnapshotCoverage,
 } from '../../scripts/snapshot-hashes.mjs';
 
 describe('snapshot-hashes', () => {
@@ -21,13 +22,13 @@ describe('snapshot-hashes', () => {
     expect(md5File(filePath)).toBe('5d41402abc4b2a76b9719d911017c592');
   });
 
-  it('hashes only png files in a directory', () => {
+  it('lists only webm videos in snapshot directory', () => {
     const dir = mkdtempSync(join(tmpdir(), 'snapshot-hash-'));
-    writeFileSync(join(dir, 'a.png'), 'png');
     writeFileSync(join(dir, 'a.webm'), 'webm');
+    writeFileSync(join(dir, 'a.png'), 'png');
     writeFileSync(join(dir, 'manifest.json'), '{}');
 
-    expect(Object.keys(hashSnapshotFiles(dir)).sort()).toEqual(['a.png']);
+    expect(listSnapshotVideos(dir)).toEqual(['a.webm']);
   });
 
   it('detects added, changed, removed and unchanged files', () => {
@@ -50,18 +51,28 @@ describe('snapshot-hashes', () => {
     expect(hasHashDiff(diff)).toBe(true);
   });
 
-  it('lists png artifacts on disk', () => {
-    const dir = mkdtempSync(join(tmpdir(), 'snapshot-hash-'));
-    writeFileSync(join(dir, 'a.png'), 'png');
-    writeFileSync(join(dir, 'a.webm'), 'webm');
-
-    expect(listSnapshotArtifacts(dir)).toEqual(['a.png']);
-  });
-
   it('lists missing snapshot artifacts for examples', () => {
     const expected = expectedSnapshotArtifacts(['say-hello-flow', 'gimme-otter']);
-    const missing = findMissingArtifacts(expected, ['gimme-otter.png']);
+    const missing = findMissingArtifacts(expected, ['gimme-otter.webm']);
 
-    expect(missing).toEqual(['say-hello-flow.png']);
+    expect(missing).toEqual(['say-hello-flow.webm']);
+  });
+
+  it('flattens scenario step hashes', () => {
+    const flat = flattenScenarioStepHashes({
+      alpha: { steps: { '000-playing': 'aaa', '001-done': 'bbb' } },
+    });
+    expect(flat).toEqual({
+      'alpha#000-playing': 'aaa',
+      'alpha#001-done': 'bbb',
+    });
+  });
+
+  it('detects scenarios without step coverage', () => {
+    const missing = validateSnapshotCoverage(['a', 'b'], {
+      a: { steps: { '000-playing': 'aaa' } },
+      b: { steps: {} },
+    });
+    expect(missing).toEqual(['b']);
   });
 });
