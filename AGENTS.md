@@ -147,7 +147,7 @@ npm run capture -- --file examples/poll-moderator-flow.json
 
 ## CI expectations
 
-- `make ci` runs `lint-ci`, `test-ci`, and `snapshots-refresh-ci` in Docker.
+- `make ci` runs `lint-ci`, `test-ci`, and `snapshots-refresh` in Docker.
 - GitHub Actions runs **three parallel jobs**: `lint`, `test`, `snapshots-refresh`.
 - **Visual regression = MD5 of per-step PNG captures** stored in `tests/snapshots/snapshot.json`. Step PNGs are generated during capture only (not versioned).
 - **Versioned artifacts**: `tests/snapshots/snapshot.json` (CI gate) + `tests/snapshots/*.webm` for human review (updated only when step hashes evolve).
