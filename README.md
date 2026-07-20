@@ -43,7 +43,7 @@ npm run validate -- examples/poll-moderator-flow.json
 | Slash — pause before continuing to type | `delayBeforeMs` on `type`                                         | **1250 ms** when input is not empty |
 | Modal — pause before each field         | `delayBeforeFieldMs` on `fillModal`                               | **900 ms**                          |
 | Bot response delay                      | `defaults.botResponseMs` or `responseDelayMs`                     | **1200 ms**                         |
-| Typing speed (slash)                    | `msPerChar` on `type` / `typeSlashParam`, or `defaults.msPerChar` | **185 ms**                          |
+| Typing speed (slash)                    | — (fixed engine range)                                           | **aléatoire 150–200 ms**            |
 | Typing speed (modal)                    | `msPerField` on `fillModal`                                       | 100 ms                              |
 
 Constants are defined in `src/scenario/ScenarioRunner.ts`.

@@ -13,9 +13,6 @@
     },
     "membersOnline": 8
   },
-  "defaults": {
-    "msPerChar": 150
-  },
   "actions": [
     {
       "type": "wait",

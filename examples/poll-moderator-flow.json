@@ -17,9 +17,6 @@
       "status": "Online"
     }
   },
-  "defaults": {
-    "msPerChar": 250
-  },
   "actions": [
     {
       "type": "wait",

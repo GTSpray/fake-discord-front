@@ -38,7 +38,16 @@ const DEFAULT_DELAY_BEFORE_MODAL_FIELD_MS = 900;
 /** Pause avant modale / éphémère / message bot */
 const DEFAULT_BOT_RESPONSE_MS = 1200;
 const DEFAULT_BOT_PENDING_TEXT = 'Sending command...';
-export const DEFAULT_MS_PER_CHAR = 185;
+/** Random keystroke delay for type / typeSlashParam (ms) */
+export const DEFAULT_MS_PER_CHAR_MIN = 150;
+export const DEFAULT_MS_PER_CHAR_MAX = 200;
+
+export function randomMsPerChar(
+  min = DEFAULT_MS_PER_CHAR_MIN,
+  max = DEFAULT_MS_PER_CHAR_MAX,
+): number {
+  return Math.floor(Math.random() * (max - min + 1)) + min;
+}
 
 function defaultBotAuthor(): Author {
   return { name: DEFAULT_BOT_NAME, bot: true };
@@ -494,8 +503,8 @@ export class ScenarioRunner {
     };
   }
 
-  private resolveMsPerChar(actionMsPerChar?: number): number {
-    return actionMsPerChar ?? this.scenario.defaults?.msPerChar ?? DEFAULT_MS_PER_CHAR;
+  private resolveMsPerChar(): number {
+    return randomMsPerChar();
   }
 
   private resolveRevealAfter(
@@ -531,7 +540,7 @@ export class ScenarioRunner {
       return;
     }
 
-    const ms = this.resolveMsPerChar(action.msPerChar);
+    const ms = this.resolveMsPerChar();
     const typingId = ++this.typingId;
     const revealAfter = this.resolveRevealAfter(action, from, to);
 
@@ -636,7 +645,7 @@ export class ScenarioRunner {
       return;
     }
 
-    const ms = this.resolveMsPerChar(action.msPerChar);
+    const ms = this.resolveMsPerChar();
     const typingId = ++this.typingId;
 
     const delayBefore =
