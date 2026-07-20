@@ -96,7 +96,10 @@ describe('snapshot-hashes', () => {
   it('builds a compact verify report', () => {
     const previous = { a: { steps: { '000-done': 'old' } } };
     const current = { a: { steps: { '000-done': 'new' } } };
-    const diff = diffHashes(flattenScenarioStepHashes(previous), flattenScenarioStepHashes(current));
+    const diff = diffHashes(
+      flattenScenarioStepHashes(previous),
+      flattenScenarioStepHashes(current),
+    );
     const report = buildVerifyReport({
       evolvedIds: ['a'],
       diff,
