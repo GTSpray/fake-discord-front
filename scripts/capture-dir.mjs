@@ -9,7 +9,7 @@
 import { existsSync, readdirSync } from 'node:fs';
 import { join, resolve } from 'node:path';
 import { parseArgs } from 'node:util';
-import { chromium } from 'playwright';
+import { firefox } from 'playwright';
 import {
   captureScenario,
   DEFAULT_BASE_URL,
@@ -53,7 +53,7 @@ const baseUrl = values['base-url'] ?? DEFAULT_BASE_URL;
 const recordVideo = !values['no-video'];
 
 async function captureDirectory() {
-  const browser = await chromium.launch();
+  const browser = await firefox.launch();
 
   try {
     console.log(`Capturing ${files.length} file(s) from ${dirArg}/`);

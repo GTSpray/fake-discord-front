@@ -2,7 +2,7 @@ import { createHash } from 'node:crypto';
 import { execFileSync, execSync } from 'node:child_process';
 import { existsSync, mkdirSync, readFileSync, renameSync, rmSync } from 'node:fs';
 import { join, relative, resolve } from 'node:path';
-import { chromium } from 'playwright';
+import { firefox } from 'playwright';
 
 export const DEFAULT_BASE_URL = process.env.CAPTURE_BASE_URL ?? 'http://127.0.0.1:4173';
 export const DEFAULT_VIEWPORT = { width: 1280, height: 720 };
@@ -275,7 +275,7 @@ export async function captureScenario({
   mkdirSync(outDir, { recursive: true });
 
   const ownsBrowser = !browser;
-  const activeBrowser = browser ?? (await chromium.launch());
+  const activeBrowser = browser ?? (await firefox.launch());
   const outputs = { png: null, webm: null, stepHashes: null };
 
   try {
