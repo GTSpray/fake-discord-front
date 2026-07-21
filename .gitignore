@@ -5,3 +5,6 @@ output/
 *.log
 .env
 .env.*
+tests/snapshots/*.png
+tests/snapshots/verify-report.json
+.vscode

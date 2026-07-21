@@ -28,6 +28,7 @@ import type {
   SlashLayer,
 } from '../lib/types.ts';
 import { DEFAULT_BOT_NAME, resolveViewer } from '../lib/types.ts';
+import { formatSkyraClockTime } from '../lib/skyraTimestamp.ts';
 import { runCursorClick } from './cursorBridge.ts';
 import { runTyping } from './typingBridge.ts';
 
@@ -38,14 +39,15 @@ const DEFAULT_DELAY_BEFORE_MODAL_FIELD_MS = 900;
 /** Pause avant modale / éphémère / message bot */
 const DEFAULT_BOT_RESPONSE_MS = 1200;
 const DEFAULT_BOT_PENDING_TEXT = 'Sending command...';
-const DEFAULT_MS_PER_CHAR_MIN = 150;
-const DEFAULT_MS_PER_CHAR_MAX = 220;
+/** Random keystroke delay for type / typeSlashParam (ms) */
+export const DEFAULT_MS_PER_CHAR_MIN = 150;
+export const DEFAULT_MS_PER_CHAR_MAX = 200;
 
-function randomMsPerChar(): number {
-  return (
-    Math.floor(Math.random() * (DEFAULT_MS_PER_CHAR_MAX - DEFAULT_MS_PER_CHAR_MIN + 1)) +
-    DEFAULT_MS_PER_CHAR_MIN
-  );
+export function randomMsPerChar(
+  min = DEFAULT_MS_PER_CHAR_MIN,
+  max = DEFAULT_MS_PER_CHAR_MAX,
+): number {
+  return Math.floor(Math.random() * (max - min + 1)) + min;
 }
 
 function defaultBotAuthor(): Author {
@@ -53,10 +55,7 @@ function defaultBotAuthor(): Author {
 }
 
 function formatPendingTimestamp(): string {
-  const now = new Date();
-  const h = String(now.getHours()).padStart(2, '0');
-  const m = String(now.getMinutes()).padStart(2, '0');
-  return `${h}:${m}`;
+  return formatSkyraClockTime(new Date());
 }
 
 function sleep(ms: number, signal?: AbortSignal): Promise<void> {
@@ -103,14 +102,21 @@ export type StateListener = (snapshot: ScenarioPlayerSnapshot) => void;
 export class ScenarioRunner {
   private state: PlaybackState;
   private actionIndex = 0;
+  private completedActionIndex = -1;
   private status: ScenarioStatus = 'idle';
   private abort?: AbortController;
   private pauseGate?: { resolve: () => void };
   private listeners = new Set<StateListener>();
   private typingId = 0;
+  private captureStepMode = false;
+  private captureStepGate?: { resolve: () => void };
 
   constructor(private scenario: Scenario) {
     this.state = createInitialState(scenario);
+    if (typeof window !== 'undefined') {
+      const params = new URLSearchParams(window.location.search);
+      this.captureStepMode = params.get('capture_steps') === '1';
+    }
   }
 
   subscribe(listener: StateListener): () => void {
@@ -126,8 +132,13 @@ export class ScenarioRunner {
       (window as ScenarioWindow).__SCENARIO_PLAYER__ = {
         status: snap.status,
         actionIndex: snap.actionIndex,
+        completedActionIndex: this.completedActionIndex,
         totalActions: snap.totalActions,
         scenarioId: this.scenario.id,
+      };
+      window.__SCENARIO_CAPTURE_NEXT_STEP__ = () => {
+        this.captureStepGate?.resolve();
+        this.captureStepGate = undefined;
       };
       window.dispatchEvent(new CustomEvent('scenario-player-update', { detail: snap }));
       if (snap.status === 'done') {
@@ -158,6 +169,21 @@ export class ScenarioRunner {
     }
   }
 
+  private async waitForCaptureStep(signal: AbortSignal) {
+    if (!this.captureStepMode) return;
+    await new Promise<void>((resolve, reject) => {
+      if (signal.aborted) {
+        reject(new DOMException('Aborted', 'AbortError'));
+        return;
+      }
+      this.captureStepGate = { resolve };
+      signal.addEventListener('abort', () => {
+        this.captureStepGate = undefined;
+        reject(new DOMException('Aborted', 'AbortError'));
+      });
+    });
+  }
+
   async play() {
     if (this.status === 'playing') return;
 
@@ -166,6 +192,7 @@ export class ScenarioRunner {
       this.abort?.abort();
       this.abort = new AbortController();
       this.actionIndex = 0;
+      this.completedActionIndex = -1;
       this.state = createInitialState(this.scenario);
     } else if (!this.abort) {
       this.abort = new AbortController();
@@ -182,7 +209,9 @@ export class ScenarioRunner {
 
         const action = this.scenario.actions[this.actionIndex];
         await this.runAction(action, signal);
+        this.completedActionIndex = this.actionIndex;
         this.emit();
+        await this.waitForCaptureStep(signal);
       }
       this.status = 'done';
       this.emit();
@@ -210,6 +239,7 @@ export class ScenarioRunner {
     this.abort?.abort();
     this.status = 'idle';
     this.actionIndex = 0;
+    this.completedActionIndex = -1;
     this.state = createInitialState(this.scenario);
     this.emit();
   }
@@ -317,6 +347,8 @@ export class ScenarioRunner {
   }
 
   private async awaitBotResponse(signal: AbortSignal, responseDelayMs?: number) {
+    if (this.captureStepMode) return;
+
     const ms = responseDelayMs ?? this.scenario.defaults?.botResponseMs ?? DEFAULT_BOT_RESPONSE_MS;
     if (ms <= 0) {
       this.patch({ pendingBotReply: null });
@@ -329,7 +361,9 @@ export class ScenarioRunner {
   private async runAction(action: ScenarioAction, signal: AbortSignal) {
     switch (action.type) {
       case 'wait':
-        await sleep(action.ms, signal);
+        if (!this.captureStepMode) {
+          await sleep(action.ms, signal);
+        }
         break;
 
       case 'focusInput':
@@ -372,6 +406,11 @@ export class ScenarioRunner {
         break;
 
       case 'submitModal':
+        if (this.captureStepMode) {
+          this.patch({ modal: null, modalClosing: false, highlightedButton: null });
+          await this.awaitBotResponseAfterUserAction(signal, 'submitModal');
+          break;
+        }
         this.patch({ modalClosing: true, highlightedButton: null });
         await sleep(280, signal);
         this.patch({ modal: null, modalClosing: false });
@@ -391,6 +430,15 @@ export class ScenarioRunner {
       }
 
       case 'clickButton': {
+        if (this.captureStepMode) {
+          this.patch({ highlightedButton: action.label, cursorTarget: null, loadingButton: null });
+          const next = this.nextAction();
+          if (next && this.isBotResponseAction(next)) {
+            this.patch({ highlightedButton: null, loadingButton: action.label });
+            await this.awaitBotResponseAfterUserAction(signal, 'clickButton');
+          }
+          break;
+        }
         this.patch({ cursorTarget: action.label, highlightedButton: null, loadingButton: null });
         await runCursorClick(signal);
         this.patch({ highlightedButton: action.label, cursorTarget: null });
@@ -419,7 +467,7 @@ export class ScenarioRunner {
           cursorTarget: null,
           pendingBotReply: null,
         });
-        if (action.holdMs) await sleep(action.holdMs, signal);
+        if (action.holdMs && !this.captureStepMode) await sleep(action.holdMs, signal);
         break;
       }
     }
@@ -453,6 +501,10 @@ export class ScenarioRunner {
     };
   }
 
+  private resolveMsPerChar(): number {
+    return randomMsPerChar();
+  }
+
   private resolveRevealAfter(
     action: Extract<ScenarioAction, { type: 'type' }>,
     from: string,
@@ -468,10 +520,25 @@ export class ScenarioRunner {
   }
 
   private async typeText(action: Extract<ScenarioAction, { type: 'type' }>, signal: AbortSignal) {
-    const ms = action.msPerChar ?? randomMsPerChar();
     const current = this.state.slash ?? { input: '', focused: true };
     const from = current.input;
     const to = from + action.text;
+
+    if (this.captureStepMode) {
+      const resolved = this.resolveTypeSlashSuggestions(action, to);
+      this.patch({
+        slash: {
+          ...current,
+          input: to,
+          focused: true,
+          ...resolved,
+          typingAnimation: undefined,
+        },
+      });
+      return;
+    }
+
+    const ms = this.resolveMsPerChar();
     const typingId = ++this.typingId;
     const revealAfter = this.resolveRevealAfter(action, from, to);
 
@@ -556,10 +623,27 @@ export class ScenarioRunner {
     const paramIndex = this.state.slash.params.findIndex((param) => param.name === action.param);
     if (paramIndex < 0) return;
 
-    const ms = action.msPerChar ?? randomMsPerChar();
     const params = this.state.slash.params.map((param) => ({ ...param }));
     const from = params[paramIndex].value ?? '';
     const to = from + action.text;
+    const slashBase = this.state.slash;
+
+    if (this.captureStepMode) {
+      params[paramIndex] = { ...params[paramIndex], value: to };
+      const nextActiveIndex = paramIndex + 1 < params.length ? paramIndex + 1 : paramIndex;
+      this.patch({
+        slash: {
+          ...slashBase,
+          params,
+          activeParamIndex: nextActiveIndex,
+          focused: true,
+          paramTypingAnimation: undefined,
+        },
+      });
+      return;
+    }
+
+    const ms = this.resolveMsPerChar();
     const typingId = ++this.typingId;
 
     const delayBefore =
@@ -567,8 +651,6 @@ export class ScenarioRunner {
     if (delayBefore > 0) {
       await sleep(delayBefore, signal);
     }
-
-    const slashBase = this.state.slash;
 
     await runTyping(signal, {
       onStart: () => {
@@ -638,6 +720,21 @@ export class ScenarioRunner {
 
     const targetValues = source.values;
     const fieldIds = Object.keys(targetValues);
+
+    if (this.captureStepMode) {
+      const values = Object.fromEntries(
+        fieldIds.map((fieldId) => [fieldId, String(targetValues[fieldId] ?? '')]),
+      );
+      this.patch({
+        modal: {
+          ...this.state.modal,
+          values,
+          roleDisplay: source.roleDisplay,
+        },
+      });
+      return;
+    }
+
     const values: Record<string, string | string[] | null> = {
       ...(this.state.modal.values ?? {}),
     };
@@ -671,9 +768,11 @@ interface ScenarioWindow extends Window {
   __SCENARIO_PLAYER__?: {
     status: ScenarioStatus;
     actionIndex: number;
+    completedActionIndex: number;
     totalActions: number;
     scenarioId: string;
   };
+  __SCENARIO_CAPTURE_NEXT_STEP__?: () => void;
 }
 
 declare const window: ScenarioWindow;

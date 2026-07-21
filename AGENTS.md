@@ -85,15 +85,16 @@ payloads (bot messages) using Discord interaction response shapes.
 
 Defined in `src/scenario/ScenarioRunner.ts`:
 
-| Constant                              | Value | Used when                                                                               |
-| ------------------------------------- | ----- | --------------------------------------------------------------------------------------- |
-| `DEFAULT_DELAY_BEFORE_TYPING_MS`      | 1250  | `type` action and slash input already has text                                          |
-| `DEFAULT_DELAY_BEFORE_MODAL_FIELD_MS` | 900   | before each field in `fillModal`                                                        |
-| `DEFAULT_BOT_RESPONSE_MS`             | 1200  | after `pressEnter`, `submitModal`, or `clickButton` when the next action is a bot reply |
+| Constant                              | Value   | Used when                                                                               |
+| ------------------------------------- | ------- | --------------------------------------------------------------------------------------- |
+| `DEFAULT_DELAY_BEFORE_TYPING_MS`      | 1250    | `type` action and slash input already has text                                          |
+| `DEFAULT_DELAY_BEFORE_MODAL_FIELD_MS` | 900     | before each field in `fillModal`                                                        |
+| `DEFAULT_BOT_RESPONSE_MS`             | 1200    | after `pressEnter`, `submitModal`, or `clickButton` when the next action is a bot reply |
+| `DEFAULT_MS_PER_CHAR_MIN/MAX`         | 150–200 | `type` / `typeSlashParam` keystroke delay (random per typing action)                    |
 
 Override per action with `delayBeforeMs` (`type`), `delayBeforeFieldMs`
 (`fillModal`), or `responseDelayMs` on bot reply actions (`openModal`,
-`showEphemeral`, `applyState`). Scenario-wide default: `defaults.botResponseMs`.
+`showEphemeral`, `applyState`). Scenario-wide defaults: `defaults.botResponseMs`.
 
 While waiting, a deferred bot message is shown (slash invocation + animated dots
 
@@ -146,9 +147,13 @@ npm run capture -- --file examples/poll-moderator-flow.json
 
 ## CI expectations
 
-- `npm run build` must pass on every PR.
-- `npm run snapshots:check` must pass on every PR (snapshots + `manifest.json` MD5).
-- Captures are optional (manual or scheduled). Regenerate with `npm run snapshots`.
+- `make ci` runs `lint-ci`, `test-ci`, and `snapshots-refresh` in Docker.
+- GitHub Actions runs **three parallel jobs**: `lint`, `test`, `snapshots-refresh`.
+- **Visual regression = MD5 of per-step PNG captures** stored in `tests/snapshots/snapshot.json`. Step PNGs are generated during capture only (not versioned).
+- **Versioned artifacts**: `tests/snapshots/snapshot.json` (CI gate) + `tests/snapshots/*.webm` for human review (updated only when step hashes evolve).
+- Capture uses `?capture=1&capture_steps=1` to pause after each action and hash a stable frame.
+- Snapshot WebMs are recorded in a **second pass** without `capture_steps`, so typing animations remain visible for review.
+- `make snapshots-refresh`: capture in a temp dir, update `snapshot.json`, copy only evolved WebMs. On hash mismatch, retry capture up to **2 times** to filter flakiness. **Exit 0** if nothing to refresh, **exit 1** if snapshots were refreshed (commit them). Existing videos are never deleted.
 
 ## What not to do
 

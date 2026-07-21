@@ -2,6 +2,7 @@ import { DiscordCommand, DiscordMessage } from '@skyra/discord-components-react'
 import type { PendingBotReply } from '../lib/scenarioTypes.ts';
 import { DEFAULT_BOT_NAME } from '../lib/types.ts';
 import { skyraAuthorProps, skyraCommand } from './skyraAuthor.ts';
+import { skyraTimestampProps } from '../lib/skyraTimestamp.ts';
 import { InteractionDots } from './InteractionDots.tsx';
 
 export function BotPendingReplyMessage({ pending }: { pending: PendingBotReply }) {
@@ -10,8 +11,7 @@ export function BotPendingReplyMessage({ pending }: { pending: PendingBotReply }
   return (
     <DiscordMessage
       {...authorProps}
-      timestamp={pending.timestamp}
-      twentyFour
+      {...skyraTimestampProps(pending.timestamp)}
       ephemeral={pending.ephemeral || undefined}
     >
       {pending.slashInvocation && (

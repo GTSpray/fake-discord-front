@@ -43,7 +43,7 @@ npm run validate -- examples/poll-moderator-flow.json
 | Slash — pause before continuing to type | `delayBeforeMs` on `type`                     | **1250 ms** when input is not empty |
 | Modal — pause before each field         | `delayBeforeFieldMs` on `fillModal`           | **900 ms**                          |
 | Bot response delay                      | `defaults.botResponseMs` or `responseDelayMs` | **1200 ms**                         |
-| Typing speed (slash)                    | `msPerChar` on `type`                         | random 120–180 ms                   |
+| Typing speed (slash)                    | — (fixed engine range)                        | **aléatoire 150–200 ms**            |
 | Typing speed (modal)                    | `msPerField` on `fillModal`                   | 100 ms                              |
 
 Constants are defined in `src/scenario/ScenarioRunner.ts`.
@@ -55,6 +55,24 @@ Constants are defined in `src/scenario/ScenarioRunner.ts`.
 
 All payload data (`modal`, `ephemeral`, `layers`, `userMessage`, etc.) must be
 **inline** in the JSON file.
+
+## Snapshots (visual regression)
+
+Only **evolved** WebM files are updated after a refresh. Capture runs in a temp directory;
+step PNG frames are hashed (MD5) into `tests/snapshots/snapshot.json` (stable, no typing
+animation). When hashes differ, matching WebMs are copied into `tests/snapshots/` — those
+videos are recorded in a second full-playback pass (typing included). Existing videos are
+never deleted.
+
+```bash
+make docker-build
+make snapshots-refresh     # exit 0 if up to date, exit 1 if refreshed (then commit)
+make ci                    # lint + test + snapshots-refresh
+```
+
+CI runs three parallel jobs (`lint`, `test`, `snapshots-refresh`). `snapshots-refresh`
+compares per-step PNG hashes, updates `snapshot.json`, and copies only evolved WebMs.
+Exit code 1 means the commit is stale and the refreshed files are in the CI artifact.
 
 ## Capture
 
@@ -80,6 +98,8 @@ Playwright. JSON validation happens in the studio when each scenario is loaded.
 ### Build
 
 ```bash
+docker build -f docker/Dockerfile.capture -t doc-studio-capture .
+# or (same image):
 docker build -t doc-studio-capture .
 ```
 

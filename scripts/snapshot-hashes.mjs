@@ -2,12 +2,17 @@ import { createHash } from 'node:crypto';
 import { existsSync, readFileSync, readdirSync, writeFileSync } from 'node:fs';
 import { join, relative } from 'node:path';
 
-export const MANIFEST_FILENAME = 'manifest.json';
-const SNAPSHOT_EXT = /\.(png|webm)$/i;
-const SNAPSHOT_FILE = /^[a-z0-9][a-z0-9-]*\.(png|webm)$/i;
+export const SNAPSHOT_FILENAME = 'snapshot.json';
+const SNAPSHOT_VIDEO_FILE = /^[a-z0-9][a-z0-9-]*\.webm$/i;
 
-export function isSnapshotArtifact(name) {
-  return SNAPSHOT_EXT.test(name) && SNAPSHOT_FILE.test(name);
+export function isSnapshotVideoArtifact(name) {
+  return SNAPSHOT_VIDEO_FILE.test(name);
+}
+
+export function listSnapshotVideos(snapshotsDir) {
+  return readdirSync(snapshotsDir)
+    .filter((name) => isSnapshotVideoArtifact(name))
+    .sort();
 }
 
 export function md5File(filePath) {
@@ -16,34 +21,24 @@ export function md5File(filePath) {
   return hash.digest('hex');
 }
 
-export function hashSnapshotFiles(snapshotsDir) {
-  const files = {};
+export function loadSnapshot(snapshotPath) {
+  if (!existsSync(snapshotPath)) return null;
 
-  for (const name of readdirSync(snapshotsDir).sort()) {
-    if (!isSnapshotArtifact(name)) continue;
-    files[name] = md5File(join(snapshotsDir, name));
-  }
-
-  return files;
-}
-
-export function loadManifest(manifestPath) {
-  if (!existsSync(manifestPath)) return null;
-
-  const raw = JSON.parse(readFileSync(manifestPath, 'utf8'));
-  if (!raw?.files || typeof raw.files !== 'object') {
-    throw new Error(`Invalid snapshot manifest: ${manifestPath}`);
+  const raw = JSON.parse(readFileSync(snapshotPath, 'utf8'));
+  if (!raw?.scenarios || typeof raw.scenarios !== 'object') {
+    throw new Error(`Invalid snapshot file: ${snapshotPath}`);
   }
 
   return raw;
 }
 
-export function writeManifest(manifestPath, files) {
+export function writeSnapshot(snapshotPath, scenarios) {
   const payload = {
     algorithm: 'md5',
-    files,
+    artifact: 'step-png',
+    scenarios,
   };
-  writeFileSync(manifestPath, `${JSON.stringify(payload, null, 2)}\n`);
+  writeFileSync(snapshotPath, `${JSON.stringify(payload, null, 2)}\n`);
 }
 
 export function diffHashes(previousFiles, currentFiles) {
@@ -77,13 +72,8 @@ export function hasHashDiff(diff) {
   return diff.changed.length > 0 || diff.added.length > 0 || diff.removed.length > 0;
 }
 
-export function expectedSnapshotArtifacts(scenarioIds, { video = true } = {}) {
-  const artifacts = [];
-  for (const id of scenarioIds) {
-    artifacts.push(`${id}.png`);
-    if (video) artifacts.push(`${id}.webm`);
-  }
-  return artifacts;
+export function expectedSnapshotArtifacts(scenarioIds) {
+  return scenarioIds.map((id) => `${id}.webm`);
 }
 
 export function findMissingArtifacts(expectedNames, availableNames) {
@@ -99,31 +89,94 @@ export function printMissingArtifacts(missing, { root, snapshotsDir }) {
   }
 }
 
-export function printHashDiff(diff, { root, snapshotsDir }) {
-  const rel = (name) => relative(root, join(snapshotsDir, name));
-
+export function printHashDiff(diff, { evolvedIds = [] } = {}) {
   if (!hasHashDiff(diff)) {
-    console.log('\nSnapshot MD5: aucune évolution détectée.');
-    for (const { name, hash } of diff.unchanged) {
-      console.log(`  = ${rel(name)}  ${hash}`);
-    }
+    console.log('\nSnapshot MD5 (step PNG): aucune évolution détectée.');
+    console.log(`  ${diff.unchanged.length} step(s) inchangé(s).`);
     return;
   }
 
-  console.log('\nSnapshot MD5: évolution détectée.');
-
-  for (const { name, hash } of diff.unchanged) {
-    console.log(`  = ${rel(name)}  ${hash}`);
+  console.log('\nSnapshot MD5 (step PNG): évolution détectée.');
+  if (evolvedIds.length > 0) {
+    console.log(`Scénarios impactés: ${evolvedIds.join(', ')}`);
   }
+  console.log(
+    `  ~${diff.changed.length}  +${diff.added.length}  -${diff.removed.length}  =${diff.unchanged.length}`,
+  );
+
   for (const { name, hash } of diff.added) {
-    console.log(`  + ${rel(name)}  ${hash}`);
+    console.log(`  + ${name}  ${hash}`);
   }
   for (const { name, previous, current } of diff.changed) {
-    console.log(`  ~ ${rel(name)}`);
+    console.log(`  ~ ${name}`);
     console.log(`      was ${previous}`);
     console.log(`      now ${current}`);
   }
   for (const { name, hash } of diff.removed) {
-    console.log(`  - ${rel(name)}  ${hash}`);
+    console.log(`  - ${name}  ${hash}`);
   }
+}
+
+export function buildVerifyReport({ evolvedIds, diff, currentScenarios }) {
+  return {
+    evolvedScenarioIds: evolvedIds,
+    summary: {
+      changed: diff.changed.length,
+      added: diff.added.length,
+      removed: diff.removed.length,
+      unchanged: diff.unchanged.length,
+    },
+    changed: diff.changed,
+    added: diff.added,
+    removed: diff.removed,
+    scenarios: currentScenarios,
+  };
+}
+
+export function writeVerifyReport(reportPath, report) {
+  writeFileSync(reportPath, `${JSON.stringify(report, null, 2)}\n`);
+}
+
+export function flattenScenarioStepHashes(scenarios) {
+  const flat = {};
+  for (const [scenarioId, data] of Object.entries(scenarios)) {
+    const steps = data?.steps ?? {};
+    for (const [stepKey, hash] of Object.entries(steps)) {
+      flat[`${scenarioId}#${stepKey}`] = hash;
+    }
+  }
+  return flat;
+}
+
+export function validateSnapshotCoverage(scenarioIds, scenarios) {
+  const missing = [];
+  for (const id of scenarioIds) {
+    const stepEntries = Object.entries(scenarios?.[id]?.steps ?? {});
+    if (stepEntries.length === 0) {
+      missing.push(id);
+    }
+  }
+  return missing;
+}
+
+/** Scenario ids whose step hashes changed, were added, or were removed. */
+export function listEvolvedScenarioIds(previousScenarios, currentScenarios) {
+  const previous = previousScenarios ?? {};
+  const current = currentScenarios ?? {};
+  const previousHashes = flattenScenarioStepHashes(previous);
+  const currentHashes = flattenScenarioStepHashes(current);
+  const diff = diffHashes(previousHashes, currentHashes);
+  const evolved = new Set();
+
+  for (const { name } of [...diff.changed, ...diff.added, ...diff.removed]) {
+    evolved.add(name.split('#')[0]);
+  }
+  for (const id of Object.keys(current)) {
+    if (!(id in previous)) evolved.add(id);
+  }
+  for (const id of Object.keys(previous)) {
+    if (!(id in current)) evolved.add(id);
+  }
+
+  return [...evolved].sort();
 }

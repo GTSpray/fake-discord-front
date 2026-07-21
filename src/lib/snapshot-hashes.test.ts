@@ -3,12 +3,16 @@ import { join } from 'node:path';
 import { tmpdir } from 'node:os';
 import { describe, expect, it } from 'vitest';
 import {
+  buildVerifyReport,
   diffHashes,
   expectedSnapshotArtifacts,
   findMissingArtifacts,
+  flattenScenarioStepHashes,
   hasHashDiff,
-  hashSnapshotFiles,
+  listEvolvedScenarioIds,
+  listSnapshotVideos,
   md5File,
+  validateSnapshotCoverage,
 } from '../../scripts/snapshot-hashes.mjs';
 
 describe('snapshot-hashes', () => {
@@ -20,14 +24,13 @@ describe('snapshot-hashes', () => {
     expect(md5File(filePath)).toBe('5d41402abc4b2a76b9719d911017c592');
   });
 
-  it('hashes only png and webm files in a directory', () => {
+  it('lists only webm videos in snapshot directory', () => {
     const dir = mkdtempSync(join(tmpdir(), 'snapshot-hash-'));
+    writeFileSync(join(dir, 'a.webm'), 'webm');
     writeFileSync(join(dir, 'a.png'), 'png');
-    writeFileSync(join(dir, 'b.webm'), 'webm');
     writeFileSync(join(dir, 'manifest.json'), '{}');
-    writeFileSync(join(dir, 'notes.txt'), 'ignore');
 
-    expect(Object.keys(hashSnapshotFiles(dir)).sort()).toEqual(['a.png', 'b.webm']);
+    expect(listSnapshotVideos(dir)).toEqual(['a.webm']);
   });
 
   it('detects added, changed, removed and unchanged files', () => {
@@ -52,8 +55,59 @@ describe('snapshot-hashes', () => {
 
   it('lists missing snapshot artifacts for examples', () => {
     const expected = expectedSnapshotArtifacts(['say-hello-flow', 'gimme-otter']);
-    const missing = findMissingArtifacts(expected, ['gimme-otter.png', 'gimme-otter.webm']);
+    const missing = findMissingArtifacts(expected, ['gimme-otter.webm']);
 
-    expect(missing).toEqual(['say-hello-flow.png', 'say-hello-flow.webm']);
+    expect(missing).toEqual(['say-hello-flow.webm']);
+  });
+
+  it('flattens scenario step hashes', () => {
+    const flat = flattenScenarioStepHashes({
+      alpha: { steps: { '000-playing': 'aaa', '001-done': 'bbb' } },
+    });
+    expect(flat).toEqual({
+      'alpha#000-playing': 'aaa',
+      'alpha#001-done': 'bbb',
+    });
+  });
+
+  it('detects scenarios without step coverage', () => {
+    const missing = validateSnapshotCoverage(['a', 'b'], {
+      a: { steps: { '000-playing': 'aaa' } },
+      b: { steps: {} },
+    });
+    expect(missing).toEqual(['b']);
+  });
+
+  it('lists evolved scenario ids from step hash diffs', () => {
+    const previous = {
+      same: { steps: { '000-done': 'aaa' } },
+      changed: { steps: { '000-done': 'bbb' } },
+      removed: { steps: { '000-done': 'ccc' } },
+    };
+    const current = {
+      same: { steps: { '000-done': 'aaa' } },
+      changed: { steps: { '000-done': 'ddd' } },
+      added: { steps: { '000-done': 'eee' } },
+    };
+
+    expect(listEvolvedScenarioIds(previous, current)).toEqual(['added', 'changed', 'removed']);
+  });
+
+  it('builds a compact verify report', () => {
+    const previous = { a: { steps: { '000-done': 'old' } } };
+    const current = { a: { steps: { '000-done': 'new' } } };
+    const diff = diffHashes(
+      flattenScenarioStepHashes(previous),
+      flattenScenarioStepHashes(current),
+    );
+    const report = buildVerifyReport({
+      evolvedIds: ['a'],
+      diff,
+      currentScenarios: current,
+    });
+
+    expect(report.evolvedScenarioIds).toEqual(['a']);
+    expect(report.summary.changed).toBe(1);
+    expect(report.changed[0].name).toBe('a#000-done');
   });
 });

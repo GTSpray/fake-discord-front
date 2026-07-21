@@ -20,7 +20,6 @@ export type ScenarioAction =
   | {
       type: 'type';
       text: string;
-      msPerChar?: number;
       /** Pause avant de commencer à taper (défaut : 1250 ms si le champ n'est pas vide) */
       delayBeforeMs?: number;
       revealSuggestions?: {
@@ -44,7 +43,6 @@ export type ScenarioAction =
       /** Nom du paramètre à remplir */
       param: string;
       text: string;
-      msPerChar?: number;
       /** Pause avant de taper (défaut : 1250 ms si une valeur existe déjà) */
       delayBeforeMs?: number;
     }

@@ -48,6 +48,29 @@ describe('ScenarioRunner', () => {
     expect(snapshot.slash).toEqual({ input: '', focused: true, suggestions: undefined });
   });
 
+  it('picks a random keystroke delay between 150 and 200 ms', async () => {
+    const samples = new Set<number>();
+
+    for (let i = 0; i < 30; i++) {
+      let capturedMsPerChar: number | undefined;
+      const runner = new ScenarioRunner(
+        makeScenario([{ type: 'focusInput' }, { type: 'type', text: '/poll' }]),
+      );
+      runner.subscribe((snapshot) => {
+        const ms = snapshot.state.slash?.typingAnimation?.msPerChar;
+        if (ms !== undefined) capturedMsPerChar = ms;
+      });
+      const playPromise = runner.play();
+      await vi.runAllTimersAsync();
+      await playPromise;
+      expect(capturedMsPerChar).toBeGreaterThanOrEqual(150);
+      expect(capturedMsPerChar).toBeLessThanOrEqual(200);
+      if (capturedMsPerChar !== undefined) samples.add(capturedMsPerChar);
+    }
+
+    expect(samples.size).toBeGreaterThan(1);
+  });
+
   it('uses the interaction author for the pending bot reply', async () => {
     const botAuthor = {
       name: 'Bot',
@@ -58,7 +81,7 @@ describe('ScenarioRunner', () => {
       makeScenario(
         [
           { type: 'focusInput' },
-          { type: 'type', text: '/poll create', msPerChar: 0 },
+          { type: 'type', text: '/poll create' },
           { type: 'pressEnter' },
           {
             type: 'applyState',
@@ -99,7 +122,7 @@ describe('ScenarioRunner', () => {
       makeScenario(
         [
           { type: 'focusInput' },
-          { type: 'type', text: '/poll create', msPerChar: 0 },
+          { type: 'type', text: '/poll create' },
           { type: 'pressEnter' },
           {
             type: 'applyState',
@@ -179,7 +202,7 @@ describe('ScenarioRunner', () => {
     const runner = new ScenarioRunner(
       makeScenario([
         { type: 'focusInput' },
-        { type: 'type', text: '/alias set', msPerChar: 0 },
+        { type: 'type', text: '/alias set' },
         {
           type: 'setSlashParams',
           params: [
@@ -187,8 +210,8 @@ describe('ScenarioRunner', () => {
             { name: 'message', description: 'contenu du message' },
           ],
         },
-        { type: 'typeSlashParam', param: 'alias', text: 'toto', msPerChar: 0 },
-        { type: 'typeSlashParam', param: 'message', text: 'Hello', msPerChar: 0 },
+        { type: 'typeSlashParam', param: 'alias', text: 'toto' },
+        { type: 'typeSlashParam', param: 'message', text: 'Hello' },
       ]),
     );
 
@@ -211,7 +234,6 @@ describe('ScenarioRunner', () => {
         {
           type: 'type',
           text: '/alias set',
-          msPerChar: 0,
           revealSuggestions: {
             mode: 'commandMatch',
             activeIndex: 2,

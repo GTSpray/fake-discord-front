@@ -5,20 +5,75 @@ on:
     branches: [main]
   pull_request:
 
+env:
+  CI: true
+  PLAYWRIGHT_VERSION: '1.61.1'
+
 jobs:
-  test:
+  lint:
+    name: lint
     runs-on: ubuntu-latest
+    timeout-minutes: 15
     steps:
       - uses: actions/checkout@v4
-
-      - uses: actions/setup-node@v4
+      - uses: docker/setup-buildx-action@v3
+      - name: Build dev image
+        uses: docker/build-push-action@v6
         with:
-          node-version: '22'
-          cache: npm
+          context: .
+          file: docker/Dockerfile.dev
+          build-args: |
+            PLAYWRIGHT_VERSION=${{ env.PLAYWRIGHT_VERSION }}
+          tags: doc-studio-dev
+          load: true
+          cache-from: type=gha,scope=doc-studio-dev
+          cache-to: type=gha,mode=max,scope=doc-studio-dev
+      - run: make lint-ci
 
-      - run: npm ci
-      - run: npm run format:check
-      - run: npm run lint
-      - run: npm run build
-      - run: npm test
-      - run: npm run snapshots:check
+  test:
+    name: test
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+      - uses: docker/setup-buildx-action@v3
+      - name: Build dev image
+        uses: docker/build-push-action@v6
+        with:
+          context: .
+          file: docker/Dockerfile.dev
+          build-args: |
+            PLAYWRIGHT_VERSION=${{ env.PLAYWRIGHT_VERSION }}
+          tags: doc-studio-dev
+          load: true
+          cache-from: type=gha,scope=doc-studio-dev
+          cache-to: type=gha,mode=max,scope=doc-studio-dev
+      - run: make test-ci
+
+  snapshots-refresh:
+    name: snapshots-refresh
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+      - uses: docker/setup-buildx-action@v3
+      - name: Build dev image
+        uses: docker/build-push-action@v6
+        with:
+          context: .
+          file: docker/Dockerfile.dev
+          build-args: |
+            PLAYWRIGHT_VERSION=${{ env.PLAYWRIGHT_VERSION }}
+          tags: doc-studio-dev
+          load: true
+          cache-from: type=gha,scope=doc-studio-dev
+          cache-to: type=gha,mode=max,scope=doc-studio-dev
+      - name: Refresh snapshots
+        run: make snapshots-refresh
+      - name: Upload snapshot artifacts
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: snapshots-${{ github.run_id }}-${{ github.run_attempt }}
+          path: tests/snapshots/
+          retention-days: 7

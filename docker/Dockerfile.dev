@@ -1,0 +1,20 @@
+# Dev / CI image — pinned Playwright + Node deps for reproducible snapshot capture.
+# Playwright browser version must match package-lock.json (playwright npm package).
+ARG PLAYWRIGHT_VERSION=1.61.1
+FROM mcr.microsoft.com/playwright:v${PLAYWRIGHT_VERSION}-noble
+
+# Required for deterministic WebM normalization after Playwright capture.
+RUN apt-get update \
+  && apt-get install -y --no-install-recommends ffmpeg \
+  && rm -rf /var/lib/apt/lists/*
+
+WORKDIR /app
+
+ENV PLAYWRIGHT_SKIP_BROWSER_DOWNLOAD=1 \
+    CI=1 \
+    npm_config_cache=/tmp/.npm
+
+COPY package.json package-lock.json ./
+RUN npm ci
+
+# Source is bind-mounted at runtime (`make` targets).

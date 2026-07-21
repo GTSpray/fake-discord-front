@@ -1,0 +1,53 @@
+{
+  "algorithm": "md5",
+  "artifact": "step-png",
+  "scenarios": {
+    "gimme-otter": {
+      "steps": {
+        "000-done": "c51e53cb467b9b3c6ddb4dd4d842dd3b",
+        "001-done": "af67faa164af3ca6f8ebd82f1832cca4",
+        "002-done": "af67faa164af3ca6f8ebd82f1832cca4",
+        "003-done": "d9aedfc0b749733902bac413a57a53b9",
+        "004-done": "84d403ee52c140d4c04574e3df862725",
+        "005-done": "84d403ee52c140d4c04574e3df862725",
+        "006-done": "84001d31996c804f3c9ea69f5b4ce5bb",
+        "007-done": "70f73913ae539a109ee63e9336897b1b"
+      }
+    },
+    "poll-moderator-flow": {
+      "steps": {
+        "000-done": "de87aca128b5dd4fc2c81d7c71585958",
+        "001-done": "293f8a066fe1e59e57d1b753e5d87b3a",
+        "002-done": "293f8a066fe1e59e57d1b753e5d87b3a",
+        "003-done": "91a555dd9424270cda37d57bb6bece21",
+        "004-done": "62c4d83d98cfc2943178c14359ecace1",
+        "005-done": "62c4d83d98cfc2943178c14359ecace1",
+        "006-done": "de87aca128b5dd4fc2c81d7c71585958",
+        "007-done": "55330ce983405864cec49d5aacf1db92",
+        "008-done": "2eae45ce34afdb0fe32ea7a8ed7c52ce",
+        "009-done": "2eae45ce34afdb0fe32ea7a8ed7c52ce",
+        "010-done": "bf53da79ee8e8d13a172cd52080e034e",
+        "011-done": "80a4324d6d67589997d3e016a28ecb22",
+        "012-done": "80a4324d6d67589997d3e016a28ecb22",
+        "013-done": "ea628231379b8a9dbf9d1f06c4ae1902",
+        "014-done": "153fecbda366d21df415ef00ca3fc744"
+      }
+    },
+    "say-hello-flow": {
+      "steps": {
+        "000-done": "de87aca128b5dd4fc2c81d7c71585958",
+        "001-done": "293f8a066fe1e59e57d1b753e5d87b3a",
+        "002-done": "293f8a066fe1e59e57d1b753e5d87b3a",
+        "003-done": "366ddfcb2d57be9bb4b1e56f2fdabc65",
+        "004-done": "366ddfcb2d57be9bb4b1e56f2fdabc65",
+        "005-done": "b01321bd0dbd4fa59ed7c686befc8ee5",
+        "006-done": "b74717015e3ac8328c74022c6cb662da",
+        "007-done": "b74717015e3ac8328c74022c6cb662da",
+        "008-done": "09601b8ae469dcd1d9efc495c68e7f18",
+        "009-done": "09601b8ae469dcd1d9efc495c68e7f18",
+        "010-done": "bcff822bacaaadd5c40d724cd08a201c",
+        "011-done": "3e5af2ce9d04434262b08de8c51086bc"
+      }
+    }
+  }
+}
