@@ -55,6 +55,7 @@ function installCaptureClockInPage(fixedIso) {
   CaptureDate.parse = RealDate.parse;
   CaptureDate.UTC = RealDate.UTC;
 
+  // eslint-disable-next-line no-undef
   window.Date = CaptureDate;
 }
 

@@ -149,9 +149,14 @@ export function ScenarioCursor({
         const from = lastPos.current ?? defaultOrigin(canvasRef.current);
         const to = rect ? buttonCenter(rect) : from;
 
-        await animateCursorMove(from, to, (point) => {
-          setPose({ ...point, visible: true, pressing: false });
-        }, () => cancelled);
+        await animateCursorMove(
+          from,
+          to,
+          (point) => {
+            setPose({ ...point, visible: true, pressing: false });
+          },
+          () => cancelled,
+        );
 
         if (cancelled) return;
 

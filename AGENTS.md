@@ -85,12 +85,12 @@ payloads (bot messages) using Discord interaction response shapes.
 
 Defined in `src/scenario/ScenarioRunner.ts`:
 
-| Constant                              | Value | Used when                                                                               |
-| ------------------------------------- | ----- | --------------------------------------------------------------------------------------- |
-| `DEFAULT_DELAY_BEFORE_TYPING_MS`      | 1250  | `type` action and slash input already has text                                          |
-| `DEFAULT_DELAY_BEFORE_MODAL_FIELD_MS` | 900   | before each field in `fillModal`                                                        |
-| `DEFAULT_BOT_RESPONSE_MS`             | 1200  | after `pressEnter`, `submitModal`, or `clickButton` when the next action is a bot reply |
-| `DEFAULT_MS_PER_CHAR_MIN/MAX`         | 150–200 | `type` / `typeSlashParam` keystroke delay (random per typing action) |
+| Constant                              | Value   | Used when                                                                               |
+| ------------------------------------- | ------- | --------------------------------------------------------------------------------------- |
+| `DEFAULT_DELAY_BEFORE_TYPING_MS`      | 1250    | `type` action and slash input already has text                                          |
+| `DEFAULT_DELAY_BEFORE_MODAL_FIELD_MS` | 900     | before each field in `fillModal`                                                        |
+| `DEFAULT_BOT_RESPONSE_MS`             | 1200    | after `pressEnter`, `submitModal`, or `clickButton` when the next action is a bot reply |
+| `DEFAULT_MS_PER_CHAR_MIN/MAX`         | 150–200 | `type` / `typeSlashParam` keystroke delay (random per typing action)                    |
 
 Override per action with `delayBeforeMs` (`type`), `delayBeforeFieldMs`
 (`fillModal`), or `responseDelayMs` on bot reply actions (`openModal`,

@@ -26,10 +26,7 @@ function SkyraMessageItem({
   const { author, content, timestamp, deletedReply, slashInvocation, interaction } = message;
 
   return (
-    <DiscordMessage
-      {...skyraAuthorProps(author)}
-      {...skyraTimestampProps(timestamp)}
-    >
+    <DiscordMessage {...skyraAuthorProps(author)} {...skyraTimestampProps(timestamp)}>
       {deletedReply && <DiscordReply slot="reply" deleted />}
       {slashInvocation && (
         <DiscordCommand
