@@ -36,23 +36,26 @@ export const CAPTURE_FIXED_DATE_ISO = '2026-06-16T12:17:00.000Z';
 
 function installCaptureClockInPage(fixedIso) {
   const fixedMs = Date.parse(fixedIso);
-  const OriginalDate = Date;
+  const RealDate = Date;
 
-  function FixedDate(...args) {
-    if (new.target !== undefined) {
-      if (args.length === 0) return new OriginalDate(fixedMs);
-      return new OriginalDate(...args);
+  class CaptureDate extends RealDate {
+    constructor(...args) {
+      if (args.length === 0) {
+        super(fixedMs);
+      } else {
+        super(...args);
+      }
     }
-    if (args.length === 0) return OriginalDate(fixedMs);
-    return OriginalDate(...args);
+
+    static now() {
+      return fixedMs;
+    }
   }
 
-  FixedDate.prototype = OriginalDate.prototype;
-  FixedDate.now = () => fixedMs;
-  FixedDate.parse = OriginalDate.parse;
-  FixedDate.UTC = OriginalDate.UTC;
-  // eslint-disable-next-line no-undef
-  window.Date = FixedDate;
+  CaptureDate.parse = RealDate.parse;
+  CaptureDate.UTC = RealDate.UTC;
+
+  window.Date = CaptureDate;
 }
 
 async function waitForCaptureReady(page) {

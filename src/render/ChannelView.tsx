@@ -12,6 +12,7 @@ import { IconHash } from './discordIcons.tsx';
 import { InteractionBody } from './InteractionComponents.tsx';
 import { Markdown } from './markdown.tsx';
 import { skyraAuthorProps, skyraCommand, defaultBotProps } from './skyraAuthor.ts';
+import { skyraTimestampProps } from '../lib/skyraTimestamp.ts';
 
 function SkyraMessageItem({
   message,
@@ -23,12 +24,11 @@ function SkyraMessageItem({
   loadingButton?: string | null;
 }) {
   const { author, content, timestamp, deletedReply, slashInvocation, interaction } = message;
-  const useTwentyFour = Boolean(timestamp && /^\d{1,2}:\d{2}$/.test(timestamp));
 
   return (
     <DiscordMessage
       {...skyraAuthorProps(author)}
-      {...(timestamp ? { timestamp, twentyFour: useTwentyFour } : {})}
+      {...skyraTimestampProps(timestamp)}
     >
       {deletedReply && <DiscordReply slot="reply" deleted />}
       {slashInvocation && (
@@ -64,6 +64,7 @@ function SkyraEphemeralMessage({
   return (
     <DiscordMessage
       {...(ephemeral.author ? skyraAuthorProps(ephemeral.author) : defaultBotProps())}
+      {...skyraTimestampProps()}
       ephemeral
     >
       {ephemeral.slashInvocation && (

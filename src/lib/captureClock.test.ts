@@ -13,6 +13,7 @@ describe('installCaptureClock', () => {
 
     expect(Date.now()).toBe(Date.parse(CAPTURE_FIXED_DATE_ISO));
     expect(new Date().toISOString()).toBe(CAPTURE_FIXED_DATE_ISO);
+    expect(new Date()).toBeInstanceOf(Date);
   });
 
   it('does nothing outside capture mode', () => {

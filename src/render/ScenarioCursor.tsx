@@ -1,13 +1,12 @@
 import { useEffect, useRef, useState, type RefObject } from 'react';
 import { createPortal } from 'react-dom';
 import { completeCursorClick } from '../scenario/cursorBridge.ts';
-import { buttonCenter, findScenarioButtonRect } from './findScenarioButton.ts';
+import { buttonCenter, waitForScenarioButtonRect } from './findScenarioButton.ts';
 import pointerArrowIcon from '../styles/pointer-arrow-icon.svg';
 
 const MOVE_DURATION_MS = 750;
 const CLICK_HOLD_MS = 140;
-const LOOKUP_RETRY_MS = 80;
-const LOOKUP_MAX_ATTEMPTS = 12;
+const FRAME_MS = 16;
 const CURSOR_ORIGIN_OFFSET_Y = 50;
 
 function easeInOutCubic(t: number): number {
@@ -50,28 +49,32 @@ function getScenarioCursorOrigin(root: HTMLElement | null): { x: number; y: numb
   return { x: 36, y: 228 };
 }
 
-async function waitForButtonRect(label: string): Promise<DOMRect | null> {
-  for (let i = 0; i < LOOKUP_MAX_ATTEMPTS; i++) {
-    const rect = findScenarioButtonRect(label);
-    if (rect) return rect;
-    await sleep(LOOKUP_RETRY_MS);
-  }
-  return null;
-}
-
 function defaultOrigin(canvas: HTMLElement | null): { x: number; y: number } {
   return getScenarioCursorOrigin(canvas);
 }
 
-function placeCursorOrigin(
-  canvas: HTMLElement | null,
-  apply: (origin: { x: number; y: number }) => void,
-) {
-  requestAnimationFrame(() => {
-    requestAnimationFrame(() => {
-      apply(getScenarioCursorOrigin(canvas));
+async function animateCursorMove(
+  from: { x: number; y: number },
+  to: { x: number; y: number },
+  apply: (point: { x: number; y: number }) => void,
+  isCancelled: () => boolean,
+): Promise<void> {
+  const startedAt = performance.now();
+
+  while (true) {
+    if (isCancelled()) return;
+
+    const elapsed = performance.now() - startedAt;
+    const t = Math.min(1, elapsed / MOVE_DURATION_MS);
+    const e = easeInOutCubic(t);
+    apply({
+      x: from.x + (to.x - from.x) * e,
+      y: from.y + (to.y - from.y) * e,
     });
-  });
+
+    if (t >= 1) return;
+    await sleep(FRAME_MS);
+  }
 }
 
 interface CursorPose {
@@ -102,19 +105,17 @@ export function ScenarioCursor({
   useEffect(() => {
     if (!returnHome) return;
     hasAnimated.current = false;
-    placeCursorOrigin(canvasRef.current, (origin) => {
-      lastPos.current = origin;
-      setPose({ ...origin, visible: true, pressing: false });
-    });
+    const origin = getScenarioCursorOrigin(canvasRef.current);
+    lastPos.current = origin;
+    setPose({ ...origin, visible: true, pressing: false });
   }, [returnHome, canvasRef]);
 
   useEffect(() => {
     const placeIdle = () => {
       if (hasAnimated.current) return;
-      placeCursorOrigin(canvasRef.current, (origin) => {
-        lastPos.current = origin;
-        setPose({ ...origin, visible: true, pressing: false });
-      });
+      const origin = getScenarioCursorOrigin(canvasRef.current);
+      lastPos.current = origin;
+      setPose({ ...origin, visible: true, pressing: false });
     };
 
     placeIdle();
@@ -128,63 +129,49 @@ export function ScenarioCursor({
     hasAnimated.current = true;
 
     let cancelled = false;
+    let bridgeCompleted = false;
     const runId = target;
 
-    const run = async () => {
-      await sleep(32);
-      if (cancelled) return;
-
-      const rect = await waitForButtonRect(target);
-      if (cancelled) return;
-
-      const from = lastPos.current ?? defaultOrigin(canvasRef.current);
-      const to = rect ? buttonCenter(rect) : from;
-      let animationStart: number | null = null;
-
-      await new Promise<void>((resolve) => {
-        const frame = (now: number) => {
-          if (cancelled) {
-            resolve();
-            return;
-          }
-          // Use the rAF timeline only so capture playback remains stable
-          // regardless of when this effect starts on a given machine.
-          animationStart ??= now;
-          const t = Math.min(1, (now - animationStart) / MOVE_DURATION_MS);
-          const e = easeInOutCubic(t);
-          setPose({
-            x: from.x + (to.x - from.x) * e,
-            y: from.y + (to.y - from.y) * e,
-            visible: true,
-            pressing: false,
-          });
-          if (t < 1) {
-            requestAnimationFrame(frame);
-          } else {
-            resolve();
-          }
-        };
-        requestAnimationFrame(frame);
-      });
-
-      if (cancelled) return;
-
-      lastPos.current = to;
-      setPose({ x: to.x, y: to.y, visible: true, pressing: true });
-      await sleep(CLICK_HOLD_MS);
-
-      if (cancelled || runId !== target) return;
-
-      setPose({ x: to.x, y: to.y, visible: true, pressing: false });
+    const finishClick = () => {
+      if (bridgeCompleted) return;
+      bridgeCompleted = true;
       completeCursorClick();
     };
 
-    void run().catch(() => {
-      if (!cancelled) completeCursorClick();
-    });
+    const run = async () => {
+      try {
+        await sleep(32);
+        if (cancelled) return;
+
+        const rect = await waitForScenarioButtonRect(target);
+        if (cancelled) return;
+
+        const from = lastPos.current ?? defaultOrigin(canvasRef.current);
+        const to = rect ? buttonCenter(rect) : from;
+
+        await animateCursorMove(from, to, (point) => {
+          setPose({ ...point, visible: true, pressing: false });
+        }, () => cancelled);
+
+        if (cancelled) return;
+
+        lastPos.current = to;
+        setPose({ x: to.x, y: to.y, visible: true, pressing: true });
+        await sleep(CLICK_HOLD_MS);
+
+        if (cancelled || runId !== target) return;
+
+        setPose({ x: to.x, y: to.y, visible: true, pressing: false });
+      } finally {
+        finishClick();
+      }
+    };
+
+    void run();
 
     return () => {
       cancelled = true;
+      finishClick();
     };
   }, [target, canvasRef]);
 

@@ -6,8 +6,9 @@ export function installCaptureClock(): void {
   if (params.get('capture') !== '1') return;
 
   const fixedMs = Date.parse(CAPTURE_FIXED_DATE_ISO);
+  const RealDate = Date;
 
-  class CaptureDate extends Date {
+  class CaptureDate extends RealDate {
     constructor(...args: [] | ConstructorParameters<typeof Date>) {
       if (args.length === 0) {
         super(fixedMs);
@@ -20,6 +21,9 @@ export function installCaptureClock(): void {
       return fixedMs;
     }
   }
+
+  CaptureDate.parse = RealDate.parse;
+  CaptureDate.UTC = RealDate.UTC;
 
   window.Date = CaptureDate as typeof Date;
 }

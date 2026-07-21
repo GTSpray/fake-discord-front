@@ -28,6 +28,7 @@ import type {
   SlashLayer,
 } from '../lib/types.ts';
 import { DEFAULT_BOT_NAME, resolveViewer } from '../lib/types.ts';
+import { formatSkyraClockTime } from '../lib/skyraTimestamp.ts';
 import { runCursorClick } from './cursorBridge.ts';
 import { runTyping } from './typingBridge.ts';
 
@@ -54,10 +55,7 @@ function defaultBotAuthor(): Author {
 }
 
 function formatPendingTimestamp(): string {
-  const now = new Date();
-  const h = String(now.getHours()).padStart(2, '0');
-  const m = String(now.getMinutes()).padStart(2, '0');
-  return `${h}:${m}`;
+  return formatSkyraClockTime(new Date());
 }
 
 function sleep(ms: number, signal?: AbortSignal): Promise<void> {
