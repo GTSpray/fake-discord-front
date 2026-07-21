@@ -17,7 +17,11 @@ Open the app, then **import a JSON file** (button or drag & drop). Playback star
 automatically. Add `?autoplay=0` to control playback manually, or `?capture=1` to
 hide the sidebar for screenshots.
 
-Example files live in [`examples/`](examples/).
+Example files live in [`examples/`](examples/). Sample bot documentation pages with looping video previews:
+
+- [Create a poll](examples/poll-moderator-flow.md)
+- [Say hello](examples/say-hello-flow.md)
+- [Show an otter](examples/gimme-otter.md)
 
 ## JSON contract
 
