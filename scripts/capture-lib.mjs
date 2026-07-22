@@ -202,10 +202,9 @@ export function encodeCaptureGif(webmPath, gifPath = webmPath.replace(/\.webm$/i
   return gifPath;
 }
 
-async function createCaptureContext(browser, { scenario, videoDir = null }) {
+async function createCaptureContext(browser, { scenario }) {
   const context = await browser.newContext({
     viewport: DEFAULT_VIEWPORT,
-    ...(videoDir ? { recordVideo: { dir: videoDir, size: DEFAULT_VIEWPORT } } : {}),
   });
 
   await context.addInitScript(installCaptureClockInPage, CAPTURE_FIXED_DATE_ISO);
@@ -220,16 +219,21 @@ async function createCaptureContext(browser, { scenario, videoDir = null }) {
 }
 
 /**
- * Play a scenario once.
- * - captureSteps: short-circuit animations, pause per action, return step PNG MD5s
- * - otherwise: full playback (typing animations included)
+ * Load the scenario page and wait until capture UI is ready.
+ * @param {{ baseUrl: string, captureSteps?: boolean, autoplay?: boolean, record?: boolean }} options
  */
-async function playScenarioCapture(page, { baseUrl, captureSteps = false }) {
+async function prepareScenarioPage(
+  page,
+  { baseUrl, captureSteps = false, autoplay = true, record = false },
+) {
   const captureUrl = new URL(baseUrl);
   captureUrl.searchParams.set('capture', '1');
-  captureUrl.searchParams.set('autoplay', '1');
+  captureUrl.searchParams.set('autoplay', autoplay ? '1' : '0');
   if (captureSteps) {
     captureUrl.searchParams.set('capture_steps', '1');
+  }
+  if (record) {
+    captureUrl.searchParams.set('record', '1');
   }
 
   await page.goto(captureUrl.toString(), { waitUntil: 'networkidle' });
@@ -238,13 +242,29 @@ async function playScenarioCapture(page, { baseUrl, captureSteps = false }) {
 
   if (captureSteps) {
     await disableRuntimeAnimations(page);
-    return captureStepPngHashes(page);
   }
+}
 
+async function waitForPlaybackDone(page) {
   await page.waitForFunction('window.__SCENARIO_PLAYER__?.status === "done"', undefined, {
     timeout: 120_000,
   });
   await page.waitForTimeout(400);
+}
+
+/**
+ * Play a scenario once.
+ * - captureSteps: short-circuit animations, pause per action, return step PNG MD5s
+ * - otherwise: full playback (typing animations included)
+ */
+async function playScenarioCapture(page, { baseUrl, captureSteps = false }) {
+  await prepareScenarioPage(page, { baseUrl, captureSteps, autoplay: true });
+
+  if (captureSteps) {
+    return captureStepPngHashes(page);
+  }
+
+  await waitForPlaybackDone(page);
   return null;
 }
 
@@ -286,16 +306,34 @@ export async function captureScenario({
     }
 
     if (recordVideo || (saveFinalPng && !outputs.png)) {
-      const videoDir = recordVideo ? join(outDir, `.capture-video-${prefix}`) : null;
-      if (videoDir) {
-        mkdirSync(videoDir, { recursive: true });
-      }
-
-      const playContext = await createCaptureContext(activeBrowser, { scenario, videoDir });
+      const playContext = await createCaptureContext(activeBrowser, { scenario });
       const playPage = await playContext.newPage();
-      const pageVideo = recordVideo ? playPage.video() : null;
+      const webmPath = recordVideo ? join(outDir, `${prefix}.webm`) : null;
+      const gifPath = recordVideo ? join(outDir, `${prefix}.gif`) : null;
+      let screencastStarted = false;
+
       try {
-        await playScenarioCapture(playPage, { baseUrl, captureSteps: false });
+        // record=1 arms a gate: page loads fully, then waits until we start the screencast.
+        await prepareScenarioPage(playPage, {
+          baseUrl,
+          captureSteps: false,
+          autoplay: true,
+          record: recordVideo,
+        });
+
+        if (recordVideo) {
+          await playPage.waitForFunction('window.__SCENARIO_CAPTURE_ARMED__ === true', undefined, {
+            timeout: 15_000,
+          });
+          await playPage.screencast.start({
+            path: webmPath,
+            size: DEFAULT_VIEWPORT,
+          });
+          screencastStarted = true;
+          await playPage.evaluate('window.__SCENARIO_CAPTURE_BEGIN__()');
+        }
+
+        await waitForPlaybackDone(playPage);
 
         if (saveFinalPng && !outputs.png) {
           const pngPath = join(outDir, `${prefix}.png`);
@@ -303,16 +341,14 @@ export async function captureScenario({
           outputs.png = pngPath;
         }
       } finally {
+        if (screencastStarted) {
+          await playPage.screencast.stop();
+        }
         await playContext.close();
-        if (pageVideo) {
-          const webmPath = join(outDir, `${prefix}.webm`);
-          const gifPath = join(outDir, `${prefix}.gif`);
-          await pageVideo.saveAs(webmPath);
-          outputs.gif = encodeCaptureGif(webmPath, gifPath);
-        }
-        if (videoDir) {
-          rmSync(videoDir, { recursive: true, force: true });
-        }
+      }
+
+      if (recordVideo && webmPath && gifPath && existsSync(webmPath)) {
+        outputs.gif = encodeCaptureGif(webmPath, gifPath);
       }
     }
   } finally {

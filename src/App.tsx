@@ -38,7 +38,15 @@ function setHideUi(hidden: boolean) {
   window.dispatchEvent(new PopStateEvent('popstate'));
 }
 
-function PlaybackView({ scenario, autoplay }: { scenario: Scenario; autoplay: boolean }) {
+function PlaybackView({
+  scenario,
+  autoplay,
+  capture,
+}: {
+  scenario: Scenario;
+  autoplay: boolean;
+  capture: boolean;
+}) {
   const { state, status, play, pause, resume, snapshot } = useScenarioPlayer({
     scenario,
     autoplay,
@@ -62,6 +70,7 @@ function PlaybackView({ scenario, autoplay }: { scenario: Scenario; autoplay: bo
     <>
       <ScenarioCanvas state={state} scenarioDone={status === 'done'} />
       {!autoplay &&
+        !capture &&
         createPortal(
           <div className="scenario-controls">
             <span className="scenario-status">
@@ -157,7 +166,7 @@ export function App() {
       )}
 
       {scenario ? (
-        <PlaybackView scenario={scenario} autoplay={params.autoplay} />
+        <PlaybackView scenario={scenario} autoplay={params.autoplay} capture={params.capture} />
       ) : (
         <EmptyState onUpload={handleUpload} error={sessionError} />
       )}

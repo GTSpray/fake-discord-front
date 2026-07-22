@@ -53,12 +53,29 @@ export function useScenarioPlayer({ scenario, autoplay = true }: UseScenarioPlay
     if (!autoplay || !imagesReady) return;
 
     let cancelled = false;
-    void preloadRef.current.then(() => {
+    void preloadRef.current.then(async () => {
+      if (cancelled) return;
+
+      const params = new URLSearchParams(window.location.search);
+      const recordGate = params.get('capture') === '1' && params.get('record') === '1';
+      if (recordGate) {
+        await new Promise<void>((resolve) => {
+          window.__SCENARIO_CAPTURE_BEGIN__ = () => {
+            delete window.__SCENARIO_CAPTURE_BEGIN__;
+            resolve();
+          };
+          window.__SCENARIO_CAPTURE_ARMED__ = true;
+        });
+        delete window.__SCENARIO_CAPTURE_ARMED__;
+      }
+
       if (!cancelled) void runner.play();
     });
 
     return () => {
       cancelled = true;
+      delete window.__SCENARIO_CAPTURE_ARMED__;
+      delete window.__SCENARIO_CAPTURE_BEGIN__;
       runner.stop();
     };
   }, [runner, autoplay, imagesReady]);
