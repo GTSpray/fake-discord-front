@@ -7,7 +7,7 @@ import tseslint from 'typescript-eslint';
 
 export default tseslint.config(
   {
-    ignores: ['dist/**', 'node_modules/**', 'output/**', 'tests/snapshots/**'],
+    ignores: ['dist/**', 'dist-capture/**', 'node_modules/**', 'output/**', 'tests/snapshots/**'],
   },
   js.configs.recommended,
   ...tseslint.configs.recommended,
