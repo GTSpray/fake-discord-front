@@ -23,7 +23,7 @@ DOCKER_RUN = docker run --rm $(DOCKER_USER) \
 	-w /app \
 	$(DOCKER_IMAGE)
 
-.PHONY: help docker-build docker-build-capture install build test lint format-check \
+.PHONY: help docker-build docker-build-capture pack-capture-bundle install build test lint format-check \
         validate snapshots snapshots-refresh snapshots-refresh-ci snapshots-verify \
         ci ci-fast lint-ci test-ci clean
 
@@ -31,6 +31,8 @@ help:
 	@echo "Doc Studio"
 	@echo ""
 	@echo "  make docker-build          Build the dev/CI image ($(DOCKER_IMAGE))"
+	@echo "  make docker-build-capture  Build remote capture CLI ($(CAPTURE_IMAGE))"
+	@echo "  make pack-capture-bundle   Pack Dockerfile+scripts into dist-capture/"
 	@echo "  make install               npm ci (in Docker)"
 	@echo "  make build                 Production build (in Docker)"
 	@echo "  make test                  Unit tests (in Docker)"
@@ -41,16 +43,20 @@ help:
 	@echo "  make ci                    Run lint-ci, test-ci, and snapshots-refresh"
 	@echo "  make lint-ci               format:check + lint (CI job)"
 	@echo "  make test-ci               validate + build + test (CI job)"
-	@echo ""
-	@echo "  make docker-build-capture  Build remote capture CLI ($(CAPTURE_IMAGE))"
 
 docker-build:
 	docker build -f $(DOCKERFILE_DEV) \
 		--build-arg PLAYWRIGHT_VERSION=$(PLAYWRIGHT_VERSION) \
 		-t $(DOCKER_IMAGE) .
 
-docker-build-capture:
-	docker build -f $(DOCKERFILE_CAPTURE) -t $(CAPTURE_IMAGE) .
+pack-capture-bundle:
+	chmod +x scripts/pack-capture-bundle.sh
+	./scripts/pack-capture-bundle.sh
+
+docker-build-capture: pack-capture-bundle
+	docker build -f dist-capture/doc-studio-capture/Dockerfile \
+		-t $(CAPTURE_IMAGE) \
+		dist-capture/doc-studio-capture
 
 install: docker-build
 	$(DOCKER_RUN) npm ci
@@ -103,4 +109,4 @@ ci: docker-build lint-ci test-ci snapshots-refresh
 ci-fast: lint-ci test-ci snapshots-refresh
 
 clean:
-	rm -rf dist node_modules coverage output
+	rm -rf dist dist-capture node_modules coverage output

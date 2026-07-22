@@ -1,5 +1,6 @@
 node_modules/
 dist/
+dist-capture/
 output/
 .DS_Store
 *.log

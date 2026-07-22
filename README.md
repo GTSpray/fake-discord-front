@@ -101,12 +101,34 @@ with your playback JSON files — nothing is bundled except the capture scripts,
 Playwright, and ffmpeg for gif/mp4 conversion. JSON validation happens in the
 studio when each scenario is loaded.
 
-### Build
+### Prebuilt image (GHCR)
+
+Published as `:latest` on every push to `main` (and via **Release capture**
+workflow dispatch):
 
 ```bash
+docker pull ghcr.io/gtspray/fake-discord-front/doc-studio-capture:latest
+docker run --rm -v "$PWD:/work" \
+  ghcr.io/gtspray/fake-discord-front/doc-studio-capture:latest \
+  capture --file scenarios/my-flow.json --format gif
+```
+
+The floating GitHub Release `capture-latest` attaches `doc-studio-capture-latest.zip`
+(Dockerfile + scripts). Build from that bundle:
+
+```bash
+unzip doc-studio-capture-latest.zip
+cd doc-studio-capture
 docker build -t doc-studio-capture .
-# or:
-docker build -f docker/Dockerfile.capture -t doc-studio-capture .
+```
+
+### Build locally
+
+```bash
+make pack-capture-bundle          # → dist-capture/doc-studio-capture/
+make docker-build-capture         # builds image from that bundle
+# or from the repo root:
+docker build -t doc-studio-capture .
 ```
 
 ### Usage
