@@ -62,9 +62,9 @@ All payload data (`modal`, `ephemeral`, `layers`, `userMessage`, etc.) must be
 
 ## Snapshots (visual regression)
 
-Only **evolved** WebM files are updated after a refresh. Capture runs in a temp directory;
+Only **evolved** MP4 files are updated after a refresh. Capture runs in a temp directory;
 step PNG frames are hashed (MD5) into `tests/snapshots/snapshot.json` (stable, no typing
-animation). When hashes differ, matching WebMs are copied into `tests/snapshots/` — those
+animation). When hashes differ, matching MP4s are copied into `tests/snapshots/` — those
 videos are recorded in a second full-playback pass (typing included). Existing videos are
 never deleted.
 
@@ -75,7 +75,7 @@ make ci                    # lint + test + snapshots-refresh
 ```
 
 CI runs three parallel jobs (`lint`, `test`, `snapshots-refresh`). `snapshots-refresh`
-compares per-step PNG hashes, updates `snapshot.json`, and copies only evolved WebMs.
+compares per-step PNG hashes, updates `snapshot.json`, and copies only evolved MP4s.
 Exit code 1 means the commit is stale and the refreshed files are in the CI artifact.
 
 ## Capture
@@ -90,7 +90,7 @@ CAPTURE_BASE_URL=http://127.0.0.1:4173 npm run capture -- --file examples/poll-m
 Output directory and filename prefix come from the optional `output` block in the
 JSON file (defaults: `output/` and the file `id`).
 
-Use `--no-video` to skip WebM recording.
+Use `--no-video` to skip MP4 recording.
 
 ## Docker CLI
 
@@ -121,7 +121,7 @@ docker run --rm -v "$PWD:/work" doc-studio-capture \
 docker run --rm -v "$PWD:/work" doc-studio-capture \
   capture-dir scenarios/
 
-# Skip WebM, only PNG
+# Skip MP4, only PNG
 docker run --rm -v "$PWD:/work" doc-studio-capture \
   capture --file scenarios/gimme-otter.json --no-video
 ```

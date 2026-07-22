@@ -4,6 +4,11 @@ ENV NODE_ENV=production \
     CAPTURE_BASE_URL=https://gtspray.github.io/fake-discord-front/ \
     PLAYWRIGHT_SKIP_BROWSER_DOWNLOAD=1
 
+# Re-encode Playwright WebM recordings to H.264 MP4.
+RUN apt-get update \
+  && apt-get install -y --no-install-recommends ffmpeg \
+  && rm -rf /var/lib/apt/lists/*
+
 RUN npm install -g playwright@1.61.1 \
   && mkdir -p /app/node_modules \
   && ln -sf /usr/lib/node_modules/playwright /app/node_modules/playwright

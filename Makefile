@@ -1,6 +1,6 @@
 # Doc Studio — Docker-wrapped dev and CI commands.
 #
-# Snapshots are always captured inside the dev image. We version WebM files and
+# Snapshots are always captured inside the dev image. We version MP4 files and
 # a snapshot.json containing MD5 hashes of per-step PNG captures.
 
 DOCKER_IMAGE ?= doc-studio-dev
@@ -91,7 +91,7 @@ test-ci:
 		npm test \
 	'
 
-# Capture in /tmp, update snapshot.json, copy WebM only for evolved scenarios.
+# Capture in /tmp, update snapshot.json, copy MP4 only for evolved scenarios.
 # Exit 0 = nothing to refresh. Exit 1 = snapshots were refreshed (commit them).
 snapshots-refresh: docker-build
 	$(DOCKER_RUN) npm ci

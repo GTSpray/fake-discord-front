@@ -3,7 +3,7 @@ import { existsSync, readFileSync, readdirSync, writeFileSync } from 'node:fs';
 import { join, relative } from 'node:path';
 
 export const SNAPSHOT_FILENAME = 'snapshot.json';
-const SNAPSHOT_VIDEO_FILE = /^[a-z0-9][a-z0-9-]*\.webm$/i;
+const SNAPSHOT_VIDEO_FILE = /^[a-z0-9][a-z0-9-]*\.mp4$/i;
 
 export function isSnapshotVideoArtifact(name) {
   return SNAPSHOT_VIDEO_FILE.test(name);
@@ -73,7 +73,7 @@ export function hasHashDiff(diff) {
 }
 
 export function expectedSnapshotArtifacts(scenarioIds) {
-  return scenarioIds.map((id) => `${id}.webm`);
+  return scenarioIds.map((id) => `${id}.mp4`);
 }
 
 export function findMissingArtifacts(expectedNames, availableNames) {

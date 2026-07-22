@@ -4,7 +4,7 @@ The `/say hello` command makes the bot greet someone.
 
 ## Preview
 
-<video src="../tests/snapshots/say-hello-flow.webm" controls loop autoplay muted playsinline width="720"></video>
+<video src="../tests/snapshots/say-hello-flow.mp4" controls loop autoplay muted playsinline width="720"></video>
 
 ## Usage
 
