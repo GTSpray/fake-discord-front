@@ -17,7 +17,11 @@ Open the app, then **import a JSON file** (button or drag & drop). Playback star
 automatically. Add `?autoplay=0` to control playback manually, or `?capture=1` to
 hide the sidebar for screenshots.
 
-Example files live in [`examples/`](examples/).
+Example files live in [`examples/`](examples/). Sample bot documentation pages with looping video previews:
+
+- [Create a poll](examples/poll-moderator-flow.md)
+- [Say hello](examples/say-hello-flow.md)
+- [Show an otter](examples/gimme-otter.md)
 
 ## JSON contract
 
@@ -58,9 +62,9 @@ All payload data (`modal`, `ephemeral`, `layers`, `userMessage`, etc.) must be
 
 ## Snapshots (visual regression)
 
-Only **evolved** WebM files are updated after a refresh. Capture runs in a temp directory;
+Only **evolved** GIF files are updated after a refresh. Capture runs in a temp directory;
 step PNG frames are hashed (MD5) into `tests/snapshots/snapshot.json` (stable, no typing
-animation). When hashes differ, matching WebMs are copied into `tests/snapshots/` — those
+animation). When hashes differ, matching GIFs are copied into `tests/snapshots/` — those
 videos are recorded in a second full-playback pass (typing included). Existing videos are
 never deleted.
 
@@ -71,7 +75,7 @@ make ci                    # lint + test + snapshots-refresh
 ```
 
 CI runs three parallel jobs (`lint`, `test`, `snapshots-refresh`). `snapshots-refresh`
-compares per-step PNG hashes, updates `snapshot.json`, and copies only evolved WebMs.
+compares per-step PNG hashes, updates `snapshot.json`, and copies only evolved GIFs.
 Exit code 1 means the commit is stale and the refreshed files are in the CI artifact.
 
 ## Capture
@@ -86,21 +90,23 @@ CAPTURE_BASE_URL=http://127.0.0.1:4173 npm run capture -- --file examples/poll-m
 Output directory and filename prefix come from the optional `output` block in the
 JSON file (defaults: `output/` and the file `id`).
 
-Use `--no-video` to skip WebM recording.
+Use `--no-video` to skip recording. Choose the animated output with `--format gif|mp4|webm`
+(default: `gif`). Priority: `--format` → `output.format` in JSON → `CAPTURE_VIDEO_FORMAT` → `gif`.
 
 ## Docker CLI
 
 Headless capture CLI against the
 [deployed studio](https://gtspray.github.io/fake-discord-front/). Mount a volume
-with your playback JSON files — nothing is bundled except the capture scripts and
-Playwright. JSON validation happens in the studio when each scenario is loaded.
+with your playback JSON files — nothing is bundled except the capture scripts,
+Playwright, and ffmpeg for gif/mp4 conversion. JSON validation happens in the
+studio when each scenario is loaded.
 
 ### Build
 
 ```bash
-docker build -f docker/Dockerfile.capture -t doc-studio-capture .
-# or (same image):
 docker build -t doc-studio-capture .
+# or:
+docker build -f docker/Dockerfile.capture -t doc-studio-capture .
 ```
 
 ### Usage
@@ -109,15 +115,23 @@ Mount your working directory on `/work`. Scenario paths and output folders are
 resolved from there (see the optional `output` block in each JSON file).
 
 ```bash
-# One scenario
+# One scenario (GIF by default)
 docker run --rm -v "$PWD:/work" doc-studio-capture \
   capture --file scenarios/poll-moderator-flow.json
 
+# MP4 output
+docker run --rm -v "$PWD:/work" doc-studio-capture \
+  capture --file scenarios/poll-moderator-flow.json --format mp4
+
+# Keep raw WebM
+docker run --rm -v "$PWD:/work" doc-studio-capture \
+  capture --file scenarios/poll-moderator-flow.json --format webm
+
 # Every *.json in a folder
 docker run --rm -v "$PWD:/work" doc-studio-capture \
-  capture-dir scenarios/
+  capture-dir scenarios/ --format gif
 
-# Skip WebM, only PNG
+# Skip video, only PNG
 docker run --rm -v "$PWD:/work" doc-studio-capture \
   capture --file scenarios/gimme-otter.json --no-video
 ```
@@ -127,13 +141,15 @@ docker run --rm -v "$PWD:/work" doc-studio-capture \
 | `capture`     | Capture one JSON file                 |
 | `capture-dir` | Capture every `*.json` in a directory |
 
-Default studio URL: `https://gtspray.github.io/fake-discord-front/`
+Default studio URL: `https://gtspray.github.io/fake-discord-front/`  
+Default video format: `gif`
 
-Override with `CAPTURE_BASE_URL` (e.g. a local preview during development):
+Override with env vars:
 
 ```bash
 docker run --rm -v "$PWD:/work" \
   -e CAPTURE_BASE_URL=http://host.docker.internal:4173/ \
+  -e CAPTURE_VIDEO_FORMAT=mp4 \
   doc-studio-capture capture --file scenarios/gimme-otter.json
 ```
 

@@ -160,7 +160,10 @@ async function captureStepPngHashes(page, timeoutMs = 120_000) {
   throw new Error('Timed out while capturing per-step PNG hashes.');
 }
 
-/** Re-encode WebM with fixed settings so MD5 is stable in the pinned Docker image. */
+/** Playwright records WebM; optional ffmpeg pass converts to gif/mp4. */
+export const VIDEO_FORMATS = ['gif', 'mp4', 'webm'];
+export const DEFAULT_VIDEO_FORMAT = 'gif';
+
 export function resolveFfmpegBinary() {
   if (process.env.FFMPEG_PATH && existsSync(process.env.FFMPEG_PATH)) {
     return process.env.FFMPEG_PATH;
@@ -169,61 +172,88 @@ export function resolveFfmpegBinary() {
     return execSync('command -v ffmpeg', { encoding: 'utf8' }).trim();
   } catch {
     throw new Error(
-      'ffmpeg not found. Use the doc-studio-dev Docker image (make snapshots) or install ffmpeg on the host.',
+      'ffmpeg not found. Use the doc-studio capture/dev Docker image or install ffmpeg on the host.',
     );
   }
 }
 
-export function normalizeWebmVideo(filePath) {
-  const ffmpeg = resolveFfmpegBinary();
-  const tmp = `${filePath}.norm.webm`;
-  execFileSync(
-    ffmpeg,
-    [
-      '-y',
-      '-loglevel',
-      'error',
-      '-i',
-      filePath,
-      '-an',
-      '-c:v',
-      'libvpx',
-      '-pix_fmt',
-      'yuv420p',
-      '-r',
-      '30',
-      '-g',
-      '300',
-      '-keyint_min',
-      '300',
-      '-auto-alt-ref',
-      '0',
-      '-lag-in-frames',
-      '0',
-      '-deadline',
-      'good',
-      '-cpu-used',
-      '0',
-      '-b:v',
-      '2M',
-      '-threads',
-      '1',
-      '-fflags',
-      '+bitexact',
-      '-flags',
-      '+bitexact',
-      tmp,
-    ],
-    { stdio: 'inherit' },
-  );
-  rmSync(filePath, { force: true });
-  renameSync(tmp, filePath);
+export function resolveVideoFormat(value = DEFAULT_VIDEO_FORMAT) {
+  const format = String(value).trim().toLowerCase();
+  if (!VIDEO_FORMATS.includes(format)) {
+    throw new Error(
+      `Unsupported video format "${value}". Expected one of: ${VIDEO_FORMATS.join(', ')}`,
+    );
+  }
+  return format;
 }
 
-async function createCaptureContext(browser, { scenario, videoDir = null }) {
+/**
+ * Convert a Playwright WebM recording to the requested format.
+ * gif/mp4: re-encode with ffmpeg and delete the source WebM.
+ * webm: keep the recording as-is (optionally renamed).
+ * @returns {string} path to the written video
+ */
+export function encodeCaptureVideo(
+  webmPath,
+  format = DEFAULT_VIDEO_FORMAT,
+  outPath = webmPath.replace(/\.webm$/i, `.${resolveVideoFormat(format)}`),
+) {
+  const resolved = resolveVideoFormat(format);
+  const targetPath = outPath;
+
+  if (resolved === 'webm') {
+    if (webmPath !== targetPath) {
+      renameSync(webmPath, targetPath);
+    }
+    return targetPath;
+  }
+
+  const ffmpeg = resolveFfmpegBinary();
+  const args =
+    resolved === 'gif'
+      ? [
+          '-y',
+          '-loglevel',
+          'error',
+          '-i',
+          webmPath,
+          '-an',
+          '-vf',
+          'fps=12,scale=720:-1:flags=lanczos,split[s0][s1];[s0]palettegen=stats_mode=diff[p];[s1][p]paletteuse=dither=bayer:bayer_scale=5',
+          '-loop',
+          '0',
+          targetPath,
+        ]
+      : [
+          '-y',
+          '-loglevel',
+          'error',
+          '-i',
+          webmPath,
+          '-an',
+          '-c:v',
+          'libx264',
+          '-pix_fmt',
+          'yuv420p',
+          '-r',
+          '30',
+          '-preset',
+          'medium',
+          '-crf',
+          '23',
+          '-movflags',
+          '+faststart',
+          targetPath,
+        ];
+
+  execFileSync(ffmpeg, args, { stdio: 'inherit' });
+  rmSync(webmPath, { force: true });
+  return targetPath;
+}
+
+async function createCaptureContext(browser, { scenario }) {
   const context = await browser.newContext({
     viewport: DEFAULT_VIEWPORT,
-    ...(videoDir ? { recordVideo: { dir: videoDir, size: DEFAULT_VIEWPORT } } : {}),
   });
 
   await context.addInitScript(installCaptureClockInPage, CAPTURE_FIXED_DATE_ISO);
@@ -238,16 +268,21 @@ async function createCaptureContext(browser, { scenario, videoDir = null }) {
 }
 
 /**
- * Play a scenario once.
- * - captureSteps: short-circuit animations, pause per action, return step PNG MD5s
- * - otherwise: full playback (typing animations included)
+ * Load the scenario page and wait until capture UI is ready.
+ * @param {{ baseUrl: string, captureSteps?: boolean, autoplay?: boolean, record?: boolean }} options
  */
-async function playScenarioCapture(page, { baseUrl, captureSteps = false }) {
+async function prepareScenarioPage(
+  page,
+  { baseUrl, captureSteps = false, autoplay = true, record = false },
+) {
   const captureUrl = new URL(baseUrl);
   captureUrl.searchParams.set('capture', '1');
-  captureUrl.searchParams.set('autoplay', '1');
+  captureUrl.searchParams.set('autoplay', autoplay ? '1' : '0');
   if (captureSteps) {
     captureUrl.searchParams.set('capture_steps', '1');
+  }
+  if (record) {
+    captureUrl.searchParams.set('record', '1');
   }
 
   await page.goto(captureUrl.toString(), { waitUntil: 'networkidle' });
@@ -256,13 +291,29 @@ async function playScenarioCapture(page, { baseUrl, captureSteps = false }) {
 
   if (captureSteps) {
     await disableRuntimeAnimations(page);
-    return captureStepPngHashes(page);
   }
+}
 
+async function waitForPlaybackDone(page) {
   await page.waitForFunction('window.__SCENARIO_PLAYER__?.status === "done"', undefined, {
     timeout: 120_000,
   });
   await page.waitForTimeout(400);
+}
+
+/**
+ * Play a scenario once.
+ * - captureSteps: short-circuit animations, pause per action, return step PNG MD5s
+ * - otherwise: full playback (typing animations included)
+ */
+async function playScenarioCapture(page, { baseUrl, captureSteps = false }) {
+  await prepareScenarioPage(page, { baseUrl, captureSteps, autoplay: true });
+
+  if (captureSteps) {
+    return captureStepPngHashes(page);
+  }
+
+  await waitForPlaybackDone(page);
   return null;
 }
 
@@ -272,6 +323,7 @@ export async function captureScenario({
   prefix,
   baseUrl = DEFAULT_BASE_URL,
   recordVideo = true,
+  videoFormat = DEFAULT_VIDEO_FORMAT,
   saveFinalPng = true,
   captureStepHashes = false,
   browser,
@@ -280,10 +332,11 @@ export async function captureScenario({
 
   const ownsBrowser = !browser;
   const activeBrowser = browser ?? (await firefox.launch());
-  const outputs = { png: null, webm: null, stepHashes: null };
+  const format = recordVideo ? resolveVideoFormat(videoFormat) : null;
+  const outputs = { png: null, video: null, stepHashes: null };
 
   try {
-    // Step hashes need capture_steps (no typing). WebM needs full playback.
+    // Step hashes need capture_steps (no typing). Video needs full playback.
     // When both are requested, run two passes so review videos keep typingAnimation.
     if (captureStepHashes) {
       const hashContext = await createCaptureContext(activeBrowser, { scenario });
@@ -304,16 +357,33 @@ export async function captureScenario({
     }
 
     if (recordVideo || (saveFinalPng && !outputs.png)) {
-      const videoDir = recordVideo ? join(outDir, `.capture-video-${prefix}`) : null;
-      if (videoDir) {
-        mkdirSync(videoDir, { recursive: true });
-      }
-
-      const playContext = await createCaptureContext(activeBrowser, { scenario, videoDir });
+      const playContext = await createCaptureContext(activeBrowser, { scenario });
       const playPage = await playContext.newPage();
-      const pageVideo = recordVideo ? playPage.video() : null;
+      const webmPath = recordVideo ? join(outDir, `${prefix}.webm`) : null;
+      let screencastStarted = false;
+
       try {
-        await playScenarioCapture(playPage, { baseUrl, captureSteps: false });
+        // record=1 arms a gate: page loads fully, then waits until we start the screencast.
+        await prepareScenarioPage(playPage, {
+          baseUrl,
+          captureSteps: false,
+          autoplay: true,
+          record: recordVideo,
+        });
+
+        if (recordVideo) {
+          await playPage.waitForFunction('window.__SCENARIO_CAPTURE_ARMED__ === true', undefined, {
+            timeout: 15_000,
+          });
+          await playPage.screencast.start({
+            path: webmPath,
+            size: DEFAULT_VIEWPORT,
+          });
+          screencastStarted = true;
+          await playPage.evaluate('window.__SCENARIO_CAPTURE_BEGIN__()');
+        }
+
+        await waitForPlaybackDone(playPage);
 
         if (saveFinalPng && !outputs.png) {
           const pngPath = join(outDir, `${prefix}.png`);
@@ -321,16 +391,15 @@ export async function captureScenario({
           outputs.png = pngPath;
         }
       } finally {
+        if (screencastStarted) {
+          await playPage.screencast.stop();
+        }
         await playContext.close();
-        if (pageVideo) {
-          const videoPath = join(outDir, `${prefix}.webm`);
-          await pageVideo.saveAs(videoPath);
-          normalizeWebmVideo(videoPath);
-          outputs.webm = videoPath;
-        }
-        if (videoDir) {
-          rmSync(videoDir, { recursive: true, force: true });
-        }
+      }
+
+      if (recordVideo && webmPath && existsSync(webmPath)) {
+        const videoPath = join(outDir, `${prefix}.${format}`);
+        outputs.video = encodeCaptureVideo(webmPath, format, videoPath);
       }
     }
   } finally {
@@ -346,8 +415,8 @@ export function logCaptureOutputs(root, outputs) {
   if (outputs.png) {
     console.log(`✓ ${relative(root, outputs.png)}`);
   }
-  if (outputs.webm) {
-    console.log(`✓ ${relative(root, outputs.webm)}`);
+  if (outputs.video) {
+    console.log(`✓ ${relative(root, outputs.video)}`);
   }
 }
 

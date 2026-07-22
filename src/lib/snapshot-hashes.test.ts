@@ -24,13 +24,13 @@ describe('snapshot-hashes', () => {
     expect(md5File(filePath)).toBe('5d41402abc4b2a76b9719d911017c592');
   });
 
-  it('lists only webm videos in snapshot directory', () => {
+  it('lists only gif videos in snapshot directory', () => {
     const dir = mkdtempSync(join(tmpdir(), 'snapshot-hash-'));
-    writeFileSync(join(dir, 'a.webm'), 'webm');
+    writeFileSync(join(dir, 'a.gif'), 'gif');
     writeFileSync(join(dir, 'a.png'), 'png');
     writeFileSync(join(dir, 'manifest.json'), '{}');
 
-    expect(listSnapshotVideos(dir)).toEqual(['a.webm']);
+    expect(listSnapshotVideos(dir)).toEqual(['a.gif']);
   });
 
   it('detects added, changed, removed and unchanged files', () => {
@@ -55,9 +55,9 @@ describe('snapshot-hashes', () => {
 
   it('lists missing snapshot artifacts for examples', () => {
     const expected = expectedSnapshotArtifacts(['say-hello-flow', 'gimme-otter']);
-    const missing = findMissingArtifacts(expected, ['gimme-otter.webm']);
+    const missing = findMissingArtifacts(expected, ['gimme-otter.gif']);
 
-    expect(missing).toEqual(['say-hello-flow.webm']);
+    expect(missing).toEqual(['say-hello-flow.gif']);
   });
 
   it('flattens scenario step hashes', () => {

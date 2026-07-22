@@ -4,6 +4,7 @@
  *
  * Usage:
  *   node scripts/capture-dir.mjs scenarios/
+ *   node scripts/capture-dir.mjs --dir /work/scenarios --format mp4
  *   node scripts/capture-dir.mjs --dir /work/scenarios --no-video
  */
 import { existsSync, readdirSync } from 'node:fs';
@@ -13,14 +14,18 @@ import { firefox } from 'playwright';
 import {
   captureScenario,
   DEFAULT_BASE_URL,
+  DEFAULT_VIDEO_FORMAT,
   logCaptureOutputs,
   readScenarioFile,
+  resolveVideoFormat,
+  VIDEO_FORMATS,
 } from './capture-lib.mjs';
 
 const { values, positionals } = parseArgs({
   options: {
     dir: { type: 'string', short: 'd' },
     'no-video': { type: 'boolean', default: false },
+    format: { type: 'string' },
     'base-url': { type: 'string' },
   },
   allowPositionals: true,
@@ -28,7 +33,9 @@ const { values, positionals } = parseArgs({
 
 const dirArg = values.dir ?? positionals[0];
 if (!dirArg) {
-  console.error('Usage: capture-dir.mjs <directory> [--no-video] [--base-url <url>]');
+  console.error(
+    `Usage: capture-dir.mjs <directory> [--format ${VIDEO_FORMATS.join('|')}] [--no-video] [--base-url <url>]`,
+  );
   process.exit(2);
 }
 
@@ -52,6 +59,16 @@ if (files.length === 0) {
 const baseUrl = values['base-url'] ?? DEFAULT_BASE_URL;
 const recordVideo = !values['no-video'];
 
+let cliFormat = null;
+if (values.format) {
+  try {
+    cliFormat = resolveVideoFormat(values.format);
+  } catch (err) {
+    console.error(err instanceof Error ? err.message : err);
+    process.exit(2);
+  }
+}
+
 async function captureDirectory() {
   const browser = await firefox.launch();
 
@@ -69,16 +86,31 @@ async function captureDirectory() {
         continue;
       }
 
+      let videoFormat;
+      try {
+        videoFormat = resolveVideoFormat(
+          cliFormat ??
+            scenario.output?.format ??
+            process.env.CAPTURE_VIDEO_FORMAT ??
+            DEFAULT_VIDEO_FORMAT,
+        );
+      } catch (err) {
+        console.error(`✗ ${file}: ${err instanceof Error ? err.message : err}`);
+        process.exitCode = 1;
+        continue;
+      }
+
       const outDir = join(workDir, scenario.output?.directory ?? 'output');
       const prefix = scenario.output?.prefix ?? scenario.id;
 
-      console.log(`→ ${join(dirArg, file)} (${scenario.id})`);
+      console.log(`→ ${join(dirArg, file)} (${scenario.id}) [${videoFormat}]`);
       const outputs = await captureScenario({
         scenario,
         outDir,
         prefix,
         baseUrl,
         recordVideo,
+        videoFormat,
         browser,
       });
       logCaptureOutputs(workDir, outputs);

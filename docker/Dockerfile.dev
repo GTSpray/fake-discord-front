@@ -3,7 +3,7 @@
 ARG PLAYWRIGHT_VERSION=1.61.1
 FROM mcr.microsoft.com/playwright:v${PLAYWRIGHT_VERSION}-noble
 
-# Required for deterministic WebM normalization after Playwright capture.
+# Required to re-encode Playwright WebM recordings to GIF after capture.
 RUN apt-get update \
   && apt-get install -y --no-install-recommends ffmpeg \
   && rm -rf /var/lib/apt/lists/*

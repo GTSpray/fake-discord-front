@@ -216,7 +216,13 @@ export class ScenarioRunner {
       this.status = 'done';
       this.emit();
     } catch (err) {
-      if (err instanceof DOMException && err.name === 'AbortError') return;
+      if (err instanceof DOMException && err.name === 'AbortError') {
+        if (this.status === 'playing') {
+          this.status = 'idle';
+          this.emit();
+        }
+        return;
+      }
       throw err;
     }
   }
