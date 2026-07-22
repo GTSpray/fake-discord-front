@@ -6,7 +6,7 @@
 DOCKER_IMAGE ?= doc-studio-dev
 CAPTURE_IMAGE ?= doc-studio-capture
 DOCKERFILE_DEV ?= docker/Dockerfile.dev
-DOCKERFILE_CAPTURE ?= docker/Dockerfile.capture
+DOCKERFILE_CAPTURE ?= Dockerfile
 PLAYWRIGHT_VERSION ?= 1.61.1
 
 # GitHub Actions sets CI=true; keep container root there (Playwright expects it).

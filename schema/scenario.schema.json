@@ -42,7 +42,13 @@
       "properties": {
         "directory": { "type": "string", "default": "output" },
         "prefix": { "type": "string" },
-        "video": { "type": "boolean", "default": true }
+        "video": { "type": "boolean", "default": true },
+        "format": {
+          "type": "string",
+          "enum": ["gif", "mp4", "webm"],
+          "default": "gif",
+          "description": "Animated capture format (overridable with --format / CAPTURE_VIDEO_FORMAT)"
+        }
       }
     }
   },

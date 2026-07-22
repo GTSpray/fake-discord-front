@@ -279,6 +279,7 @@ async function captureAllExamples({ browser, files, outDir, recordVideo, useTemp
       prefix,
       baseUrl: requestedBaseUrl,
       recordVideo,
+      videoFormat: 'gif',
       saveFinalPng: false,
       captureStepHashes: true,
       browser,
@@ -286,7 +287,7 @@ async function captureAllExamples({ browser, files, outDir, recordVideo, useTemp
     currentScenarios[prefix] = { steps: outputs.stepHashes ?? {} };
     if (!useTempDir) {
       logCaptureOutputs(root, outputs);
-    } else if (outputs.gif) {
+    } else if (outputs.video) {
       console.log(`  · ${prefix}.gif (temp)`);
     }
   }

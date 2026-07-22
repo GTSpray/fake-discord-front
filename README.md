@@ -90,21 +90,23 @@ CAPTURE_BASE_URL=http://127.0.0.1:4173 npm run capture -- --file examples/poll-m
 Output directory and filename prefix come from the optional `output` block in the
 JSON file (defaults: `output/` and the file `id`).
 
-Use `--no-video` to skip GIF recording.
+Use `--no-video` to skip recording. Choose the animated output with `--format gif|mp4|webm`
+(default: `gif`). Priority: `--format` → `output.format` in JSON → `CAPTURE_VIDEO_FORMAT` → `gif`.
 
 ## Docker CLI
 
 Headless capture CLI against the
 [deployed studio](https://gtspray.github.io/fake-discord-front/). Mount a volume
-with your playback JSON files — nothing is bundled except the capture scripts and
-Playwright. JSON validation happens in the studio when each scenario is loaded.
+with your playback JSON files — nothing is bundled except the capture scripts,
+Playwright, and ffmpeg for gif/mp4 conversion. JSON validation happens in the
+studio when each scenario is loaded.
 
 ### Build
 
 ```bash
-docker build -f docker/Dockerfile.capture -t doc-studio-capture .
-# or (same image):
 docker build -t doc-studio-capture .
+# or:
+docker build -f docker/Dockerfile.capture -t doc-studio-capture .
 ```
 
 ### Usage
@@ -113,15 +115,23 @@ Mount your working directory on `/work`. Scenario paths and output folders are
 resolved from there (see the optional `output` block in each JSON file).
 
 ```bash
-# One scenario
+# One scenario (GIF by default)
 docker run --rm -v "$PWD:/work" doc-studio-capture \
   capture --file scenarios/poll-moderator-flow.json
 
+# MP4 output
+docker run --rm -v "$PWD:/work" doc-studio-capture \
+  capture --file scenarios/poll-moderator-flow.json --format mp4
+
+# Keep raw WebM
+docker run --rm -v "$PWD:/work" doc-studio-capture \
+  capture --file scenarios/poll-moderator-flow.json --format webm
+
 # Every *.json in a folder
 docker run --rm -v "$PWD:/work" doc-studio-capture \
-  capture-dir scenarios/
+  capture-dir scenarios/ --format gif
 
-# Skip GIF, only PNG
+# Skip video, only PNG
 docker run --rm -v "$PWD:/work" doc-studio-capture \
   capture --file scenarios/gimme-otter.json --no-video
 ```
@@ -131,13 +141,15 @@ docker run --rm -v "$PWD:/work" doc-studio-capture \
 | `capture`     | Capture one JSON file                 |
 | `capture-dir` | Capture every `*.json` in a directory |
 
-Default studio URL: `https://gtspray.github.io/fake-discord-front/`
+Default studio URL: `https://gtspray.github.io/fake-discord-front/`  
+Default video format: `gif`
 
-Override with `CAPTURE_BASE_URL` (e.g. a local preview during development):
+Override with env vars:
 
 ```bash
 docker run --rm -v "$PWD:/work" \
   -e CAPTURE_BASE_URL=http://host.docker.internal:4173/ \
+  -e CAPTURE_VIDEO_FORMAT=mp4 \
   doc-studio-capture capture --file scenarios/gimme-otter.json
 ```
 

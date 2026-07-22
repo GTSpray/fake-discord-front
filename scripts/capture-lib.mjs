@@ -1,6 +1,6 @@
 import { createHash } from 'node:crypto';
 import { execFileSync, execSync } from 'node:child_process';
-import { existsSync, mkdirSync, readFileSync, rmSync } from 'node:fs';
+import { existsSync, mkdirSync, readFileSync, renameSync, rmSync } from 'node:fs';
 import { join, relative, resolve } from 'node:path';
 import { firefox } from 'playwright';
 
@@ -160,7 +160,10 @@ async function captureStepPngHashes(page, timeoutMs = 120_000) {
   throw new Error('Timed out while capturing per-step PNG hashes.');
 }
 
-/** Playwright records WebM; we re-encode to GIF for docs and review. */
+/** Playwright records WebM; optional ffmpeg pass converts to gif/mp4. */
+export const VIDEO_FORMATS = ['gif', 'mp4', 'webm'];
+export const DEFAULT_VIDEO_FORMAT = 'gif';
+
 export function resolveFfmpegBinary() {
   if (process.env.FFMPEG_PATH && existsSync(process.env.FFMPEG_PATH)) {
     return process.env.FFMPEG_PATH;
@@ -169,37 +172,83 @@ export function resolveFfmpegBinary() {
     return execSync('command -v ffmpeg', { encoding: 'utf8' }).trim();
   } catch {
     throw new Error(
-      'ffmpeg not found. Use the doc-studio-dev Docker image (make snapshots) or install ffmpeg on the host.',
+      'ffmpeg not found. Use the doc-studio capture/dev Docker image or install ffmpeg on the host.',
     );
   }
 }
 
+export function resolveVideoFormat(value = DEFAULT_VIDEO_FORMAT) {
+  const format = String(value).trim().toLowerCase();
+  if (!VIDEO_FORMATS.includes(format)) {
+    throw new Error(
+      `Unsupported video format "${value}". Expected one of: ${VIDEO_FORMATS.join(', ')}`,
+    );
+  }
+  return format;
+}
+
 /**
- * Convert a Playwright WebM recording to a looping GIF, then delete the WebM.
- * Uses a palette pass for readable colors at a doc-friendly size/fps.
- * @returns {string} path to the written `.gif`
+ * Convert a Playwright WebM recording to the requested format.
+ * gif/mp4: re-encode with ffmpeg and delete the source WebM.
+ * webm: keep the recording as-is (optionally renamed).
+ * @returns {string} path to the written video
  */
-export function encodeCaptureGif(webmPath, gifPath = webmPath.replace(/\.webm$/i, '.gif')) {
+export function encodeCaptureVideo(
+  webmPath,
+  format = DEFAULT_VIDEO_FORMAT,
+  outPath = webmPath.replace(/\.webm$/i, `.${resolveVideoFormat(format)}`),
+) {
+  const resolved = resolveVideoFormat(format);
+  const targetPath = outPath;
+
+  if (resolved === 'webm') {
+    if (webmPath !== targetPath) {
+      renameSync(webmPath, targetPath);
+    }
+    return targetPath;
+  }
+
   const ffmpeg = resolveFfmpegBinary();
-  execFileSync(
-    ffmpeg,
-    [
-      '-y',
-      '-loglevel',
-      'error',
-      '-i',
-      webmPath,
-      '-an',
-      '-vf',
-      'fps=12,scale=720:-1:flags=lanczos,split[s0][s1];[s0]palettegen=stats_mode=diff[p];[s1][p]paletteuse=dither=bayer:bayer_scale=5',
-      '-loop',
-      '0',
-      gifPath,
-    ],
-    { stdio: 'inherit' },
-  );
+  const args =
+    resolved === 'gif'
+      ? [
+          '-y',
+          '-loglevel',
+          'error',
+          '-i',
+          webmPath,
+          '-an',
+          '-vf',
+          'fps=12,scale=720:-1:flags=lanczos,split[s0][s1];[s0]palettegen=stats_mode=diff[p];[s1][p]paletteuse=dither=bayer:bayer_scale=5',
+          '-loop',
+          '0',
+          targetPath,
+        ]
+      : [
+          '-y',
+          '-loglevel',
+          'error',
+          '-i',
+          webmPath,
+          '-an',
+          '-c:v',
+          'libx264',
+          '-pix_fmt',
+          'yuv420p',
+          '-r',
+          '30',
+          '-preset',
+          'medium',
+          '-crf',
+          '23',
+          '-movflags',
+          '+faststart',
+          targetPath,
+        ];
+
+  execFileSync(ffmpeg, args, { stdio: 'inherit' });
   rmSync(webmPath, { force: true });
-  return gifPath;
+  return targetPath;
 }
 
 async function createCaptureContext(browser, { scenario }) {
@@ -274,6 +323,7 @@ export async function captureScenario({
   prefix,
   baseUrl = DEFAULT_BASE_URL,
   recordVideo = true,
+  videoFormat = DEFAULT_VIDEO_FORMAT,
   saveFinalPng = true,
   captureStepHashes = false,
   browser,
@@ -282,10 +332,11 @@ export async function captureScenario({
 
   const ownsBrowser = !browser;
   const activeBrowser = browser ?? (await firefox.launch());
-  const outputs = { png: null, gif: null, stepHashes: null };
+  const format = recordVideo ? resolveVideoFormat(videoFormat) : null;
+  const outputs = { png: null, video: null, stepHashes: null };
 
   try {
-    // Step hashes need capture_steps (no typing). GIF needs full playback.
+    // Step hashes need capture_steps (no typing). Video needs full playback.
     // When both are requested, run two passes so review videos keep typingAnimation.
     if (captureStepHashes) {
       const hashContext = await createCaptureContext(activeBrowser, { scenario });
@@ -309,7 +360,6 @@ export async function captureScenario({
       const playContext = await createCaptureContext(activeBrowser, { scenario });
       const playPage = await playContext.newPage();
       const webmPath = recordVideo ? join(outDir, `${prefix}.webm`) : null;
-      const gifPath = recordVideo ? join(outDir, `${prefix}.gif`) : null;
       let screencastStarted = false;
 
       try {
@@ -347,8 +397,9 @@ export async function captureScenario({
         await playContext.close();
       }
 
-      if (recordVideo && webmPath && gifPath && existsSync(webmPath)) {
-        outputs.gif = encodeCaptureGif(webmPath, gifPath);
+      if (recordVideo && webmPath && existsSync(webmPath)) {
+        const videoPath = join(outDir, `${prefix}.${format}`);
+        outputs.video = encodeCaptureVideo(webmPath, format, videoPath);
       }
     }
   } finally {
@@ -364,8 +415,8 @@ export function logCaptureOutputs(root, outputs) {
   if (outputs.png) {
     console.log(`✓ ${relative(root, outputs.png)}`);
   }
-  if (outputs.gif) {
-    console.log(`✓ ${relative(root, outputs.gif)}`);
+  if (outputs.video) {
+    console.log(`✓ ${relative(root, outputs.video)}`);
   }
 }
 
