@@ -7,6 +7,7 @@ output
 .env
 .env.*
 tests/snapshots/*.png
+tests/snapshots/*.gif
 tests/snapshots/*.mp4
 tests/snapshots/*.webm
 coverage

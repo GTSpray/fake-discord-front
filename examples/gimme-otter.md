@@ -4,7 +4,7 @@ The `/gimme otter` command asks the bot to display an otter image.
 
 ## Preview
 
-<video src="https://github.com/GTSpray/fake-discord-front/raw/refs/heads/enchance-docs/tests/snapshots/gimme-otter.mp4" controls loop autoplay muted playsinline width="720"></video>
+![Show an otter](../tests/snapshots/gimme-otter.gif)
 
 ## Usage
 

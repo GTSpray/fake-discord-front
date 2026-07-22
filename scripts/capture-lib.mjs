@@ -160,7 +160,7 @@ async function captureStepPngHashes(page, timeoutMs = 120_000) {
   throw new Error('Timed out while capturing per-step PNG hashes.');
 }
 
-/** Playwright records WebM; we re-encode to H.264 MP4 for docs and review. */
+/** Playwright records WebM; we re-encode to GIF for docs and review. */
 export function resolveFfmpegBinary() {
   if (process.env.FFMPEG_PATH && existsSync(process.env.FFMPEG_PATH)) {
     return process.env.FFMPEG_PATH;
@@ -175,10 +175,11 @@ export function resolveFfmpegBinary() {
 }
 
 /**
- * Convert a Playwright WebM recording to MP4 (H.264), then delete the WebM.
- * @returns {string} path to the written `.mp4`
+ * Convert a Playwright WebM recording to a looping GIF, then delete the WebM.
+ * Uses a palette pass for readable colors at a doc-friendly size/fps.
+ * @returns {string} path to the written `.gif`
  */
-export function encodeCaptureMp4(webmPath, mp4Path = webmPath.replace(/\.webm$/i, '.mp4')) {
+export function encodeCaptureGif(webmPath, gifPath = webmPath.replace(/\.webm$/i, '.gif')) {
   const ffmpeg = resolveFfmpegBinary();
   execFileSync(
     ffmpeg,
@@ -189,24 +190,16 @@ export function encodeCaptureMp4(webmPath, mp4Path = webmPath.replace(/\.webm$/i
       '-i',
       webmPath,
       '-an',
-      '-c:v',
-      'libx264',
-      '-pix_fmt',
-      'yuv420p',
-      '-r',
-      '30',
-      '-preset',
-      'medium',
-      '-crf',
-      '23',
-      '-movflags',
-      '+faststart',
-      mp4Path,
+      '-vf',
+      'fps=12,scale=720:-1:flags=lanczos,split[s0][s1];[s0]palettegen=stats_mode=diff[p];[s1][p]paletteuse=dither=bayer:bayer_scale=5',
+      '-loop',
+      '0',
+      gifPath,
     ],
     { stdio: 'inherit' },
   );
   rmSync(webmPath, { force: true });
-  return mp4Path;
+  return gifPath;
 }
 
 async function createCaptureContext(browser, { scenario, videoDir = null }) {
@@ -269,10 +262,10 @@ export async function captureScenario({
 
   const ownsBrowser = !browser;
   const activeBrowser = browser ?? (await firefox.launch());
-  const outputs = { png: null, mp4: null, stepHashes: null };
+  const outputs = { png: null, gif: null, stepHashes: null };
 
   try {
-    // Step hashes need capture_steps (no typing). MP4 needs full playback.
+    // Step hashes need capture_steps (no typing). GIF needs full playback.
     // When both are requested, run two passes so review videos keep typingAnimation.
     if (captureStepHashes) {
       const hashContext = await createCaptureContext(activeBrowser, { scenario });
@@ -313,9 +306,9 @@ export async function captureScenario({
         await playContext.close();
         if (pageVideo) {
           const webmPath = join(outDir, `${prefix}.webm`);
-          const mp4Path = join(outDir, `${prefix}.mp4`);
+          const gifPath = join(outDir, `${prefix}.gif`);
           await pageVideo.saveAs(webmPath);
-          outputs.mp4 = encodeCaptureMp4(webmPath, mp4Path);
+          outputs.gif = encodeCaptureGif(webmPath, gifPath);
         }
         if (videoDir) {
           rmSync(videoDir, { recursive: true, force: true });
@@ -335,8 +328,8 @@ export function logCaptureOutputs(root, outputs) {
   if (outputs.png) {
     console.log(`✓ ${relative(root, outputs.png)}`);
   }
-  if (outputs.mp4) {
-    console.log(`✓ ${relative(root, outputs.mp4)}`);
+  if (outputs.gif) {
+    console.log(`✓ ${relative(root, outputs.gif)}`);
   }
 }
 

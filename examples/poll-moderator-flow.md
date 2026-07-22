@@ -4,7 +4,7 @@ Moderators can create a poll directly from Discord with `/poll create`.
 
 ## Preview
 
-<video src="https://github.com/GTSpray/fake-discord-front/raw/refs/heads/enchance-docs/tests/snapshots/poll-moderator-flow.mp4" controls loop autoplay muted playsinline width="720"></video>
+![Create a poll](../tests/snapshots/poll-moderator-flow.gif)
 
 ## Usage
 

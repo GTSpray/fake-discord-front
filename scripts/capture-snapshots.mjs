@@ -150,19 +150,19 @@ function removeTempDir(tempDir) {
   rmSync(tempDir, { recursive: true, force: true });
 }
 
-/** Copy MP4 from temp capture dir into tests/snapshots/ only for evolved scenarios. */
+/** Copy GIF from temp capture dir into tests/snapshots/ only for evolved scenarios. */
 function promoteEvolvedVideos(tempDir, evolvedIds) {
   if (evolvedIds.length === 0) {
-    console.log('\nAucune évolution: MP4 existants non modifiés.');
+    console.log('\nAucune évolution: GIF existants non modifiés.');
     return;
   }
 
-  console.log(`\nCopie des MP4 évolués → ${relative(root, snapshotsDir)}:`);
+  console.log(`\nCopie des GIF évolués → ${relative(root, snapshotsDir)}:`);
   for (const id of evolvedIds) {
-    const from = join(tempDir, `${id}.mp4`);
-    const to = join(snapshotsDir, `${id}.mp4`);
+    const from = join(tempDir, `${id}.gif`);
+    const to = join(snapshotsDir, `${id}.gif`);
     if (!existsSync(from)) {
-      console.warn(`  ! manquant dans le temporaire: ${id}.mp4`);
+      console.warn(`  ! manquant dans le temporaire: ${id}.gif`);
       continue;
     }
     copyFileSync(from, to);
@@ -248,10 +248,10 @@ function finalizeComparison({ comparison, currentScenarios, updateSnapshot }) {
     if (refreshMode) {
       console.log('\nScénarios rafraîchis:');
       for (const id of evolvedIds) console.log(`  ~ ${id}`);
-      console.log('\nCommittez snapshot.json et les MP4 mis à jour.');
+      console.log('\nCommittez snapshot.json et les GIF mis à jour.');
       return { exitCode: 1, evolvedIds };
     }
-    console.log('\nLes snapshots ont évolué. Committez les MP4 et snapshot.json si c’est voulu.');
+    console.log('\nLes snapshots ont évolué. Committez les GIF et snapshot.json si c’est voulu.');
     return { exitCode: 0, evolvedIds };
   }
 
@@ -286,8 +286,8 @@ async function captureAllExamples({ browser, files, outDir, recordVideo, useTemp
     currentScenarios[prefix] = { steps: outputs.stepHashes ?? {} };
     if (!useTempDir) {
       logCaptureOutputs(root, outputs);
-    } else if (outputs.mp4) {
-      console.log(`  · ${prefix}.mp4 (temp)`);
+    } else if (outputs.gif) {
+      console.log(`  · ${prefix}.gif (temp)`);
     }
   }
 

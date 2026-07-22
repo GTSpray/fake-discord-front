@@ -150,10 +150,10 @@ npm run capture -- --file examples/poll-moderator-flow.json
 - `make ci` runs `lint-ci`, `test-ci`, and `snapshots-refresh` in Docker.
 - GitHub Actions runs **three parallel jobs**: `lint`, `test`, `snapshots-refresh`.
 - **Visual regression = MD5 of per-step PNG captures** stored in `tests/snapshots/snapshot.json`. Step PNGs are generated during capture only (not versioned).
-- **Versioned artifacts**: `tests/snapshots/snapshot.json` (CI gate) + `tests/snapshots/*.mp4` for human review (updated only when step hashes evolve).
+- **Versioned artifacts**: `tests/snapshots/snapshot.json` (CI gate) + `tests/snapshots/*.gif` for human review (updated only when step hashes evolve).
 - Capture uses `?capture=1&capture_steps=1` to pause after each action and hash a stable frame.
-- Snapshot MP4s are recorded in a **second pass** without `capture_steps`, so typing animations remain visible for review.
-- `make snapshots-refresh`: capture in a temp dir, update `snapshot.json`, copy only evolved MP4s. On hash mismatch, retry capture up to **2 times** to filter flakiness. **Exit 0** if nothing to refresh, **exit 1** if snapshots were refreshed (commit them). Existing videos are never deleted.
+- Snapshot GIFs are recorded in a **second pass** without `capture_steps`, so typing animations remain visible for review.
+- `make snapshots-refresh`: capture in a temp dir, update `snapshot.json`, copy only evolved GIFs. On hash mismatch, retry capture up to **2 times** to filter flakiness. **Exit 0** if nothing to refresh, **exit 1** if snapshots were refreshed (commit them). Existing videos are never deleted.
 
 ## What not to do
 
@@ -170,5 +170,5 @@ When command UX changes in the product you document:
 
 1. Update or create the matching playback JSON.
 2. Regenerate captures with `npm run capture`.
-3. Copy PNG/MP4 assets into the target documentation repository.
+3. Copy PNG/GIF assets into the target documentation repository.
 4. Reference them from the usage markdown.

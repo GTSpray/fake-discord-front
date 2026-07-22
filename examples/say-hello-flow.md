@@ -4,7 +4,7 @@ The `/say hello` command makes the bot greet someone.
 
 ## Preview
 
-<video src="https://github.com/GTSpray/fake-discord-front/raw/refs/heads/enchance-docs/tests/snapshots/say-hello-flow.mp4" controls loop autoplay muted playsinline width="720"></video>
+![Say hello](../tests/snapshots/say-hello-flow.gif)
 
 ## Usage
 
