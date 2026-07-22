@@ -52,7 +52,10 @@ try {
 let videoFormat;
 try {
   videoFormat = resolveVideoFormat(
-    values.format ?? scenario.output?.format ?? process.env.CAPTURE_VIDEO_FORMAT ?? DEFAULT_VIDEO_FORMAT,
+    values.format ??
+      scenario.output?.format ??
+      process.env.CAPTURE_VIDEO_FORMAT ??
+      DEFAULT_VIDEO_FORMAT,
   );
 } catch (err) {
   console.error(err instanceof Error ? err.message : err);
