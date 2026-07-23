@@ -101,60 +101,41 @@ with your playback JSON files — nothing is bundled except the capture scripts,
 Playwright, and ffmpeg for gif/mp4 conversion. JSON validation happens in the
 studio when each scenario is loaded.
 
-### Prebuilt image (GHCR)
+### Official image (GHCR)
 
-Published as `:latest` on every push to `main` (and via **Release capture**
-workflow dispatch):
+Prefer the published image
+[`ghcr.io/gtspray/fake-discord-front/doc-studio-capture`](https://github.com/GTSpray/fake-discord-front/pkgs/container/fake-discord-front%2Fdoc-studio-capture).
+It is tagged `:latest` on every push to `main` (and via **Release capture**
+workflow dispatch).
 
 ```bash
 docker pull ghcr.io/gtspray/fake-discord-front/doc-studio-capture:latest
-docker run --rm -v "$PWD:/work" \
-  ghcr.io/gtspray/fake-discord-front/doc-studio-capture:latest \
-  capture --file scenarios/my-flow.json --format gif
 ```
-
-The floating GitHub Release `capture-latest` attaches `doc-studio-capture-latest.zip`
-(Dockerfile + scripts). Build from that bundle:
-
-```bash
-unzip doc-studio-capture-latest.zip
-cd doc-studio-capture
-docker build -t doc-studio-capture .
-```
-
-### Build locally
-
-```bash
-make pack-capture-bundle          # → dist-capture/doc-studio-capture/
-make docker-build-capture         # builds image from that bundle
-# or from the repo root:
-docker build -t doc-studio-capture .
-```
-
-### Usage
 
 Mount your working directory on `/work`. Scenario paths and output folders are
 resolved from there (see the optional `output` block in each JSON file).
 
 ```bash
+IMAGE=ghcr.io/gtspray/fake-discord-front/doc-studio-capture:latest
+
 # One scenario (GIF by default)
-docker run --rm -v "$PWD:/work" doc-studio-capture \
+docker run --rm -v "$PWD:/work" "$IMAGE" \
   capture --file scenarios/poll-moderator-flow.json
 
 # MP4 output
-docker run --rm -v "$PWD:/work" doc-studio-capture \
+docker run --rm -v "$PWD:/work" "$IMAGE" \
   capture --file scenarios/poll-moderator-flow.json --format mp4
 
 # Keep raw WebM
-docker run --rm -v "$PWD:/work" doc-studio-capture \
+docker run --rm -v "$PWD:/work" "$IMAGE" \
   capture --file scenarios/poll-moderator-flow.json --format webm
 
 # Every *.json in a folder
-docker run --rm -v "$PWD:/work" doc-studio-capture \
+docker run --rm -v "$PWD:/work" "$IMAGE" \
   capture-dir scenarios/ --format gif
 
 # Skip video, only PNG
-docker run --rm -v "$PWD:/work" doc-studio-capture \
+docker run --rm -v "$PWD:/work" "$IMAGE" \
   capture --file scenarios/gimme-otter.json --no-video
 ```
 
@@ -169,11 +150,35 @@ Default video format: `gif`
 Override with env vars:
 
 ```bash
+IMAGE=ghcr.io/gtspray/fake-discord-front/doc-studio-capture:latest
+
 docker run --rm -v "$PWD:/work" \
   -e CAPTURE_BASE_URL=http://host.docker.internal:4173/ \
   -e CAPTURE_VIDEO_FORMAT=mp4 \
-  doc-studio-capture capture --file scenarios/gimme-otter.json
+  "$IMAGE" capture --file scenarios/gimme-otter.json
 ```
+
+### Build locally (optional)
+
+From this repo:
+
+```bash
+make pack-capture-bundle          # → dist-capture/doc-studio-capture/
+make docker-build-capture         # builds image from that bundle
+# or from the repo root:
+docker build -t doc-studio-capture .
+```
+
+Or from the floating GitHub Release `capture-latest` zip
+(`doc-studio-capture-latest.zip` — Dockerfile + scripts):
+
+```bash
+unzip doc-studio-capture-latest.zip
+cd doc-studio-capture
+docker build -t doc-studio-capture .
+```
+
+Then replace `"$IMAGE"` with `doc-studio-capture` in the commands above.
 
 ## For contributors and AI agents
 
