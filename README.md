@@ -22,6 +22,7 @@ Example files live in [`examples/`](examples/). Sample bot documentation pages w
 - [Create a poll](examples/poll-moderator-flow.md)
 - [Say hello](examples/say-hello-flow.md)
 - [Show an otter](examples/gimme-otter.md)
+- [Show channel emotes](examples/gimme-emoji.md)
 
 ## JSON contract
 
