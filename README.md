@@ -87,11 +87,18 @@ npm run build && npm run preview
 CAPTURE_BASE_URL=http://127.0.0.1:4173 npm run capture -- --file examples/poll-moderator-flow.json
 ```
 
-Output directory and filename prefix come from the optional `output` block in the
-JSON file (defaults: `output/` and the file `id`).
+Filename prefix comes from the optional `output` block in the JSON file
+(default: the file `id`).
+
+Use `--output-dir` / `-o` to choose where files are written (default: `output/`).
+Priority: `--output-dir` → `output.directory` in JSON → `output/`.
 
 Use `--no-video` to skip recording. Choose the animated output with `--format gif|mp4|webm`
 (default: `gif`). Priority: `--format` → `output.format` in JSON → `CAPTURE_VIDEO_FORMAT` → `gif`.
+
+```bash
+npm run capture -- --file examples/poll-moderator-flow.json --output-dir docs/assets
+```
 
 ## Docker CLI
 
@@ -112,8 +119,8 @@ workflow dispatch).
 docker pull ghcr.io/gtspray/fake-discord-front/doc-studio-capture:latest
 ```
 
-Mount your working directory on `/work`. Scenario paths and output folders are
-resolved from there (see the optional `output` block in each JSON file).
+Mount your working directory on `/work`. Scenario paths and `--output-dir` are
+resolved from there (JSON `output.directory` is the fallback when the flag is omitted).
 
 ```bash
 IMAGE=ghcr.io/gtspray/fake-discord-front/doc-studio-capture:latest
@@ -121,6 +128,10 @@ IMAGE=ghcr.io/gtspray/fake-discord-front/doc-studio-capture:latest
 # One scenario (GIF by default)
 docker run --rm -v "$PWD:/work" "$IMAGE" \
   capture --file scenarios/poll-moderator-flow.json
+
+# Custom output directory
+docker run --rm -v "$PWD:/work" "$IMAGE" \
+  capture --file scenarios/poll-moderator-flow.json --output-dir docs/assets
 
 # MP4 output
 docker run --rm -v "$PWD:/work" "$IMAGE" \

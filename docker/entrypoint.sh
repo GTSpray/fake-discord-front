@@ -27,12 +27,13 @@ Commands:
 Options:
   --file <path>              Playback JSON (capture)
   --dir <path>               Directory of JSON files (capture-dir)
+  --output-dir <dir>, -o     Output directory (default: output/ or JSON output.directory)
   --format gif|mp4|webm      Output video format (default: gif)
   --no-video                 Skip video/GIF, keep PNG only
   --base-url <url>           Studio URL override
 
 Paths are relative to /work (mount your project there).
-Output directory comes from the JSON "output" block (default: output/).
+Output dir resolution: --output-dir > output.directory in JSON > output/.
 Format resolution: --format > output.format in JSON > CAPTURE_VIDEO_FORMAT > gif.
 
 Studio URL: \${CAPTURE_BASE_URL}
