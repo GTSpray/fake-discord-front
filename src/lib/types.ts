@@ -48,6 +48,8 @@ export interface ChannelMessage {
   content?: string;
   timestamp?: string;
   deletedReply?: boolean;
+  /** Render with Discord ephemeral styling (Only you can see this) */
+  ephemeral?: boolean;
   slashInvocation?: SlashInvocation;
   interaction?: BotInteractionResponse;
 }

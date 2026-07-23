@@ -11,6 +11,7 @@ import { BotPendingReplyMessage } from './BotPendingReply.tsx';
 import { IconHash } from './discordIcons.tsx';
 import { InteractionBody } from './InteractionComponents.tsx';
 import { Markdown } from './markdown.tsx';
+import { SkyraMarkdown } from './skyraMarkdown.tsx';
 import { skyraAuthorProps, skyraCommand, defaultBotProps } from './skyraAuthor.ts';
 import { skyraTimestampProps } from '../lib/skyraTimestamp.ts';
 
@@ -23,10 +24,16 @@ function SkyraMessageItem({
   highlightedButton?: string | null;
   loadingButton?: string | null;
 }) {
-  const { author, content, timestamp, deletedReply, slashInvocation, interaction } = message;
+  const { author, content, timestamp, deletedReply, slashInvocation, interaction, ephemeral } =
+    message;
+  const Content = ephemeral ? SkyraMarkdown : Markdown;
 
   return (
-    <DiscordMessage {...skyraAuthorProps(author)} {...skyraTimestampProps(timestamp)}>
+    <DiscordMessage
+      {...skyraAuthorProps(author)}
+      {...skyraTimestampProps(timestamp)}
+      ephemeral={ephemeral || undefined}
+    >
       {deletedReply && <DiscordReply slot="reply" deleted />}
       {slashInvocation && (
         <DiscordCommand
@@ -35,12 +42,13 @@ function SkyraMessageItem({
           command={skyraCommand(slashInvocation.command)}
         />
       )}
-      {content && <Markdown content={content} />}
+      {content && <Content content={content} />}
       {interaction?.type === 4 && interaction.data && (
         <InteractionBody
           data={interaction.data}
           highlightedButton={highlightedButton}
           loadingButton={loadingButton}
+          useSkyraMarkdown={Boolean(ephemeral)}
         />
       )}
     </DiscordMessage>
