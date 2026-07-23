@@ -45,7 +45,7 @@
     },
     {
       "type": "wait",
-      "ms": 600
+      "ms": 1100
     },
     {
       "type": "pressEnter"
