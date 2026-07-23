@@ -133,6 +133,74 @@ describe('ScenarioRunner', () => {
     expect(pendingAuthors).toContainEqual(botAuthor);
   });
 
+  it('ignores channel history when resolving pending reply author and invoker', async () => {
+    const botAuthor = {
+      name: 'Bot',
+      bot: true,
+      avatarUrl: 'https://example.com/bot.png',
+    };
+    const runner = new ScenarioRunner(
+      makeScenario(
+        [
+          { type: 'focusInput' },
+          { type: 'type', text: '/gimme emoji' },
+          { type: 'pressEnter' },
+          {
+            type: 'applyState',
+            layers: {
+              messages: [
+                {
+                  author: { name: 'Alice', color: '#ed4245' },
+                  content: 'gg',
+                },
+                {
+                  author: { name: 'Bob', color: '#57f287' },
+                  content: '+1',
+                },
+                {
+                  author: botAuthor,
+                  slashInvocation: {
+                    user: { name: 'You' },
+                    command: 'gimme emoji',
+                  },
+                  interaction: {
+                    type: 4,
+                    data: { content: 'found' },
+                  },
+                },
+              ],
+            },
+          },
+        ],
+        {
+          defaults: { botResponseMs: 300, botPendingText: 'Envoi…' },
+        },
+      ),
+    );
+
+    const pending: Array<{
+      author?: { name: string };
+      invoker?: string;
+    }> = [];
+    runner.subscribe((snapshot) => {
+      const reply = snapshot.state.pendingBotReply;
+      if (reply) {
+        pending.push({
+          author: reply.author,
+          invoker: reply.slashInvocation?.user.name,
+        });
+      }
+    });
+
+    const playPromise = runner.play();
+    await vi.runAllTimersAsync();
+    await playPromise;
+
+    expect(pending.length).toBeGreaterThan(0);
+    expect(pending.every((p) => p.author?.name === botAuthor.name)).toBe(true);
+    expect(pending.every((p) => p.invoker === 'You')).toBe(true);
+  });
+
   it('shows a pending bot reply before applyState messages', async () => {
     const runner = new ScenarioRunner(
       makeScenario(
