@@ -7,7 +7,7 @@ import {
 
 type Block =
   | { kind: 'header'; level: 1 | 2 | 3; text: string }
-  | { kind: 'ordered'; items: ListItem[] }
+  | { kind: 'ordered'; start: number; items: ListItem[] }
   | { kind: 'unordered'; items: string[] }
   | { kind: 'paragraph'; text: string };
 
@@ -16,7 +16,7 @@ interface ListItem {
   children?: string[];
 }
 
-function parseBlocks(content: string): Block[] {
+export function parseBlocks(content: string): Block[] {
   const lines = content.split('\n');
   const blocks: Block[] = [];
   let i = 0;
@@ -47,16 +47,23 @@ function parseBlocks(content: string): Block[] {
 
     const ordered = line.match(/^(\d+)\. (.+)$/);
     if (ordered) {
-      const items: ListItem[] = [{ text: ordered[2] }];
-      i++;
+      const start = Number(ordered[1]);
+      const items: ListItem[] = [];
       while (i < lines.length) {
-        const nested = lines[i].match(/^ {4}- (.+)$/);
-        if (!nested) break;
-        items[items.length - 1].children ??= [];
-        items[items.length - 1].children!.push(nested[1]);
+        const itemMatch = lines[i].match(/^(\d+)\. (.+)$/);
+        if (!itemMatch) break;
+        const item: ListItem = { text: itemMatch[2] };
         i++;
+        while (i < lines.length) {
+          const nested = lines[i].match(/^ {4}- (.+)$/);
+          if (!nested) break;
+          item.children ??= [];
+          item.children.push(nested[1]);
+          i++;
+        }
+        items.push(item);
       }
-      blocks.push({ kind: 'ordered', items });
+      blocks.push({ kind: 'ordered', start, items });
       continue;
     }
 
@@ -111,7 +118,7 @@ export function SkyraMarkdown({ content }: { content: string }) {
             );
           case 'ordered':
             return (
-              <DiscordOrderedList key={i}>
+              <DiscordOrderedList key={i} start={block.start}>
                 {block.items.map((item, j) => (
                   <DiscordListItem key={j}>
                     {item.text}
