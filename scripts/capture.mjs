@@ -64,10 +64,7 @@ try {
   process.exit(2);
 }
 
-const outDir = join(
-  workDir,
-  values['output-dir'] ?? scenario.output?.directory ?? 'output',
-);
+const outDir = join(workDir, values['output-dir'] ?? scenario.output?.directory ?? 'output');
 const prefix = scenario.output?.prefix ?? scenario.id;
 const recordVideo = !values['no-video'] && (scenario.output?.video ?? true);
 

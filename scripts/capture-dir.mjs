@@ -102,10 +102,7 @@ async function captureDirectory() {
         continue;
       }
 
-      const outDir = join(
-        workDir,
-        values['output-dir'] ?? scenario.output?.directory ?? 'output',
-      );
+      const outDir = join(workDir, values['output-dir'] ?? scenario.output?.directory ?? 'output');
       const prefix = scenario.output?.prefix ?? scenario.id;
 
       console.log(`→ ${join(dirArg, file)} (${scenario.id}) [${videoFormat}]`);
