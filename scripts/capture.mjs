@@ -6,6 +6,7 @@
  *   npm run build && npm run preview
  *   npm run capture -- --file examples/poll-moderator-flow.json
  *   npm run capture -- --file my-flow.json --format mp4
+ *   npm run capture -- --file my-flow.json --output-dir docs/assets
  *   CAPTURE_BASE_URL=http://127.0.0.1:4173 npm run capture -- --file my-flow.json
  */
 import { join } from 'node:path';
@@ -25,6 +26,7 @@ const { values, positionals } = parseArgs({
     file: { type: 'string', short: 'f' },
     'no-video': { type: 'boolean', default: false },
     format: { type: 'string' },
+    'output-dir': { type: 'string', short: 'o' },
     'base-url': { type: 'string' },
   },
   allowPositionals: true,
@@ -33,7 +35,7 @@ const { values, positionals } = parseArgs({
 const filePath = values.file ?? positionals[0];
 if (!filePath) {
   console.error(
-    `Usage: capture.mjs --file <playback.json> [--format ${VIDEO_FORMATS.join('|')}] [--no-video] [--base-url <url>]`,
+    `Usage: capture.mjs --file <playback.json> [--output-dir <dir>] [--format ${VIDEO_FORMATS.join('|')}] [--no-video] [--base-url <url>]`,
   );
   process.exit(2);
 }
@@ -62,7 +64,7 @@ try {
   process.exit(2);
 }
 
-const outDir = join(workDir, scenario.output?.directory ?? 'output');
+const outDir = join(workDir, values['output-dir'] ?? scenario.output?.directory ?? 'output');
 const prefix = scenario.output?.prefix ?? scenario.id;
 const recordVideo = !values['no-video'] && (scenario.output?.video ?? true);
 

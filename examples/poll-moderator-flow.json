@@ -31,16 +31,13 @@
     },
     {
       "type": "type",
-      "text": "/poll"
-    },
-    {
-      "type": "type",
-      "text": " create",
+      "text": "/poll create",
       "revealSuggestions": {
-        "after": "/poll ",
+        "mode": "commandMatch",
+        "activeIndex": 0,
         "suggestions": [
           {
-            "name": "create",
+            "name": "/poll create",
             "description": "créer un sondage"
           }
         ]
@@ -132,7 +129,7 @@
         "type": 4,
         "data": {
           "flags": 64,
-          "content": "## Repas de fin d'année\n\n1. Quel jour ?\n    - Vendredi\n    - Samedi",
+          "content": "## Repas de fin d'année\n\n1. Quel jour ?",
           "components": [
             {
               "type": 1,

@@ -5,6 +5,7 @@
  * Usage:
  *   node scripts/capture-dir.mjs scenarios/
  *   node scripts/capture-dir.mjs --dir /work/scenarios --format mp4
+ *   node scripts/capture-dir.mjs --dir /work/scenarios --output-dir docs/assets
  *   node scripts/capture-dir.mjs --dir /work/scenarios --no-video
  */
 import { existsSync, readdirSync } from 'node:fs';
@@ -26,6 +27,7 @@ const { values, positionals } = parseArgs({
     dir: { type: 'string', short: 'd' },
     'no-video': { type: 'boolean', default: false },
     format: { type: 'string' },
+    'output-dir': { type: 'string', short: 'o' },
     'base-url': { type: 'string' },
   },
   allowPositionals: true,
@@ -34,7 +36,7 @@ const { values, positionals } = parseArgs({
 const dirArg = values.dir ?? positionals[0];
 if (!dirArg) {
   console.error(
-    `Usage: capture-dir.mjs <directory> [--format ${VIDEO_FORMATS.join('|')}] [--no-video] [--base-url <url>]`,
+    `Usage: capture-dir.mjs <directory> [--output-dir <dir>] [--format ${VIDEO_FORMATS.join('|')}] [--no-video] [--base-url <url>]`,
   );
   process.exit(2);
 }
@@ -100,7 +102,7 @@ async function captureDirectory() {
         continue;
       }
 
-      const outDir = join(workDir, scenario.output?.directory ?? 'output');
+      const outDir = join(workDir, values['output-dir'] ?? scenario.output?.directory ?? 'output');
       const prefix = scenario.output?.prefix ?? scenario.id;
 
       console.log(`→ ${join(dirArg, file)} (${scenario.id}) [${videoFormat}]`);

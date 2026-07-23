@@ -27,24 +27,25 @@
     },
     {
       "type": "type",
-      "text": "/gimme"
-    },
-    {
-      "type": "type",
-      "text": " otter",
+      "text": "/gimme otter",
       "revealSuggestions": {
-        "after": "/gimme ",
+        "mode": "commandMatch",
+        "activeIndex": 0,
         "suggestions": [
           {
-            "name": "otter",
+            "name": "/gimme otter",
             "description": "Affiche une image de loutre"
+          },
+          {
+            "name": "/gimme moar",
+            "description": "Parce que j'aime Britney Spears"
           }
         ]
       }
     },
     {
       "type": "wait",
-      "ms": 600
+      "ms": 1100
     },
     {
       "type": "pressEnter"
