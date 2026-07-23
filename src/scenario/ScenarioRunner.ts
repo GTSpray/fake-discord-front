@@ -6,6 +6,7 @@ import type {
   ScenarioPlayerSnapshot,
   ScenarioStatus,
 } from '../lib/scenarioTypes.ts';
+import { resolveScenarioEmojis } from '../lib/emojiResolve.ts';
 import {
   resolveApplyState,
   resolveEphemeral,
@@ -85,6 +86,7 @@ function emptyModalValues(modal: ModalLayer): ModalLayer {
 export function createInitialState(scenario: Scenario): PlaybackState {
   return {
     chrome: resolveScenarioChrome(scenario),
+    emojis: resolveScenarioEmojis(scenario.emojis),
     messages: [],
     slash: null,
     modal: null,

@@ -30,9 +30,25 @@ describe('ScenarioRunner', () => {
     const state = createInitialState(scenario);
 
     expect(state.messages).toEqual([]);
+    expect(state.emojis).toEqual([]);
     expect(state.slash).toBeNull();
     expect(state.modal).toBeNull();
     expect(state.chrome.channel.name).toBe('general');
+  });
+
+  it('indexes scenario emojis into the initial playback state', () => {
+    const scenario = makeScenario([{ type: 'wait', ms: 1 }], {
+      emojis: [
+        {
+          id: '42',
+          name: 'party',
+          url: 'https://cdn.example/party.gif',
+          animated: true,
+        },
+      ],
+    });
+
+    expect(createInitialState(scenario).emojis).toEqual(scenario.emojis);
   });
 
   it('plays wait and focusInput actions', async () => {

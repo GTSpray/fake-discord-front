@@ -1169,6 +1169,14 @@ button {
   font-weight: 500;
 }
 
+.discord-markdown .md-custom-emoji {
+  width: 1.375em;
+  height: 1.375em;
+  object-fit: contain;
+  vertical-align: bottom;
+  display: inline;
+}
+
 /* ── Components V1 (legacy fallback) ────────────────────────── */
 .components-v1 {
   display: flex;

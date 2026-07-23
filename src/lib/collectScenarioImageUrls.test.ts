@@ -72,4 +72,19 @@ describe('collectScenarioImageUrls', () => {
       expect.arrayContaining(['https://cdn.example/thumb.png', 'https://cdn.example/gallery.png']),
     );
   });
+
+  it('collects top-level custom emoji URLs', () => {
+    const scenario = makeScenario([{ type: 'wait', ms: 1 }], {
+      emojis: [
+        {
+          id: '1',
+          name: 'party',
+          url: 'https://cdn.example/party.gif',
+          animated: true,
+        },
+      ],
+    });
+
+    expect(collectScenarioImageUrls(scenario)).toContain('https://cdn.example/party.gif');
+  });
 });

@@ -14,6 +14,11 @@
     "title": { "type": "string", "minLength": 1 },
     "doc": { "type": "string" },
     "chrome": { "$ref": "#/$defs/Chrome" },
+    "emojis": {
+      "type": "array",
+      "description": "Résolution des emotes custom Discord dans le contenu (<:name:id> / <a:name:id>)",
+      "items": { "$ref": "#/$defs/CustomEmoji" }
+    },
     "defaults": {
       "type": "object",
       "additionalProperties": false,
@@ -99,6 +104,36 @@
         "color": { "type": "string", "pattern": "^#[0-9a-fA-F]{6}$" },
         "avatarUrl": { "type": "string", "format": "uri" },
         "bot": { "type": "boolean", "default": false }
+      }
+    },
+    "CustomEmoji": {
+      "type": "object",
+      "required": ["id", "name", "url"],
+      "additionalProperties": false,
+      "description": "Emote custom résolue par id (mention Discord <:name:id> / <a:name:id>)",
+      "properties": {
+        "id": {
+          "type": "string",
+          "pattern": "^\\d+$",
+          "description": "Id utilisé dans la mention (snowflake Discord ou id fictif)"
+        },
+        "name": {
+          "type": "string",
+          "minLength": 2,
+          "maxLength": 32,
+          "pattern": "^[a-zA-Z0-9_]+$",
+          "description": "Nom affiché (alt / fallback :name:)"
+        },
+        "url": {
+          "type": "string",
+          "format": "uri",
+          "description": "URL de l’image (PNG/GIF) — playback self-contained"
+        },
+        "animated": {
+          "type": "boolean",
+          "default": false,
+          "description": "Métadonnée ; le préfixe <a:…> dans le contenu indique déjà une emote animée"
+        }
       }
     },
     "ChannelMessage": {

@@ -32,6 +32,7 @@ Each file is self-contained:
 
 - `id`, `title` — metadata
 - `chrome` — guild, channel, theme
+- `emojis` — optional custom emoji resolution (`<:name:id>` / `<a:name:id>` → image URL)
 - `actions` — animated sequence (typing, modals, buttons…)
 
 Validate a file from the CLI:
