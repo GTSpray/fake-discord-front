@@ -57,7 +57,9 @@ function defaultBotAuthor(): Author {
 }
 
 /** Message bot de la réponse à venir (ignore l’historique du salon dans applyState). */
-function findPendingReplyMessage(messages: ChannelMessage[] | undefined): ChannelMessage | undefined {
+function findPendingReplyMessage(
+  messages: ChannelMessage[] | undefined,
+): ChannelMessage | undefined {
   if (!messages?.length) return undefined;
   return (
     messages.find((m) => m.interaction) ??
