@@ -92,6 +92,7 @@ export function collectScenarioImageUrls(scenario: Scenario): string[] {
   const urls = new Set<string>();
 
   collectChrome(urls, resolveScenarioChrome(scenario));
+  for (const emoji of scenario.emojis ?? []) add(urls, emoji.url);
 
   for (const action of scenario.actions) {
     switch (action.type) {

@@ -2,13 +2,25 @@
   "algorithm": "md5",
   "artifact": "step-png",
   "scenarios": {
+    "gimme-emoji": {
+      "steps": {
+        "000-done": "2c0d5840d4600fd4a7c6f2b33c4c392b",
+        "001-done": "2c0d5840d4600fd4a7c6f2b33c4c392b",
+        "002-done": "e4e44abbf287f50b2cf23dfc55ea6dce",
+        "003-done": "e4e44abbf287f50b2cf23dfc55ea6dce",
+        "004-done": "b34f7f549ad7876c075d5613e24777c0",
+        "005-done": "b34f7f549ad7876c075d5613e24777c0",
+        "006-done": "d380a1971a58378a553899a021261286",
+        "007-done": "bb7f862291d0150b2974b8fd29ab6693"
+      }
+    },
     "gimme-otter": {
       "steps": {
         "000-done": "c51e53cb467b9b3c6ddb4dd4d842dd3b",
         "001-done": "af67faa164af3ca6f8ebd82f1832cca4",
         "002-done": "af67faa164af3ca6f8ebd82f1832cca4",
-        "003-done": "7d27fa6afe4ebfc76d78548bc80bc22d",
-        "004-done": "7d27fa6afe4ebfc76d78548bc80bc22d",
+        "003-done": "13cbc548bc3ab79b954c011824e5a433",
+        "004-done": "13cbc548bc3ab79b954c011824e5a433",
         "005-done": "84001d31996c804f3c9ea69f5b4ce5bb",
         "006-done": "70f73913ae539a109ee63e9336897b1b"
       }
@@ -18,8 +30,8 @@
         "000-done": "de87aca128b5dd4fc2c81d7c71585958",
         "001-done": "293f8a066fe1e59e57d1b753e5d87b3a",
         "002-done": "293f8a066fe1e59e57d1b753e5d87b3a",
-        "003-done": "3605421627fecb91e94cdf2a8743a50a",
-        "004-done": "3605421627fecb91e94cdf2a8743a50a",
+        "003-done": "7c7eede62a217c2eaa52628e6505e5b9",
+        "004-done": "7c7eede62a217c2eaa52628e6505e5b9",
         "005-done": "43b4f57721d72a77dfd5bd1c2838cd8a",
         "006-done": "55330ce983405864cec49d5aacf1db92",
         "007-done": "2eae45ce34afdb0fe32ea7a8ed7c52ce",
@@ -36,8 +48,8 @@
         "000-done": "de87aca128b5dd4fc2c81d7c71585958",
         "001-done": "293f8a066fe1e59e57d1b753e5d87b3a",
         "002-done": "293f8a066fe1e59e57d1b753e5d87b3a",
-        "003-done": "366ddfcb2d57be9bb4b1e56f2fdabc65",
-        "004-done": "366ddfcb2d57be9bb4b1e56f2fdabc65",
+        "003-done": "f19b84fa69ca2aee0fc1c8d2b9390d24",
+        "004-done": "f19b84fa69ca2aee0fc1c8d2b9390d24",
         "005-done": "b01321bd0dbd4fa59ed7c686befc8ee5",
         "006-done": "b74717015e3ac8328c74022c6cb662da",
         "007-done": "b74717015e3ac8328c74022c6cb662da",

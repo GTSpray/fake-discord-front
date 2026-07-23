@@ -22,6 +22,7 @@ Example files live in [`examples/`](examples/). Sample bot documentation pages w
 - [Create a poll](examples/poll-moderator-flow.md)
 - [Say hello](examples/say-hello-flow.md)
 - [Show an otter](examples/gimme-otter.md)
+- [Show channel emotes](examples/gimme-emoji.md)
 
 ## JSON contract
 
@@ -32,6 +33,7 @@ Each file is self-contained:
 
 - `id`, `title` — metadata
 - `chrome` — guild, channel, theme
+- `emojis` — optional custom emoji resolution (`<:name:id>` / `<a:name:id>` → image URL)
 - `actions` — animated sequence (typing, modals, buttons…)
 
 Validate a file from the CLI:

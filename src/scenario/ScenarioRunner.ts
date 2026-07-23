@@ -6,6 +6,7 @@ import type {
   ScenarioPlayerSnapshot,
   ScenarioStatus,
 } from '../lib/scenarioTypes.ts';
+import { resolveScenarioEmojis } from '../lib/emojiResolve.ts';
 import {
   resolveApplyState,
   resolveEphemeral,
@@ -25,6 +26,7 @@ import type {
   SlashCommandParam,
   SlashInvocation,
   Author,
+  ChannelMessage,
   SlashLayer,
 } from '../lib/types.ts';
 import { DEFAULT_BOT_NAME, resolveViewer } from '../lib/types.ts';
@@ -52,6 +54,18 @@ export function randomMsPerChar(
 
 function defaultBotAuthor(): Author {
   return { name: DEFAULT_BOT_NAME, bot: true };
+}
+
+/** Message bot de la réponse à venir (ignore l’historique du salon dans applyState). */
+function findPendingReplyMessage(
+  messages: ChannelMessage[] | undefined,
+): ChannelMessage | undefined {
+  if (!messages?.length) return undefined;
+  return (
+    messages.find((m) => m.interaction) ??
+    messages.find((m) => m.slashInvocation) ??
+    messages.find((m) => m.author?.bot)
+  );
 }
 
 function formatPendingTimestamp(): string {
@@ -85,6 +99,7 @@ function emptyModalValues(modal: ModalLayer): ModalLayer {
 export function createInitialState(scenario: Scenario): PlaybackState {
   return {
     chrome: resolveScenarioChrome(scenario),
+    emojis: resolveScenarioEmojis(scenario.emojis),
     messages: [],
     slash: null,
     modal: null,
@@ -296,7 +311,7 @@ export class ScenarioRunner {
 
   private resolveSlashInvocationForPending(next: ScenarioAction): SlashInvocation | undefined {
     if (next.type === 'applyState') {
-      const msg = next.layers?.messages?.find((m) => m.slashInvocation);
+      const msg = findPendingReplyMessage(next.layers?.messages);
       if (msg?.slashInvocation) return msg.slashInvocation;
     }
     if (next.type === 'showEphemeral') {
@@ -319,7 +334,7 @@ export class ScenarioRunner {
 
   private resolveAuthorForPending(next: ScenarioAction): Author {
     if (next.type === 'applyState') {
-      const msg = next.layers?.messages?.find((m) => m.author);
+      const msg = findPendingReplyMessage(next.layers?.messages);
       if (msg?.author) return msg.author;
     }
     if (next.type === 'showEphemeral' && next.ephemeral.author) {

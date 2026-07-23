@@ -30,6 +30,14 @@ export interface Author {
   bot?: boolean;
 }
 
+/** Custom Discord emoji resolved by id for <:name:id> / <a:name:id> mentions */
+export interface CustomEmoji {
+  id: string;
+  name: string;
+  url: string;
+  animated?: boolean;
+}
+
 export interface SlashInvocation {
   user: Author;
   command: string;

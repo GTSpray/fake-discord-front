@@ -45,6 +45,9 @@ handlers.
 - `scripts/validate-scenario.mjs` — CLI validation helper
 - `scripts/capture.mjs` — Playwright screenshot/video from a JSON file
 
+Optional top-level `emojis` resolves Discord custom mentions (`<:name:id>` /
+`<a:name:id>`) to image URLs in message markdown.
+
 ## Playback model
 
 A playback file describes an **animated sequence**:

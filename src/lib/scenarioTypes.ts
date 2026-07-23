@@ -2,6 +2,7 @@ import type {
   Author,
   ChannelMessage,
   Chrome,
+  CustomEmoji,
   EphemeralLayer,
   ModalLayer,
   SlashCommandParam,
@@ -105,6 +106,8 @@ export interface Scenario {
   title: string;
   doc?: string;
   chrome: Chrome;
+  /** Custom emoji resolution map for <:name:id> / <a:name:id> in message content */
+  emojis?: CustomEmoji[];
   defaults?: ScenarioDefaults;
   actions: ScenarioAction[];
   output?: {
@@ -119,6 +122,8 @@ export type ScenarioStatus = 'idle' | 'playing' | 'paused' | 'done';
 
 export interface PlaybackState {
   chrome: Chrome;
+  /** Indexed custom emojis from the scenario (stable for the whole playback) */
+  emojis: CustomEmoji[];
   messages: ChannelMessage[];
   slash: import('./types.ts').SlashLayer | null;
   modal: ModalLayer | null;
