@@ -31,10 +31,6 @@
     },
     {
       "type": "type",
-      "text": "/poll"
-    },
-    {
-      "type": "type",
       "text": "/poll create",
       "revealSuggestions": {
         "mode": "commandMatch",
@@ -133,7 +129,7 @@
         "type": 4,
         "data": {
           "flags": 64,
-          "content": "## Repas de fin d'année\n\n1. Quel jour ?\n    - Vendredi\n    - Samedi",
+          "content": "## Repas de fin d'année\n\n1. Quel jour ?",
           "components": [
             {
               "type": 1,

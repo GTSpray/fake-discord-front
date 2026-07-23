@@ -282,7 +282,7 @@ export class ScenarioRunner {
     next: ScenarioAction,
     trigger: 'pressEnter' | 'submitModal' | 'clickButton',
   ): boolean {
-    if (next.type === 'openModal') return false;
+    if (next.type === 'openModal') return true;
     if (next.type === 'showEphemeral') return true;
     if (next.type === 'applyState') {
       if (trigger === 'pressEnter') {

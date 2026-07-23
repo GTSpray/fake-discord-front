@@ -160,6 +160,49 @@ describe('ScenarioRunner', () => {
     expect(runner.getState().messages[0]?.content).toBe('Done');
   });
 
+  it('shows a pending bot reply before openModal', async () => {
+    const runner = new ScenarioRunner(
+      makeScenario(
+        [
+          { type: 'focusInput' },
+          { type: 'type', text: '/poll create' },
+          { type: 'pressEnter' },
+          {
+            type: 'openModal',
+            modal: {
+              type: 9,
+              data: {
+                title: 'Créer un sondage',
+                components: [],
+              },
+            },
+          },
+        ],
+        {
+          defaults: { botResponseMs: 300, botPendingText: 'Waiting…' },
+        },
+      ),
+    );
+
+    const pendingTexts: (string | undefined)[] = [];
+    let sawPendingBeforeModal = false;
+    runner.subscribe((snapshot) => {
+      pendingTexts.push(snapshot.state.pendingBotReply?.text);
+      if (snapshot.state.pendingBotReply && !snapshot.state.modal) {
+        sawPendingBeforeModal = true;
+      }
+    });
+
+    const playPromise = runner.play();
+    await vi.runAllTimersAsync();
+    await playPromise;
+
+    expect(sawPendingBeforeModal).toBe(true);
+    expect(pendingTexts).toContain('Waiting…');
+    expect(runner.getState().pendingBotReply).toBeNull();
+    expect(runner.getState().modal?.data.title).toBe('Créer un sondage');
+  });
+
   it('stop resets playback to idle', async () => {
     const runner = new ScenarioRunner(makeScenario([{ type: 'wait', ms: 10_000 }]));
 
