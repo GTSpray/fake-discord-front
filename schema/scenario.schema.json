@@ -145,6 +145,10 @@
         "content": { "type": "string" },
         "timestamp": { "type": "string" },
         "deletedReply": { "type": "boolean" },
+        "ephemeral": {
+          "type": "boolean",
+          "description": "Render as an ephemeral message (Only you can see this)"
+        },
         "slashInvocation": {
           "type": "object",
           "required": ["user", "command"],

@@ -31,4 +31,30 @@ describe('validateScenario', () => {
       expect(validateScenario(raw).id).toBeTruthy();
     }
   });
+
+  it('accepts ephemeral messages inline in applyState layers.messages', () => {
+    const scenario = makeScenario([
+      {
+        type: 'applyState',
+        layers: {
+          messages: [
+            {
+              author: { name: 'Alice' },
+              content: 'channel msg',
+            },
+            {
+              author: { name: 'Bot', bot: true },
+              ephemeral: true,
+              interaction: {
+                type: 4,
+                data: { flags: 64, content: 'Only you see this' },
+              },
+            },
+          ],
+        },
+      },
+    ]);
+
+    expect(validateScenario(scenario)).toEqual(scenario);
+  });
 });
