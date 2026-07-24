@@ -1,35 +1,196 @@
 import { DiscordModal } from '@skyra/discord-components-react';
 import { useEffect, useRef } from 'react';
 import { createPortal } from 'react-dom';
-import type { ModalLayer } from '../lib/types.ts';
+import type { ModalLayer, ModalSelectKind, ModalSelectOption } from '../lib/types.ts';
 import { ComponentType, TextInputStyle } from '../lib/types.ts';
 import { Markdown } from './markdown.tsx';
 import { defaultBotProps, skyraAuthorProps } from './skyraAuthor.ts';
 import skyraModalOverrides from '../styles/skyraModalOverrides.css?inline';
 
-function ModalRoleSelect({
+const SELECT_PLACEHOLDERS: Record<ModalSelectKind, string> = {
+  role: 'Make a selection',
+  channel: 'Make a selection',
+  string: 'Make a selection',
+};
+
+function RoleShieldIcon() {
+  return (
+    <svg
+      className="modal-select-option__leading-icon"
+      width="20"
+      height="20"
+      viewBox="0 0 24 24"
+      aria-hidden
+    >
+      <path
+        fill="currentColor"
+        d="M12 1L3 5v6c0 5.55 3.84 10.74 9 12 5.16-1.26 9-6.45 9-12V5l-9-4zm0 4.5c1.66 0 3 1.12 3 2.5s-1.34 2.5-3 2.5S9 9.88 9 8.5 10.34 5.5 12 5.5zm0 12.13c-2.33 0-4.38-1.19-5.93-3.05C7.41 13.21 9.55 12.5 12 12.5s4.59.71 5.93 2.08c-1.55 1.86-3.6 3.05-5.93 3.05z"
+      />
+    </svg>
+  );
+}
+
+function RoleMemberCountIcon() {
+  return (
+    <svg
+      className="modal-select-option__member-icon"
+      width="14"
+      height="14"
+      viewBox="0 0 24 24"
+      aria-hidden
+    >
+      <path
+        fill="currentColor"
+        d="M12 12c2.21 0 4-1.79 4-4s-1.79-4-4-4-4 1.79-4 4 1.79 4 4 4zm0 2c-2.67 0-8 1.34-8 4v2h16v-2c0-2.66-5.33-4-8-4z"
+      />
+    </svg>
+  );
+}
+
+function ChannelLeadingIcon({
+  channelType = 'text',
+}: {
+  channelType?: ModalSelectOption['channelType'];
+}) {
+  if (channelType === 'voice') {
+    return (
+      <svg
+        className="modal-select-option__leading-icon"
+        width="20"
+        height="20"
+        viewBox="0 0 24 24"
+        aria-hidden
+      >
+        <path
+          fill="currentColor"
+          d="M12 3a3 3 0 0 0-3 3v6a3 3 0 0 0 6 0V6a3 3 0 0 0-3-3zm5 9a5 5 0 0 1-10 0H5a7 7 0 0 0 6 6.92V21h2v-2.08A7 7 0 0 0 19 12h-2z"
+        />
+      </svg>
+    );
+  }
+  return (
+    <span className="modal-select-option__channel-hash" aria-hidden>
+      #
+    </span>
+  );
+}
+
+function ModalSelectOptionRow({
+  kind,
+  option,
+}: {
+  kind: ModalSelectKind;
+  option: ModalSelectOption;
+}) {
+  if (kind === 'role') {
+    const memberCount = option.memberCount ?? 1;
+    return (
+      <div
+        className="modal-select-option modal-select-option--role"
+        role="option"
+        data-modal-select-option={option.label}
+      >
+        <span className="modal-select-option__main">
+          <RoleShieldIcon />
+          <span className="modal-select-option__label">{option.label}</span>
+        </span>
+        <span className="modal-select-option__count" aria-label={`${memberCount} membres`}>
+          <RoleMemberCountIcon />
+          <span>{memberCount}</span>
+        </span>
+      </div>
+    );
+  }
+
+  if (kind === 'channel') {
+    return (
+      <div
+        className="modal-select-option modal-select-option--channel"
+        role="option"
+        data-modal-select-option={option.label}
+      >
+        <span className="modal-select-option__main">
+          <ChannelLeadingIcon channelType={option.channelType} />
+          <span className="modal-select-option__label">{option.label}</span>
+        </span>
+      </div>
+    );
+  }
+
+  return (
+    <div
+      className="modal-select-option modal-select-option--string"
+      role="option"
+      data-modal-select-option={option.label}
+    >
+      <span className="modal-select-option__text">
+        <span className="modal-select-option__label">{option.label}</span>
+        {option.description ? (
+          <span className="modal-select-option__description">{option.description}</span>
+        ) : null}
+      </span>
+    </div>
+  );
+}
+
+function ModalSelect({
+  customId,
   label,
   required,
   display,
+  placeholder,
   focused,
+  open,
+  options,
+  kind,
 }: {
+  customId: string;
   label: string;
   required?: boolean;
   display: string;
+  placeholder: string;
   focused?: boolean;
+  open?: boolean;
+  options?: ModalSelectOption[];
+  kind: ModalSelectKind;
 }) {
+  const hasValue = Boolean(display) && display !== placeholder;
+  const isFocused = Boolean(focused || open);
   return (
-    <div className={`modal-field${focused ? ' modal-field--focused' : ''}`}>
+    <div className={`modal-field${isFocused ? ' modal-field--focused' : ''}`}>
       <label className="modal-label">
         {label}
         {required ? <span className="modal-required"> *</span> : null}
       </label>
-      <div className={`modal-role-select${focused ? ' modal-field-control--focused' : ''}`}>
-        <span className="modal-role-placeholder">{display}</span>
-        <span className="modal-role-chevron">▾</span>
+      <div className="modal-select-wrap">
+        <div
+          className={`modal-select${isFocused ? ' modal-field-control--focused' : ''}${
+            open ? ' modal-select--open' : ''
+          }${hasValue ? ' modal-select--filled' : ''}`}
+          data-modal-select={customId}
+        >
+          <span className="modal-select-placeholder">{display || placeholder}</span>
+          <span className="modal-select-chevron" aria-hidden>
+            ▾
+          </span>
+        </div>
+        {open && options && options.length > 0 ? (
+          <div className="modal-select-dropdown" role="listbox">
+            {options.map((option) => (
+              <ModalSelectOptionRow key={option.label} kind={kind} option={option} />
+            ))}
+          </div>
+        ) : null}
       </div>
     </div>
   );
+}
+
+function modalSelectKind(type: number): ModalSelectKind | null {
+  if (type === ComponentType.RoleSelect) return 'role';
+  if (type === ComponentType.ChannelSelect) return 'channel';
+  if (type === ComponentType.StringSelect) return 'string';
+  return null;
 }
 
 function setModalInputValue(host: HTMLElement | null, value: string) {
@@ -112,11 +273,15 @@ function ModalField({
   values,
   roleDisplay,
   focusedField,
+  openSelectField,
+  selectOptions,
 }: {
   comp: Record<string, unknown>;
   values?: Record<string, string | string[] | null>;
   roleDisplay?: Record<string, string>;
   focusedField?: string | null;
+  openSelectField?: string | null;
+  selectOptions?: ModalSelectOption[];
 }) {
   if (comp.type === ComponentType.TextDisplay) {
     return <ModalTextDisplay content={(comp.content as string) ?? ''} />;
@@ -143,16 +308,25 @@ function ModalField({
       );
     }
 
-    if (inner.type === ComponentType.RoleSelect) {
+    const selectKind = modalSelectKind(inner.type as number);
+    if (selectKind) {
       const customId = (inner.custom_id as string) ?? '';
       const focused = focusedField === customId;
+      const open = openSelectField === customId;
+      const placeholder =
+        (inner.placeholder as string | undefined) ?? SELECT_PLACEHOLDERS[selectKind];
       return (
-        <ModalRoleSelect
+        <ModalSelect
           key={customId}
+          customId={customId}
           label={label}
           required={Boolean(inner.required)}
-          display={roleDisplay?.[customId] ?? 'Select roles'}
+          display={roleDisplay?.[customId] ?? placeholder}
+          placeholder={placeholder}
           focused={focused}
+          open={open}
+          options={open ? selectOptions : undefined}
+          kind={selectKind}
         />
       );
     }
@@ -294,6 +468,8 @@ export function ModalOverlay({
             values={modal.values}
             roleDisplay={modal.roleDisplay}
             focusedField={modal.focusedField}
+            openSelectField={modal.openSelectField}
+            selectOptions={modal.selectOptions}
           />
         ))}
       </DiscordModal>

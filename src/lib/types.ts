@@ -66,6 +66,18 @@ export interface InteractionData {
   components?: DiscordComponent[];
 }
 
+export interface ModalSelectOption {
+  label: string;
+  /** Compteur membres (RoleSelect). Défaut : 1 */
+  memberCount?: number;
+  /** Description sous le label (StringSelect) */
+  description?: string;
+  /** Icône canal (ChannelSelect). Défaut : text (#) */
+  channelType?: 'text' | 'voice' | 'announcement' | 'forum' | 'category';
+}
+
+export type ModalSelectKind = 'role' | 'channel' | 'string';
+
 export interface ModalLayer {
   type: 9;
   data: InteractionData;
@@ -74,6 +86,10 @@ export interface ModalLayer {
   roleDisplay?: Record<string, string>;
   /** Runtime — champ actuellement focusé pendant fillModal */
   focusedField?: string | null;
+  /** Runtime — custom_id du select ouvert (liste d’options visible) */
+  openSelectField?: string | null;
+  /** Runtime — options affichées dans le select ouvert */
+  selectOptions?: ModalSelectOption[];
 }
 
 export interface SlashSuggestion {
@@ -143,7 +159,10 @@ export const ComponentType = {
   Button: 2,
   StringSelect: 3,
   TextInput: 4,
+  UserSelect: 5,
   RoleSelect: 6,
+  MentionableSelect: 7,
+  ChannelSelect: 8,
   Section: 9,
   TextDisplay: 10,
   Thumbnail: 11,

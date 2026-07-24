@@ -5,9 +5,12 @@ import type {
   CustomEmoji,
   EphemeralLayer,
   ModalLayer,
+  ModalSelectOption,
   SlashCommandParam,
   SlashInvocation,
 } from './types.ts';
+
+export type { ModalSelectOption };
 
 export const UPLOAD_SCENARIO_STORAGE_KEY = 'doc-studio-scenario-upload';
 
@@ -66,6 +69,15 @@ export type ScenarioAction =
       delayBeforeFieldMs?: number;
     }
   | { type: 'submitModal' }
+  | {
+      type: 'selectModalOption';
+      /** custom_id du RoleSelect / ChannelSelect / StringSelect dans la modale */
+      field: string;
+      /** Label de l’option à sélectionner */
+      option: string;
+      /** Options visibles une fois le select ouvert */
+      options: ModalSelectOption[];
+    }
   | {
       type: 'showEphemeral';
       ephemeral: EphemeralLayer;

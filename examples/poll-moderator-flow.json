@@ -78,22 +78,20 @@
             },
             {
               "type": 18,
-              "label": "Question du sondage",
+              "label": "Canal de publication",
               "component": {
-                "type": 4,
-                "custom_id": "question",
-                "style": 1,
+                "type": 8,
+                "custom_id": "channel",
                 "required": true
               }
             },
             {
               "type": 18,
-              "label": "Description",
+              "label": "Durée du sondage",
               "component": {
-                "type": 4,
-                "custom_id": "description",
-                "style": 1,
-                "required": false
+                "type": 3,
+                "custom_id": "duration",
+                "required": true
               }
             }
           ]
@@ -103,11 +101,38 @@
     {
       "type": "fillModal",
       "values": {
-        "title": "Repas de fin d'année",
-        "question": "Quel jour ?",
-        "description": "Votez pour la date qui vous arrange"
+        "title": "Repas de fin d'année"
       },
       "msPerField": 130
+    },
+    {
+      "type": "selectModalOption",
+      "field": "role",
+      "option": "P'titPoteDev",
+      "options": [
+        { "label": "Dev", "memberCount": 1 },
+        { "label": "P'titPoteDev", "memberCount": 1 }
+      ]
+    },
+    {
+      "type": "selectModalOption",
+      "field": "channel",
+      "option": "général",
+      "options": [
+        { "label": "annonces", "channelType": "announcement" },
+        { "label": "général", "channelType": "text" },
+        { "label": "vocal-lounge", "channelType": "voice" }
+      ]
+    },
+    {
+      "type": "selectModalOption",
+      "field": "duration",
+      "option": "24 heures",
+      "options": [
+        { "label": "1 heure", "description": "Clôture rapide" },
+        { "label": "24 heures", "description": "Une journée complète" },
+        { "label": "7 jours", "description": "Une semaine" }
+      ]
     },
     {
       "type": "wait",

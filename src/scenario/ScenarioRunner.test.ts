@@ -450,6 +450,71 @@ describe('ScenarioRunner', () => {
     });
   });
 
+  it('opens a modal select with the cursor then picks an option', async () => {
+    const runner = new ScenarioRunner(
+      makeScenario([
+        {
+          type: 'openModal',
+          modal: {
+            type: 9,
+            data: {
+              title: 'Créer un sondage',
+              components: [
+                {
+                  type: 18,
+                  label: 'Role des sondés',
+                  component: { type: 6, custom_id: 'role', required: false },
+                },
+              ],
+            },
+          },
+        },
+        {
+          type: 'selectModalOption',
+          field: 'role',
+          option: '@Modérateurs',
+          options: [
+            { label: '@everyone', memberCount: 12 },
+            { label: '@Modérateurs', memberCount: 1 },
+            { label: '@Membres', memberCount: 8 },
+          ],
+        },
+      ]),
+    );
+
+    const cursorTargets: Array<string | null> = [];
+    const openWhileFocused: Array<{
+      open: string | null | undefined;
+      focused: string | null | undefined;
+    }> = [];
+    runner.subscribe((snapshot) => {
+      const target = snapshot.state.cursorTarget;
+      if (target !== cursorTargets[cursorTargets.length - 1]) {
+        cursorTargets.push(target);
+      }
+      const open = snapshot.state.modal?.openSelectField;
+      const focused = snapshot.state.modal?.focusedField;
+      const last = openWhileFocused[openWhileFocused.length - 1];
+      if (!last || last.open !== open || last.focused !== focused) {
+        openWhileFocused.push({ open, focused });
+      }
+    });
+
+    const playPromise = runner.play();
+    await vi.runAllTimersAsync();
+    await playPromise;
+
+    expect(cursorTargets).toContain('__modalSelect:role');
+    expect(cursorTargets).toContain('__modalSelectOption:@Modérateurs');
+    expect(cursorTargets.indexOf('__modalSelect:role')).toBeLessThan(
+      cursorTargets.indexOf('__modalSelectOption:@Modérateurs'),
+    );
+    expect(openWhileFocused).toContainEqual({ open: 'role', focused: 'role' });
+    expect(runner.getState().modal?.roleDisplay).toEqual({ role: '@Modérateurs' });
+    expect(runner.getState().modal?.openSelectField).toBeNull();
+    expect(runner.getState().modal?.focusedField).toBe('role');
+  });
+
   it('shows loading on modal submit but not a pending reply', async () => {
     const runner = new ScenarioRunner(
       makeScenario(

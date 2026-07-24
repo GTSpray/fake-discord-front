@@ -1478,7 +1478,7 @@ button {
   line-height: 1.375;
 }
 
-.modal-role-select {
+.modal-select {
   display: flex;
   align-items: center;
   justify-content: space-between;
@@ -1491,10 +1491,140 @@ button {
   color: var(--text-muted);
   font-size: 0.875rem;
   line-height: 1;
+  transition:
+    border-color 80ms ease,
+    background-color 80ms ease;
 }
 
-.modal-role-chevron {
+.modal-select-wrap {
+  position: relative;
+}
+
+.modal-select--filled {
+  color: var(--text-normal);
+}
+
+.modal-select--open,
+.modal-select.modal-field-control--focused {
+  border-color: var(--brand, #5865f2);
+}
+
+.modal-select-chevron {
   opacity: 0.6;
+  display: inline-block;
+  transition: transform 120ms ease;
+}
+
+.modal-select--open .modal-select-chevron {
+  transform: rotate(180deg);
+}
+
+.modal-select-placeholder {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.modal-select-dropdown {
+  position: absolute;
+  top: calc(100% + 4px);
+  left: 0;
+  right: 0;
+  z-index: 5;
+  max-height: 180px;
+  overflow-y: auto;
+  background: var(--bg-floating, #2b2d31);
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--input-surface-radius);
+  box-shadow: 0 8px 16px rgba(0, 0, 0, 0.24);
+  padding: 4px;
+}
+
+.modal-select-option {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  padding: 8px 10px;
+  border-radius: 3px;
+  color: var(--text-normal);
+  font-size: 0.875rem;
+  line-height: 1.2;
+  white-space: nowrap;
+  overflow: hidden;
+  transition: background-color 80ms ease;
+}
+
+.modal-select-option--role,
+.modal-select-option--channel {
+  min-height: 36px;
+}
+
+.modal-select-option--string {
+  min-height: 32px;
+  justify-content: flex-start;
+}
+
+.modal-select-option__main {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  min-width: 0;
+  overflow: hidden;
+}
+
+.modal-select-option__text {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0;
+  overflow: hidden;
+}
+
+.modal-select-option__label {
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.modal-select-option__description {
+  color: var(--text-muted);
+  font-size: 0.75rem;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.modal-select-option__leading-icon,
+.modal-select-option__channel-hash {
+  flex-shrink: 0;
+  color: #b5bac1;
+}
+
+.modal-select-option__channel-hash {
+  width: 20px;
+  text-align: center;
+  font-size: 1.25rem;
+  font-weight: 700;
+  line-height: 1;
+}
+
+.modal-select-option__count {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  flex-shrink: 0;
+  color: #b5bac1;
+  font-size: 0.75rem;
+  font-weight: 500;
+}
+
+.modal-select-option__member-icon {
+  flex-shrink: 0;
+  color: #b5bac1;
+}
+
+.modal-select-option:hover,
+.modal-select-option--hovered {
+  background: #404249;
 }
 
 .modal-footer {

@@ -1,7 +1,12 @@
 import { useEffect, useRef, useState, type RefObject } from 'react';
 import { createPortal } from 'react-dom';
 import { completeCursorClick } from '../scenario/cursorBridge.ts';
-import { buttonCenter, waitForScenarioClickTargetRect } from './findScenarioButton.ts';
+import {
+  buttonCenter,
+  clearModalSelectOptionHover,
+  syncModalSelectOptionHover,
+  waitForScenarioClickTargetRect,
+} from './findScenarioButton.ts';
 import pointerArrowIcon from '../styles/pointer-arrow-icon.svg';
 
 const MOVE_DURATION_MS = 750;
@@ -107,6 +112,7 @@ export function ScenarioCursor({
     hasAnimated.current = false;
     const origin = getScenarioCursorOrigin(canvasRef.current);
     lastPos.current = origin;
+    clearModalSelectOptionHover();
     setPose({ ...origin, visible: true, pressing: false });
   }, [returnHome, canvasRef]);
 
@@ -124,7 +130,10 @@ export function ScenarioCursor({
   }, [canvasRef]);
 
   useEffect(() => {
-    if (!target) return;
+    if (!target) {
+      clearModalSelectOptionHover();
+      return;
+    }
 
     hasAnimated.current = true;
 
@@ -136,6 +145,11 @@ export function ScenarioCursor({
       if (bridgeCompleted) return;
       bridgeCompleted = true;
       completeCursorClick();
+    };
+
+    const setPoint = (point: { x: number; y: number }, pressing: boolean) => {
+      syncModalSelectOptionHover(point.x, point.y);
+      setPose({ ...point, visible: true, pressing });
     };
 
     const run = async () => {
@@ -153,7 +167,7 @@ export function ScenarioCursor({
           from,
           to,
           (point) => {
-            setPose({ ...point, visible: true, pressing: false });
+            setPoint(point, false);
           },
           () => cancelled,
         );
@@ -161,12 +175,12 @@ export function ScenarioCursor({
         if (cancelled) return;
 
         lastPos.current = to;
-        setPose({ x: to.x, y: to.y, visible: true, pressing: true });
+        setPoint(to, true);
         await sleep(CLICK_HOLD_MS);
 
         if (cancelled || runId !== target) return;
 
-        setPose({ x: to.x, y: to.y, visible: true, pressing: false });
+        setPoint(to, false);
       } finally {
         finishClick();
       }
@@ -176,6 +190,7 @@ export function ScenarioCursor({
 
     return () => {
       cancelled = true;
+      clearModalSelectOptionHover();
       finishClick();
     };
   }, [target, canvasRef]);
