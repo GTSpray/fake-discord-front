@@ -1,6 +1,15 @@
 import { createHash } from 'node:crypto';
 import { execFileSync, execSync } from 'node:child_process';
-import { existsSync, mkdirSync, readFileSync, renameSync, rmSync } from 'node:fs';
+import {
+  existsSync,
+  mkdirSync,
+  mkdtempSync,
+  readFileSync,
+  renameSync,
+  rmSync,
+  writeFileSync,
+} from 'node:fs';
+import { tmpdir } from 'node:os';
 import { join, relative, resolve } from 'node:path';
 import { firefox } from 'playwright';
 
@@ -164,6 +173,26 @@ async function captureStepPngHashes(page, timeoutMs = 120_000) {
 export const VIDEO_FORMATS = ['gif', 'mp4', 'webm'];
 export const DEFAULT_VIDEO_FORMAT = 'gif';
 
+/**
+ * GIF encode filter.
+ * - hqdn3d: kill VP8 mosquito noise that crawls on flat Discord greys
+ * - full palette + dither=none: stable colors (no Bayer shimmer)
+ * - reserve_transparent=0: opaque UI; transparency disposal can flash
+ */
+export const GIF_FPS = 12;
+export const GIF_VF = `fps=${GIF_FPS},hqdn3d=4:3:6:4,scale=720:-1:flags=lanczos,format=rgb24,split[s0][s1];[s0]palettegen=stats_mode=full:reserve_transparent=0[p];[s1][p]paletteuse=dither=none`;
+
+/**
+ * Disable GIF image offsetting (partial/sub-rectangle frames).
+ * Offsetting writes 1×1 “diff” tiles that flash in many viewers; mp4 never does this.
+ */
+export const GIF_MUX_FLAGS = '-offsetting';
+
+/** Mean abs channel delta (0–255) above which a middle frame is considered a screencast tear. */
+export const GIF_FLASH_MAE_MIN = 1.0;
+/** Neighbors must be closer than this fraction of the flash MAE. */
+export const GIF_FLASH_SKIP_RATIO = 0.45;
+
 export function resolveFfmpegBinary() {
   if (process.env.FFMPEG_PATH && existsSync(process.env.FFMPEG_PATH)) {
     return process.env.FFMPEG_PATH;
@@ -209,46 +238,216 @@ export function encodeCaptureVideo(
   }
 
   const ffmpeg = resolveFfmpegBinary();
-  const args =
-    resolved === 'gif'
-      ? [
-          '-y',
-          '-loglevel',
-          'error',
-          '-i',
-          webmPath,
-          '-an',
-          '-vf',
-          'fps=12,scale=720:-1:flags=lanczos,split[s0][s1];[s0]palettegen=stats_mode=diff[p];[s1][p]paletteuse=dither=bayer:bayer_scale=5',
-          '-loop',
-          '0',
-          targetPath,
-        ]
-      : [
-          '-y',
-          '-loglevel',
-          'error',
-          '-i',
-          webmPath,
-          '-an',
-          '-c:v',
-          'libx264',
-          '-pix_fmt',
-          'yuv420p',
-          '-r',
-          '30',
-          '-preset',
-          'medium',
-          '-crf',
-          '23',
-          '-movflags',
-          '+faststart',
-          targetPath,
-        ];
 
-  execFileSync(ffmpeg, args, { stdio: 'inherit' });
+  if (resolved === 'gif') {
+    encodeGifFromWebm(ffmpeg, webmPath, targetPath);
+  } else {
+    execFileSync(
+      ffmpeg,
+      [
+        '-y',
+        '-loglevel',
+        'error',
+        '-i',
+        webmPath,
+        '-an',
+        '-c:v',
+        'libx264',
+        '-pix_fmt',
+        'yuv420p',
+        '-r',
+        '30',
+        '-preset',
+        'medium',
+        '-crf',
+        '23',
+        '-movflags',
+        '+faststart',
+        targetPath,
+      ],
+      { stdio: 'inherit' },
+    );
+  }
+
   rmSync(webmPath, { force: true });
   return targetPath;
+}
+
+/** Mean absolute difference between two equal-length byte buffers (0–255 scale). */
+export function meanAbsDiffBytes(a, b) {
+  const n = a.length;
+  if (n === 0 || n !== b.length) return 0;
+  let sum = 0;
+  for (let i = 0; i < n; i++) sum += Math.abs(a[i] - b[i]);
+  return sum / n;
+}
+
+/**
+ * Detect screencast tear frames: large change from both neighbors while the
+ * neighbors themselves are similar (a one-frame paint glitch).
+ * @param {Uint8Array[]} frames
+ * @returns {number[]} indices to replace
+ */
+export function findFlashFrameIndices(
+  frames,
+  { maeMin = GIF_FLASH_MAE_MIN, skipRatio = GIF_FLASH_SKIP_RATIO } = {},
+) {
+  const flashes = [];
+  if (frames.length < 3) return flashes;
+
+  const consecutive = [];
+  for (let i = 0; i < frames.length - 1; i++) {
+    consecutive.push(meanAbsDiffBytes(frames[i], frames[i + 1]));
+  }
+
+  for (let i = 1; i < frames.length - 1; i++) {
+    const dPrev = consecutive[i - 1];
+    const dNext = consecutive[i];
+    if (dPrev < maeMin || dNext < maeMin) continue;
+    const dSkip = meanAbsDiffBytes(frames[i - 1], frames[i + 1]);
+    if (dSkip < skipRatio * Math.min(dPrev, dNext)) {
+      flashes.push(i);
+    }
+  }
+  return flashes;
+}
+
+/**
+ * Replace tear frames by duplicating the previous frame (in place).
+ * @returns {number} number of frames replaced
+ */
+export function replaceFlashFrames(frames, flashIndices) {
+  for (const i of flashIndices) {
+    if (i > 0 && i < frames.length) {
+      frames[i] = Uint8Array.from(frames[i - 1]);
+    }
+  }
+  return flashIndices.length;
+}
+
+function probeScaledGifSize(ffmpeg, webmPath) {
+  const tmp = mkdtempSync(join(tmpdir(), 'doc-studio-gif-probe-'));
+  try {
+    const framePath = join(tmp, 'f.png');
+    execFileSync(
+      ffmpeg,
+      [
+        '-y',
+        '-loglevel',
+        'error',
+        '-i',
+        webmPath,
+        '-vf',
+        `fps=${GIF_FPS},scale=720:-1`,
+        '-frames:v',
+        '1',
+        framePath,
+      ],
+      { stdio: 'inherit' },
+    );
+    const probe = execFileSync(
+      'ffprobe',
+      [
+        '-v',
+        'error',
+        '-select_streams',
+        'v:0',
+        '-show_entries',
+        'stream=width,height',
+        '-of',
+        'csv=p=0:s=x',
+        framePath,
+      ],
+      { encoding: 'utf8' },
+    ).trim();
+    const [w, h] = probe.split('x').map(Number);
+    if (!w || !h) throw new Error(`Cannot probe GIF frame size from ${webmPath} (${probe})`);
+    return { width: w, height: h };
+  } finally {
+    rmSync(tmp, { recursive: true, force: true });
+  }
+}
+
+function extractRgbFrames(ffmpeg, webmPath, width, height) {
+  const raw = execFileSync(
+    ffmpeg,
+    [
+      '-y',
+      '-loglevel',
+      'error',
+      '-i',
+      webmPath,
+      '-an',
+      '-vf',
+      `fps=${GIF_FPS},scale=720:-1,format=rgb24`,
+      '-f',
+      'rawvideo',
+      'pipe:1',
+    ],
+    { maxBuffer: 512 * 1024 * 1024, stdio: ['ignore', 'pipe', 'inherit'] },
+  );
+  const frameSize = width * height * 3;
+  if (raw.length % frameSize !== 0) {
+    throw new Error(
+      `Raw RGB length ${raw.length} is not a multiple of frame size ${frameSize} (${width}x${height})`,
+    );
+  }
+  const frames = [];
+  for (let offset = 0; offset < raw.length; offset += frameSize) {
+    frames.push(Uint8Array.prototype.slice.call(raw, offset, offset + frameSize));
+  }
+  return frames;
+}
+
+function encodeGifFromRgbFrames(ffmpeg, frames, width, height, targetPath) {
+  const tmp = mkdtempSync(join(tmpdir(), 'doc-studio-gif-enc-'));
+  const rawPath = join(tmp, 'frames.rgb');
+  try {
+    writeFileSync(
+      rawPath,
+      Buffer.concat(frames.map((f) => Buffer.from(f.buffer, f.byteOffset, f.byteLength))),
+    );
+    execFileSync(
+      ffmpeg,
+      [
+        '-y',
+        '-loglevel',
+        'error',
+        '-f',
+        'rawvideo',
+        '-pix_fmt',
+        'rgb24',
+        '-s',
+        `${width}x${height}`,
+        '-r',
+        String(GIF_FPS),
+        '-i',
+        rawPath,
+        '-an',
+        '-vf',
+        'hqdn3d=4:3:6:4,split[s0][s1];[s0]palettegen=stats_mode=full:reserve_transparent=0[p];[s1][p]paletteuse=dither=none',
+        '-gifflags',
+        GIF_MUX_FLAGS,
+        '-loop',
+        '0',
+        targetPath,
+      ],
+      { stdio: 'inherit' },
+    );
+  } finally {
+    rmSync(tmp, { recursive: true, force: true });
+  }
+}
+
+function encodeGifFromWebm(ffmpeg, webmPath, targetPath) {
+  const { width, height } = probeScaledGifSize(ffmpeg, webmPath);
+  const frames = extractRgbFrames(ffmpeg, webmPath, width, height);
+  const flashes = findFlashFrameIndices(frames);
+  if (flashes.length > 0) {
+    replaceFlashFrames(frames, flashes);
+    console.log(`  · GIF: removed ${flashes.length} screencast tear frame(s)`);
+  }
+  encodeGifFromRgbFrames(ffmpeg, frames, width, height, targetPath);
 }
 
 async function createCaptureContext(browser, { scenario }) {
@@ -291,6 +490,16 @@ async function prepareScenarioPage(
 
   if (captureSteps) {
     await disableRuntimeAnimations(page);
+  } else if (record) {
+    // Keep typing animations; drop caret blink which strobes harshly at 12fps GIF.
+    await page.addStyleTag({
+      content: `
+        .slash-caret {
+          animation: none !important;
+          opacity: 1 !important;
+        }
+      `,
+    });
   }
 }
 
