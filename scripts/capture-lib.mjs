@@ -180,8 +180,7 @@ export const DEFAULT_VIDEO_FORMAT = 'gif';
  * - reserve_transparent=0: opaque UI; transparency disposal can flash
  */
 export const GIF_FPS = 12;
-export const GIF_VF =
-  `fps=${GIF_FPS},hqdn3d=4:3:6:4,scale=720:-1:flags=lanczos,format=rgb24,split[s0][s1];[s0]palettegen=stats_mode=full:reserve_transparent=0[p];[s1][p]paletteuse=dither=none`;
+export const GIF_VF = `fps=${GIF_FPS},hqdn3d=4:3:6:4,scale=720:-1:flags=lanczos,format=rgb24,split[s0][s1];[s0]palettegen=stats_mode=full:reserve_transparent=0[p];[s1][p]paletteuse=dither=none`;
 
 /**
  * Disable GIF image offsetting (partial/sub-rectangle frames).
