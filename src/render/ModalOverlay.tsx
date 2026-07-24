@@ -1,11 +1,45 @@
 import { DiscordModal } from '@skyra/discord-components-react';
 import { useEffect, useRef } from 'react';
 import { createPortal } from 'react-dom';
-import type { ModalLayer } from '../lib/types.ts';
+import type { ModalLayer, ModalSelectOption } from '../lib/types.ts';
 import { ComponentType, TextInputStyle } from '../lib/types.ts';
 import { Markdown } from './markdown.tsx';
 import { defaultBotProps, skyraAuthorProps } from './skyraAuthor.ts';
 import skyraModalOverrides from '../styles/skyraModalOverrides.css?inline';
+
+function RoleShieldIcon() {
+  return (
+    <svg
+      className="modal-select-option__role-icon"
+      width="20"
+      height="20"
+      viewBox="0 0 24 24"
+      aria-hidden
+    >
+      <path
+        fill="currentColor"
+        d="M12 1L3 5v6c0 5.55 3.84 10.74 9 12 5.16-1.26 9-6.45 9-12V5l-9-4zm0 4.5c1.66 0 3 1.12 3 2.5s-1.34 2.5-3 2.5S9 9.88 9 8.5 10.34 5.5 12 5.5zm0 12.13c-2.33 0-4.38-1.19-5.93-3.05C7.41 13.21 9.55 12.5 12 12.5s4.59.71 5.93 2.08c-1.55 1.86-3.6 3.05-5.93 3.05z"
+      />
+    </svg>
+  );
+}
+
+function RoleMemberCountIcon() {
+  return (
+    <svg
+      className="modal-select-option__member-icon"
+      width="14"
+      height="14"
+      viewBox="0 0 24 24"
+      aria-hidden
+    >
+      <path
+        fill="currentColor"
+        d="M12 12c2.21 0 4-1.79 4-4s-1.79-4-4-4-4 1.79-4 4 1.79 4 4 4zm0 2c-2.67 0-8 1.34-8 4v2h16v-2c0-2.66-5.33-4-8-4z"
+      />
+    </svg>
+  );
+}
 
 function ModalRoleSelect({
   customId,
@@ -22,9 +56,9 @@ function ModalRoleSelect({
   display: string;
   focused?: boolean;
   open?: boolean;
-  options?: string[];
+  options?: ModalSelectOption[];
 }) {
-  const hasValue = Boolean(display) && display !== 'Select roles';
+  const hasValue = Boolean(display) && display !== 'Select roles' && display !== 'Make a selection';
   const isFocused = Boolean(focused || open);
   return (
     <div className={`modal-field${isFocused ? ' modal-field--focused' : ''}`}>
@@ -46,16 +80,26 @@ function ModalRoleSelect({
         </div>
         {open && options && options.length > 0 ? (
           <div className="modal-select-dropdown" role="listbox">
-            {options.map((option) => (
-              <div
-                key={option}
-                className="modal-select-option"
-                role="option"
-                data-modal-select-option={option}
-              >
-                {option}
-              </div>
-            ))}
+            {options.map((option) => {
+              const memberCount = option.memberCount ?? 1;
+              return (
+                <div
+                  key={option.label}
+                  className="modal-select-option modal-select-option--role"
+                  role="option"
+                  data-modal-select-option={option.label}
+                >
+                  <span className="modal-select-option__main">
+                    <RoleShieldIcon />
+                    <span className="modal-select-option__label">{option.label}</span>
+                  </span>
+                  <span className="modal-select-option__count" aria-label={`${memberCount} membres`}>
+                    <RoleMemberCountIcon />
+                    <span>{memberCount}</span>
+                  </span>
+                </div>
+              );
+            })}
           </div>
         ) : null}
       </div>
@@ -151,7 +195,7 @@ function ModalField({
   roleDisplay?: Record<string, string>;
   focusedField?: string | null;
   openSelectField?: string | null;
-  selectOptions?: string[];
+  selectOptions?: ModalSelectOption[];
 }) {
   if (comp.type === ComponentType.TextDisplay) {
     return <ModalTextDisplay content={(comp.content as string) ?? ''} />;
@@ -188,7 +232,7 @@ function ModalField({
           customId={customId}
           label={label}
           required={Boolean(inner.required)}
-          display={roleDisplay?.[customId] ?? 'Select roles'}
+          display={roleDisplay?.[customId] ?? 'Make a selection'}
           focused={focused}
           open={open}
           options={open ? selectOptions : undefined}

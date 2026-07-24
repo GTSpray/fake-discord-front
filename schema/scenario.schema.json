@@ -464,8 +464,21 @@
         "options": {
           "type": "array",
           "minItems": 1,
-          "items": { "type": "string", "minLength": 1 },
+          "items": { "$ref": "#/$defs/ModalSelectOption" },
           "description": "Options affichées une fois le select ouvert"
+        }
+      }
+    },
+    "ModalSelectOption": {
+      "type": "object",
+      "required": ["label"],
+      "additionalProperties": false,
+      "properties": {
+        "label": { "type": "string", "minLength": 1 },
+        "memberCount": {
+          "type": "integer",
+          "minimum": 0,
+          "description": "Compteur membres affiché à droite (RoleSelect). Défaut 1"
         }
       }
     },

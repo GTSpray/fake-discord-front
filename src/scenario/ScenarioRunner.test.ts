@@ -473,7 +473,11 @@ describe('ScenarioRunner', () => {
           type: 'selectModalOption',
           field: 'role',
           option: '@Modérateurs',
-          options: ['@everyone', '@Modérateurs', '@Membres'],
+          options: [
+            { label: '@everyone', memberCount: 12 },
+            { label: '@Modérateurs', memberCount: 1 },
+            { label: '@Membres', memberCount: 8 },
+          ],
         },
       ]),
     );

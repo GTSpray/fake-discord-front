@@ -5,9 +5,12 @@ import type {
   CustomEmoji,
   EphemeralLayer,
   ModalLayer,
+  ModalSelectOption,
   SlashCommandParam,
   SlashInvocation,
 } from './types.ts';
+
+export type { ModalSelectOption };
 
 export const UPLOAD_SCENARIO_STORAGE_KEY = 'doc-studio-scenario-upload';
 
@@ -73,7 +76,7 @@ export type ScenarioAction =
       /** Label de l’option à sélectionner */
       option: string;
       /** Options visibles une fois le select ouvert */
-      options: string[];
+      options: ModalSelectOption[];
     }
   | {
       type: 'showEphemeral';

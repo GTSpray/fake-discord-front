@@ -66,6 +66,12 @@ export interface InteractionData {
   components?: DiscordComponent[];
 }
 
+export interface ModalSelectOption {
+  label: string;
+  /** Nombre de membres affiché à droite (RoleSelect Discord). Défaut : 1 */
+  memberCount?: number;
+}
+
 export interface ModalLayer {
   type: 9;
   data: InteractionData;
@@ -77,7 +83,7 @@ export interface ModalLayer {
   /** Runtime — custom_id du select ouvert (liste d’options visible) */
   openSelectField?: string | null;
   /** Runtime — options affichées dans le select ouvert */
-  selectOptions?: string[];
+  selectOptions?: ModalSelectOption[];
 }
 
 export interface SlashSuggestion {

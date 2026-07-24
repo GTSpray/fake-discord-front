@@ -1535,6 +1535,10 @@ button {
 }
 
 .modal-select-option {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
   padding: 8px 10px;
   border-radius: 3px;
   color: var(--text-normal);
@@ -1542,8 +1546,44 @@ button {
   line-height: 1.2;
   white-space: nowrap;
   overflow: hidden;
-  text-overflow: ellipsis;
   transition: background-color 80ms ease;
+}
+
+.modal-select-option--role {
+  min-height: 36px;
+}
+
+.modal-select-option__main {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  min-width: 0;
+  overflow: hidden;
+}
+
+.modal-select-option__label {
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.modal-select-option__role-icon {
+  flex-shrink: 0;
+  color: #b5bac1;
+}
+
+.modal-select-option__count {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  flex-shrink: 0;
+  color: #b5bac1;
+  font-size: 0.75rem;
+  font-weight: 500;
+}
+
+.modal-select-option__member-icon {
+  flex-shrink: 0;
+  color: #b5bac1;
 }
 
 .modal-select-option:hover,

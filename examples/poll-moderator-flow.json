@@ -110,8 +110,11 @@
     {
       "type": "selectModalOption",
       "field": "role",
-      "option": "@Modérateurs",
-      "options": ["@everyone", "@Modérateurs", "@Membres"]
+      "option": "P'titPoteDev",
+      "options": [
+        { "label": "Dev", "memberCount": 1 },
+        { "label": "P'titPoteDev", "memberCount": 1 }
+      ]
     },
     {
       "type": "fillModal",
