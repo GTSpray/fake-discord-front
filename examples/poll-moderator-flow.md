@@ -14,8 +14,6 @@ Moderators can create a poll directly from Discord with `/poll create`.
    - **Voters role** _(optional)_ — RoleSelect; restricts voting to a role
    - **Publish channel** — ChannelSelect; where the poll is posted
    - **Poll duration** — StringSelect; how long the poll stays open
-   - **Poll question** — the question being asked
-   - **Description** _(optional)_ — context for voters
 3. Submit the modal.
 
 ### Modal selects in this playback

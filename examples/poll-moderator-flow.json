@@ -93,26 +93,6 @@
                 "custom_id": "duration",
                 "required": true
               }
-            },
-            {
-              "type": 18,
-              "label": "Question du sondage",
-              "component": {
-                "type": 4,
-                "custom_id": "question",
-                "style": 1,
-                "required": true
-              }
-            },
-            {
-              "type": 18,
-              "label": "Description",
-              "component": {
-                "type": 4,
-                "custom_id": "description",
-                "style": 1,
-                "required": false
-              }
             }
           ]
         }
@@ -153,14 +133,6 @@
         { "label": "24 heures", "description": "Une journée complète" },
         { "label": "7 jours", "description": "Une semaine" }
       ]
-    },
-    {
-      "type": "fillModal",
-      "values": {
-        "question": "Quel jour ?",
-        "description": "Votez pour la date qui vous arrange"
-      },
-      "msPerField": 130
     },
     {
       "type": "wait",
