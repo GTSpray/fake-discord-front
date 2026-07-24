@@ -99,9 +99,11 @@ Override per action with `delayBeforeMs` (`type`), `delayBeforeFieldMs`
 (`fillModal`), or `responseDelayMs` on bot reply actions (`openModal`,
 `showEphemeral`, `applyState`). Scenario-wide defaults: `defaults.botResponseMs`.
 
-While waiting, a deferred bot message is shown (slash invocation + animated dots
-
-- `Envoi de la commande...`). Override text via `defaults.botPendingText`.
+While waiting after `pressEnter`, a deferred bot message is shown (slash invocation +
+animated dots + `Envoi de la commande...`). Override text via `defaults.botPendingText`.
+After `clickButton`, the button shows loading dots during the response delay. After
+`submitModal`, the modal Submit button shows loading dots, then the modal closes —
+no deferred « thinking » message.
 
 Slash input typing uses `react-type-animation` via `AnimatedSlashInput`.
 

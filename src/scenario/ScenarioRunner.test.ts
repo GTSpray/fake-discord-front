@@ -287,6 +287,181 @@ describe('ScenarioRunner', () => {
     expect(runner.getState().modal?.data.title).toBe('Créer un sondage');
   });
 
+  it('shows loading dots on the button but not a pending reply after clickButton', async () => {
+    const runner = new ScenarioRunner(
+      makeScenario(
+        [
+          {
+            type: 'applyState',
+            layers: {
+              messages: [
+                {
+                  author: { name: 'Bot', bot: true },
+                  content: 'Choose',
+                  interaction: {
+                    type: 4,
+                    data: {
+                      components: [
+                        {
+                          type: 1,
+                          components: [{ type: 2, style: 1, label: 'Publier' }],
+                        },
+                      ],
+                    },
+                  },
+                },
+              ],
+            },
+          },
+          { type: 'clickButton', label: 'Publier' },
+          {
+            type: 'applyState',
+            layers: {
+              messages: [
+                {
+                  author: { name: 'Bot', bot: true },
+                  content: 'Published',
+                },
+              ],
+            },
+          },
+        ],
+        {
+          defaults: { botResponseMs: 300, botPendingText: 'Waiting…' },
+        },
+      ),
+    );
+
+    let sawPending = false;
+    let sawLoadingButton = false;
+    runner.subscribe((snapshot) => {
+      if (snapshot.state.pendingBotReply) sawPending = true;
+      if (snapshot.state.loadingButton === 'Publier') sawLoadingButton = true;
+    });
+
+    const playPromise = runner.play();
+    await vi.runAllTimersAsync();
+    await playPromise;
+
+    expect(sawPending).toBe(false);
+    expect(sawLoadingButton).toBe(true);
+    expect(runner.getState().messages[0]?.content).toBe('Published');
+  });
+
+  it('does not show pending reply when clickButton opens a modal', async () => {
+    const runner = new ScenarioRunner(
+      makeScenario(
+        [
+          {
+            type: 'applyState',
+            layers: {
+              messages: [
+                {
+                  author: { name: 'Bot', bot: true },
+                  content: 'Choose',
+                  interaction: {
+                    type: 4,
+                    data: {
+                      components: [
+                        {
+                          type: 1,
+                          components: [{ type: 2, style: 1, label: 'Ajouter' }],
+                        },
+                      ],
+                    },
+                  },
+                },
+              ],
+            },
+          },
+          { type: 'clickButton', label: 'Ajouter' },
+          {
+            type: 'openModal',
+            modal: {
+              type: 9,
+              data: {
+                title: 'Ajouter des choix',
+                components: [],
+              },
+            },
+          },
+        ],
+        {
+          defaults: { botResponseMs: 300, botPendingText: 'Waiting…' },
+        },
+      ),
+    );
+
+    let sawPending = false;
+    let sawLoadingButton = false;
+    runner.subscribe((snapshot) => {
+      if (snapshot.state.pendingBotReply) sawPending = true;
+      if (snapshot.state.loadingButton === 'Ajouter') sawLoadingButton = true;
+    });
+
+    const playPromise = runner.play();
+    await vi.runAllTimersAsync();
+    await playPromise;
+
+    expect(sawPending).toBe(false);
+    expect(sawLoadingButton).toBe(true);
+    expect(runner.getState().modal?.data.title).toBe('Ajouter des choix');
+  });
+
+  it('shows loading on modal submit but not a pending reply', async () => {
+    const runner = new ScenarioRunner(
+      makeScenario(
+        [
+          {
+            type: 'openModal',
+            modal: {
+              type: 9,
+              data: {
+                title: 'Créer un sondage',
+                components: [],
+              },
+            },
+          },
+          { type: 'submitModal' },
+          {
+            type: 'showEphemeral',
+            ephemeral: {
+              author: { name: 'Bot', bot: true },
+              type: 4,
+              data: { flags: 64, content: 'Done' },
+            },
+          },
+        ],
+        {
+          defaults: { botResponseMs: 300, botPendingText: 'Waiting…' },
+        },
+      ),
+    );
+
+    let sawSubmitting = false;
+    let sawPending = false;
+    let sawSubmittingWhileModalOpen = false;
+    runner.subscribe((snapshot) => {
+      if (snapshot.state.modalSubmitting) {
+        sawSubmitting = true;
+        if (snapshot.state.modal && !snapshot.state.modalClosing) {
+          sawSubmittingWhileModalOpen = true;
+        }
+      }
+      if (snapshot.state.pendingBotReply) sawPending = true;
+    });
+
+    const playPromise = runner.play();
+    await vi.runAllTimersAsync();
+    await playPromise;
+
+    expect(sawSubmitting).toBe(true);
+    expect(sawSubmittingWhileModalOpen).toBe(true);
+    expect(sawPending).toBe(false);
+    expect(runner.getState().modal).toBeNull();
+    expect(runner.getState().ephemeral?.data?.content).toBe('Done');
+  });
+
   it('stop resets playback to idle', async () => {
     const runner = new ScenarioRunner(makeScenario([{ type: 'wait', ms: 10_000 }]));
 

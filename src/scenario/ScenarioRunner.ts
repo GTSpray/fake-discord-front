@@ -104,6 +104,7 @@ export function createInitialState(scenario: Scenario): PlaybackState {
     slash: null,
     modal: null,
     modalClosing: false,
+    modalSubmitting: false,
     ephemeral: null,
     highlightedButton: null,
     loadingButton: null,
@@ -297,14 +298,13 @@ export class ScenarioRunner {
     next: ScenarioAction,
     trigger: 'pressEnter' | 'submitModal' | 'clickButton',
   ): boolean {
+    // clickButton / submitModal use loading dots on the control itself —
+    // never the deferred « bot thinking » message (that's for slash pressEnter).
+    if (trigger === 'clickButton' || trigger === 'submitModal') return false;
     if (next.type === 'openModal') return true;
     if (next.type === 'showEphemeral') return true;
     if (next.type === 'applyState') {
-      if (trigger === 'pressEnter') {
-        return Boolean(next.layers?.messages?.length);
-      }
-      if (trigger === 'submitModal') return false;
-      return false;
+      return Boolean(next.layers?.messages?.length);
     }
     return false;
   }
@@ -417,6 +417,7 @@ export class ScenarioRunner {
           slash: null,
           modal: emptyModalValues(modal),
           modalClosing: false,
+          modalSubmitting: false,
           pendingBotReply: null,
         });
         break;
@@ -426,17 +427,26 @@ export class ScenarioRunner {
         await this.fillModal(action, signal);
         break;
 
-      case 'submitModal':
+      case 'submitModal': {
         if (this.captureStepMode) {
-          this.patch({ modal: null, modalClosing: false, highlightedButton: null });
-          await this.awaitBotResponseAfterUserAction(signal, 'submitModal');
+          this.patch({
+            modal: null,
+            modalClosing: false,
+            modalSubmitting: false,
+            highlightedButton: null,
+          });
           break;
         }
-        this.patch({ modalClosing: true, highlightedButton: null });
+        const next = this.nextAction();
+        if (next && this.isBotResponseAction(next)) {
+          this.patch({ modalSubmitting: true, highlightedButton: null });
+          await this.awaitBotResponse(signal, this.getResponseDelayMs(next));
+        }
+        this.patch({ modalClosing: true, modalSubmitting: false, highlightedButton: null });
         await sleep(280, signal);
-        this.patch({ modal: null, modalClosing: false });
-        await this.awaitBotResponseAfterUserAction(signal, 'submitModal');
+        this.patch({ modal: null, modalClosing: false, modalSubmitting: false });
         break;
+      }
 
       case 'showEphemeral': {
         const ephemeral = resolveEphemeral(action);
@@ -446,6 +456,7 @@ export class ScenarioRunner {
           slash: null,
           pendingBotReply: null,
           loadingButton: null,
+          modalSubmitting: false,
         });
         break;
       }
@@ -483,6 +494,7 @@ export class ScenarioRunner {
           modal: resolved.modal,
           ephemeral: resolved.ephemeral,
           modalClosing: false,
+          modalSubmitting: false,
           highlightedButton: null,
           loadingButton: null,
           cursorTarget: null,

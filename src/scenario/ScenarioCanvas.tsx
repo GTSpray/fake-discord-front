@@ -22,6 +22,7 @@ export function ScenarioCanvas({ state, scenarioDone }: ScenarioCanvasProps) {
     slash,
     modal,
     modalClosing,
+    modalSubmitting,
     ephemeral,
     highlightedButton,
     loadingButton,
@@ -60,7 +61,14 @@ export function ScenarioCanvas({ state, scenarioDone }: ScenarioCanvasProps) {
           </div>
         </DiscordShell>
 
-        {modal && <ModalOverlay modal={modal} closing={modalClosing} useTopLayer={false} />}
+        {modal && (
+          <ModalOverlay
+            modal={modal}
+            closing={modalClosing}
+            submitting={modalSubmitting}
+            useTopLayer={false}
+          />
+        )}
 
         <ScenarioCursor target={cursorTarget} canvasRef={canvasRef} returnHome={scenarioDone} />
       </div>
