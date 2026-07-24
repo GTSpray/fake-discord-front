@@ -8,25 +8,56 @@ import { defaultBotProps, skyraAuthorProps } from './skyraAuthor.ts';
 import skyraModalOverrides from '../styles/skyraModalOverrides.css?inline';
 
 function ModalRoleSelect({
+  customId,
   label,
   required,
   display,
   focused,
+  open,
+  options,
 }: {
+  customId: string;
   label: string;
   required?: boolean;
   display: string;
   focused?: boolean;
+  open?: boolean;
+  options?: string[];
 }) {
+  const hasValue = Boolean(display) && display !== 'Select roles';
+  const isFocused = Boolean(focused || open);
   return (
-    <div className={`modal-field${focused ? ' modal-field--focused' : ''}`}>
+    <div className={`modal-field${isFocused ? ' modal-field--focused' : ''}`}>
       <label className="modal-label">
         {label}
         {required ? <span className="modal-required"> *</span> : null}
       </label>
-      <div className={`modal-role-select${focused ? ' modal-field-control--focused' : ''}`}>
-        <span className="modal-role-placeholder">{display}</span>
-        <span className="modal-role-chevron">▾</span>
+      <div className="modal-role-select-wrap">
+        <div
+          className={`modal-role-select${isFocused ? ' modal-field-control--focused' : ''}${
+            open ? ' modal-role-select--open' : ''
+          }${hasValue ? ' modal-role-select--filled' : ''}`}
+          data-modal-select={customId}
+        >
+          <span className="modal-role-placeholder">{display}</span>
+          <span className="modal-role-chevron" aria-hidden>
+            ▾
+          </span>
+        </div>
+        {open && options && options.length > 0 ? (
+          <div className="modal-select-dropdown" role="listbox">
+            {options.map((option) => (
+              <div
+                key={option}
+                className="modal-select-option"
+                role="option"
+                data-modal-select-option={option}
+              >
+                {option}
+              </div>
+            ))}
+          </div>
+        ) : null}
       </div>
     </div>
   );
@@ -112,11 +143,15 @@ function ModalField({
   values,
   roleDisplay,
   focusedField,
+  openSelectField,
+  selectOptions,
 }: {
   comp: Record<string, unknown>;
   values?: Record<string, string | string[] | null>;
   roleDisplay?: Record<string, string>;
   focusedField?: string | null;
+  openSelectField?: string | null;
+  selectOptions?: string[];
 }) {
   if (comp.type === ComponentType.TextDisplay) {
     return <ModalTextDisplay content={(comp.content as string) ?? ''} />;
@@ -146,13 +181,17 @@ function ModalField({
     if (inner.type === ComponentType.RoleSelect) {
       const customId = (inner.custom_id as string) ?? '';
       const focused = focusedField === customId;
+      const open = openSelectField === customId;
       return (
         <ModalRoleSelect
           key={customId}
+          customId={customId}
           label={label}
           required={Boolean(inner.required)}
           display={roleDisplay?.[customId] ?? 'Select roles'}
           focused={focused}
+          open={open}
+          options={open ? selectOptions : undefined}
         />
       );
     }
@@ -294,6 +333,8 @@ export function ModalOverlay({
             values={modal.values}
             roleDisplay={modal.roleDisplay}
             focusedField={modal.focusedField}
+            openSelectField={modal.openSelectField}
+            selectOptions={modal.selectOptions}
           />
         ))}
       </DiscordModal>

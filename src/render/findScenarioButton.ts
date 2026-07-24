@@ -4,6 +4,19 @@ const LOOKUP_MAX_ATTEMPTS = 40;
 /** Sentinel `cursorTarget` for the Skyra modal Submit button. */
 export const CURSOR_TARGET_MODAL_SUBMIT = '__modalSubmit';
 
+const CURSOR_TARGET_MODAL_SELECT_PREFIX = '__modalSelect:';
+const CURSOR_TARGET_MODAL_SELECT_OPTION_PREFIX = '__modalSelectOption:';
+
+/** Sentinel `cursorTarget` for a modal RoleSelect / StringSelect control. */
+export function cursorTargetModalSelect(field: string): string {
+  return `${CURSOR_TARGET_MODAL_SELECT_PREFIX}${field}`;
+}
+
+/** Sentinel `cursorTarget` for an option in an open modal select dropdown. */
+export function cursorTargetModalSelectOption(option: string): string {
+  return `${CURSOR_TARGET_MODAL_SELECT_OPTION_PREFIX}${option}`;
+}
+
 function sleep(ms: number): Promise<void> {
   return new Promise((resolve) => setTimeout(resolve, ms));
 }
@@ -128,9 +141,112 @@ export function findModalSubmitRect(): DOMRect | null {
   return best?.rect ?? null;
 }
 
+function pickBestElementRect(candidates: HTMLElement[]): DOMRect | null {
+  let best: { rect: DOMRect; score: number } | null = null;
+
+  for (const element of candidates) {
+    const rect = measureElementRect(element);
+    if (!rect) continue;
+
+    const score = rect.width * rect.height + rect.top;
+    if (!best || score > best.score) {
+      best = { rect, score };
+    }
+  }
+
+  return best?.rect ?? null;
+}
+
+function queryAllDeepByAttr(
+  attr: string,
+  value: string,
+  root: Document | Element | ShadowRoot = document,
+): HTMLElement[] {
+  const results: HTMLElement[] = [];
+
+  const walk = (node: Document | Element | ShadowRoot) => {
+    for (const el of node.querySelectorAll(`[${attr}]`)) {
+      if (el instanceof HTMLElement && el.getAttribute(attr) === value) {
+        results.push(el);
+      }
+    }
+    for (const el of node.querySelectorAll('*')) {
+      if (el.shadowRoot) walk(el.shadowRoot);
+    }
+  };
+
+  walk(root);
+  return results;
+}
+
+/** Locate a modal select control by custom_id (`data-modal-select`). */
+export function findModalSelectRect(field: string): DOMRect | null {
+  return pickBestElementRect(queryAllDeepByAttr('data-modal-select', field));
+}
+
+/** Locate an option in an open modal select dropdown (`data-modal-select-option`). */
+export function findModalSelectOptionRect(option: string): DOMRect | null {
+  return pickBestElementRect(queryAllDeepByAttr('data-modal-select-option', option));
+}
+
+function queryAllModalSelectOptions(): HTMLElement[] {
+  const results: HTMLElement[] = [];
+
+  const walk = (node: Document | Element | ShadowRoot) => {
+    for (const el of node.querySelectorAll('[data-modal-select-option]')) {
+      if (el instanceof HTMLElement) results.push(el);
+    }
+    for (const el of node.querySelectorAll('*')) {
+      if (el.shadowRoot) walk(el.shadowRoot);
+    }
+  };
+
+  walk(document);
+  return results;
+}
+
+/** Clear fake-cursor hover on all modal select options. */
+export function clearModalSelectOptionHover(): void {
+  for (const el of queryAllModalSelectOptions()) {
+    el.classList.remove('modal-select-option--hovered');
+  }
+}
+
+/**
+ * Apply hover to the modal select option under the fake cursor tip (x, y in viewport).
+ * Real CSS :hover never fires for the synthetic pointer.
+ */
+export function syncModalSelectOptionHover(x: number, y: number): void {
+  const options = queryAllModalSelectOptions();
+  let hovered: HTMLElement | null = null;
+
+  for (const el of options) {
+    const rect = el.getBoundingClientRect();
+    if (
+      isValidRect(rect) &&
+      x >= rect.left &&
+      x <= rect.right &&
+      y >= rect.top &&
+      y <= rect.bottom
+    ) {
+      hovered = el;
+    }
+  }
+
+  for (const el of options) {
+    el.classList.toggle('modal-select-option--hovered', el === hovered);
+  }
+}
+
 /** Resolve any scenario cursor target (channel button label or modal Submit). */
 export function findScenarioClickTargetRect(target: string): DOMRect | null {
   if (target === CURSOR_TARGET_MODAL_SUBMIT) return findModalSubmitRect();
+  if (target.startsWith(CURSOR_TARGET_MODAL_SELECT_OPTION_PREFIX)) {
+    return findModalSelectOptionRect(target.slice(CURSOR_TARGET_MODAL_SELECT_OPTION_PREFIX.length));
+  }
+  if (target.startsWith(CURSOR_TARGET_MODAL_SELECT_PREFIX)) {
+    return findModalSelectRect(target.slice(CURSOR_TARGET_MODAL_SELECT_PREFIX.length));
+  }
   return findScenarioButtonRect(target);
 }
 

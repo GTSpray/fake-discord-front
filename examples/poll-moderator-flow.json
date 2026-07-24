@@ -103,7 +103,19 @@
     {
       "type": "fillModal",
       "values": {
-        "title": "Repas de fin d'année",
+        "title": "Repas de fin d'année"
+      },
+      "msPerField": 130
+    },
+    {
+      "type": "selectModalOption",
+      "field": "role",
+      "option": "@Modérateurs",
+      "options": ["@everyone", "@Modérateurs", "@Membres"]
+    },
+    {
+      "type": "fillModal",
+      "values": {
         "question": "Quel jour ?",
         "description": "Votez pour la date qui vous arrange"
       },

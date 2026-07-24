@@ -74,6 +74,10 @@ export interface ModalLayer {
   roleDisplay?: Record<string, string>;
   /** Runtime — champ actuellement focusé pendant fillModal */
   focusedField?: string | null;
+  /** Runtime — custom_id du select ouvert (liste d’options visible) */
+  openSelectField?: string | null;
+  /** Runtime — options affichées dans le select ouvert */
+  selectOptions?: string[];
 }
 
 export interface SlashSuggestion {

@@ -31,7 +31,11 @@ import type {
 } from '../lib/types.ts';
 import { DEFAULT_BOT_NAME, resolveViewer } from '../lib/types.ts';
 import { formatSkyraClockTime } from '../lib/skyraTimestamp.ts';
-import { CURSOR_TARGET_MODAL_SUBMIT } from '../render/findScenarioButton.ts';
+import {
+  CURSOR_TARGET_MODAL_SUBMIT,
+  cursorTargetModalSelect,
+  cursorTargetModalSelectOption,
+} from '../render/findScenarioButton.ts';
 import { runCursorClick } from './cursorBridge.ts';
 import { runTyping } from './typingBridge.ts';
 
@@ -458,6 +462,10 @@ export class ScenarioRunner {
         break;
       }
 
+      case 'selectModalOption':
+        await this.selectModalOption(action, signal);
+        break;
+
       case 'showEphemeral': {
         const ephemeral = resolveEphemeral(action);
         this.patch({
@@ -772,7 +780,7 @@ export class ScenarioRunner {
         modal: {
           ...this.state.modal,
           values,
-          roleDisplay: source.roleDisplay,
+          roleDisplay: source.roleDisplay ?? this.state.modal.roleDisplay,
           focusedField: fieldIds[fieldIds.length - 1] ?? null,
         },
       });
@@ -791,7 +799,7 @@ export class ScenarioRunner {
         modal: {
           ...this.state.modal,
           values: { ...values },
-          roleDisplay: source.roleDisplay,
+          roleDisplay: source.roleDisplay ?? this.state.modal.roleDisplay,
           focusedField: fieldId,
         },
       });
@@ -808,13 +816,78 @@ export class ScenarioRunner {
           modal: {
             ...this.state.modal,
             values: { ...values },
-            roleDisplay: source.roleDisplay,
+            roleDisplay: source.roleDisplay ?? this.state.modal.roleDisplay,
             focusedField: fieldId,
           },
         });
         await sleep(msPerChar, signal);
       }
     }
+  }
+
+  private async selectModalOption(
+    action: Extract<ScenarioAction, { type: 'selectModalOption' }>,
+    signal: AbortSignal,
+  ) {
+    if (!this.state.modal) return;
+
+    const applySelection = () => {
+      if (!this.state.modal) return;
+      this.patch({
+        cursorTarget: null,
+        modal: {
+          ...this.state.modal,
+          roleDisplay: {
+            ...(this.state.modal.roleDisplay ?? {}),
+            [action.field]: action.option,
+          },
+          openSelectField: null,
+          selectOptions: undefined,
+          focusedField: action.field,
+        },
+      });
+    };
+
+    if (this.captureStepMode) {
+      applySelection();
+      return;
+    }
+
+    // 1. Curseur vers le select fermé → clic
+    this.patch({
+      cursorTarget: cursorTargetModalSelect(action.field),
+      highlightedButton: null,
+      loadingButton: null,
+      modal: {
+        ...this.state.modal,
+        focusedField: null,
+        openSelectField: null,
+        selectOptions: undefined,
+      },
+    });
+    await runCursorClick(signal);
+
+    if (!this.state.modal) return;
+
+    // 2. Au moment du clic : focus + ouverture des options (curseur reste sur l’input)
+    this.patch({
+      cursorTarget: cursorTargetModalSelect(action.field),
+      modal: {
+        ...this.state.modal,
+        focusedField: action.field,
+        openSelectField: action.field,
+        selectOptions: action.options,
+      },
+    });
+    await sleep(400, signal);
+
+    // 3. Curseur vers l’option (hover) → clic pour sélectionner
+    this.patch({
+      cursorTarget: cursorTargetModalSelectOption(action.option),
+    });
+    await runCursorClick(signal);
+    applySelection();
+    await sleep(220, signal);
   }
 }
 

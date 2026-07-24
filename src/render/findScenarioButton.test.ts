@@ -1,10 +1,14 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import {
   buttonCenter,
+  clearModalSelectOptionHover,
   CURSOR_TARGET_MODAL_SUBMIT,
+  cursorTargetModalSelect,
+  cursorTargetModalSelectOption,
   findModalSubmitRect,
   findScenarioButtonRect,
   findScenarioClickTargetRect,
+  syncModalSelectOptionHover,
   waitForScenarioButtonRect,
 } from './findScenarioButton.ts';
 
@@ -117,6 +121,44 @@ describe('findScenarioButton', () => {
     expect(findScenarioClickTargetRect(CURSOR_TARGET_MODAL_SUBMIT)).toEqual(
       new DOMRect(400, 500, 96, 36),
     );
+  });
+
+  it('finds modal select controls and options by data attributes', () => {
+    const select = document.createElement('div');
+    select.setAttribute('data-modal-select', 'role');
+    select.getBoundingClientRect = () => new DOMRect(80, 120, 240, 40);
+
+    const option = document.createElement('div');
+    option.setAttribute('data-modal-select-option', '@Modérateurs');
+    option.getBoundingClientRect = () => new DOMRect(80, 170, 240, 32);
+
+    document.body.append(select, option);
+
+    expect(findScenarioClickTargetRect(cursorTargetModalSelect('role'))).toEqual(
+      new DOMRect(80, 120, 240, 40),
+    );
+    expect(findScenarioClickTargetRect(cursorTargetModalSelectOption('@Modérateurs'))).toEqual(
+      new DOMRect(80, 170, 240, 32),
+    );
+  });
+
+  it('applies option hover from fake cursor viewport coordinates', () => {
+    const first = document.createElement('div');
+    first.setAttribute('data-modal-select-option', 'Dev');
+    first.getBoundingClientRect = () => new DOMRect(80, 170, 240, 32);
+
+    const second = document.createElement('div');
+    second.setAttribute('data-modal-select-option', "P'titPoteDev");
+    second.getBoundingClientRect = () => new DOMRect(80, 210, 240, 32);
+
+    document.body.append(first, second);
+
+    syncModalSelectOptionHover(100, 220);
+    expect(first.classList.contains('modal-select-option--hovered')).toBe(false);
+    expect(second.classList.contains('modal-select-option--hovered')).toBe(true);
+
+    clearModalSelectOptionHover();
+    expect(second.classList.contains('modal-select-option--hovered')).toBe(false);
   });
 
   it('finds modal Submit outside [data-capture-root] (portal to body)', () => {

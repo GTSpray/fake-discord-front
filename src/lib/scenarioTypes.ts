@@ -67,6 +67,15 @@ export type ScenarioAction =
     }
   | { type: 'submitModal' }
   | {
+      type: 'selectModalOption';
+      /** custom_id du RoleSelect / StringSelect dans la modale */
+      field: string;
+      /** Label de l’option à sélectionner */
+      option: string;
+      /** Options visibles une fois le select ouvert */
+      options: string[];
+    }
+  | {
       type: 'showEphemeral';
       ephemeral: EphemeralLayer;
       responseDelayMs?: number;

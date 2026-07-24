@@ -290,6 +290,7 @@
         { "$ref": "#/$defs/OpenModalAction" },
         { "$ref": "#/$defs/FillModalAction" },
         { "$ref": "#/$defs/SubmitModalAction" },
+        { "$ref": "#/$defs/SelectModalOptionAction" },
         { "$ref": "#/$defs/ShowEphemeralAction" },
         { "$ref": "#/$defs/ClickButtonAction" },
         { "$ref": "#/$defs/ApplyStateAction" }
@@ -442,6 +443,30 @@
       "additionalProperties": false,
       "properties": {
         "type": { "const": "submitModal" }
+      }
+    },
+    "SelectModalOptionAction": {
+      "type": "object",
+      "required": ["type", "field", "option", "options"],
+      "additionalProperties": false,
+      "properties": {
+        "type": { "const": "selectModalOption" },
+        "field": {
+          "type": "string",
+          "minLength": 1,
+          "description": "custom_id du RoleSelect / StringSelect dans la modale"
+        },
+        "option": {
+          "type": "string",
+          "minLength": 1,
+          "description": "Label de l’option à sélectionner"
+        },
+        "options": {
+          "type": "array",
+          "minItems": 1,
+          "items": { "type": "string", "minLength": 1 },
+          "description": "Options affichées une fois le select ouvert"
+        }
       }
     },
     "ShowEphemeralAction": {

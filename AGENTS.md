@@ -111,6 +111,8 @@ Slash input typing uses `react-type-animation` via `AnimatedSlashInput`.
 `clickButton` moves an animated pointer (`ScenarioCursor`) to the matching
 `discord-button` label before highlighting it. `submitModal` moves the same
 pointer to the modal Submit button before showing loading dots / closing.
+`selectModalOption` moves the pointer to the RoleSelect control to open the
+options list, then to the chosen option.
 
 ## Authoring a playback file
 

@@ -57,7 +57,7 @@ Constants are defined in `src/scenario/ScenarioRunner.ts`.
 ### Available actions
 
 `wait`, `focusInput`, `type`, `pressEnter`, `openModal`, `fillModal`,
-`submitModal`, `showEphemeral`, `clickButton`, `applyState`.
+`selectModalOption`, `submitModal`, `showEphemeral`, `clickButton`, `applyState`.
 
 All payload data (`modal`, `ephemeral`, `layers`, `userMessage`, etc.) must be
 **inline** in the JSON file.
