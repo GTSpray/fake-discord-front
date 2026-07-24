@@ -1,6 +1,9 @@
 const LOOKUP_RETRY_MS = 50;
 const LOOKUP_MAX_ATTEMPTS = 40;
 
+/** Sentinel `cursorTarget` for the Skyra modal Submit button. */
+export const CURSOR_TARGET_MODAL_SUBMIT = '__modalSubmit';
+
 function sleep(ms: number): Promise<void> {
   return new Promise((resolve) => setTimeout(resolve, ms));
 }
@@ -96,13 +99,55 @@ export function findScenarioButtonRect(label: string): DOMRect | null {
   return pickBestButtonRect(findMatchingButtonHosts(label));
 }
 
+function findModalSubmitButtons(): HTMLElement[] {
+  const results: HTMLElement[] = [];
+
+  // ModalOverlay portals to document.body, outside [data-capture-root].
+  for (const host of queryDeep('discord-modal', document)) {
+    const submit = host.shadowRoot?.querySelector('.discord-modal-button-submit');
+    if (submit instanceof HTMLElement) results.push(submit);
+  }
+
+  return results;
+}
+
+/** Locate the Skyra modal Submit control inside the open modal shadow root. */
+export function findModalSubmitRect(): DOMRect | null {
+  let best: { rect: DOMRect; score: number } | null = null;
+
+  for (const button of findModalSubmitButtons()) {
+    const rect = measureElementRect(button);
+    if (!rect) continue;
+
+    const score = rect.width * rect.height + rect.top;
+    if (!best || score > best.score) {
+      best = { rect, score };
+    }
+  }
+
+  return best?.rect ?? null;
+}
+
+/** Resolve any scenario cursor target (channel button label or modal Submit). */
+export function findScenarioClickTargetRect(target: string): DOMRect | null {
+  if (target === CURSOR_TARGET_MODAL_SUBMIT) return findModalSubmitRect();
+  return findScenarioButtonRect(target);
+}
+
 export async function waitForScenarioButtonRect(
   label: string,
   timeoutMs = LOOKUP_MAX_ATTEMPTS * LOOKUP_RETRY_MS,
 ): Promise<DOMRect | null> {
+  return waitForScenarioClickTargetRect(label, timeoutMs);
+}
+
+export async function waitForScenarioClickTargetRect(
+  target: string,
+  timeoutMs = LOOKUP_MAX_ATTEMPTS * LOOKUP_RETRY_MS,
+): Promise<DOMRect | null> {
   const startedAt = performance.now();
   while (performance.now() - startedAt < timeoutMs) {
-    const rect = findScenarioButtonRect(label);
+    const rect = findScenarioClickTargetRect(target);
     if (rect) return rect;
     await sleep(LOOKUP_RETRY_MS);
   }

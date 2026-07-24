@@ -3,6 +3,7 @@ import { useEffect, useRef } from 'react';
 import { createPortal } from 'react-dom';
 import type { ModalLayer } from '../lib/types.ts';
 import { ComponentType, TextInputStyle } from '../lib/types.ts';
+import { Markdown } from './markdown.tsx';
 import { defaultBotProps, skyraAuthorProps } from './skyraAuthor.ts';
 import skyraModalOverrides from '../styles/skyraModalOverrides.css?inline';
 
@@ -10,18 +11,20 @@ function ModalRoleSelect({
   label,
   required,
   display,
+  focused,
 }: {
   label: string;
   required?: boolean;
   display: string;
+  focused?: boolean;
 }) {
   return (
-    <div className="modal-field">
+    <div className={`modal-field${focused ? ' modal-field--focused' : ''}`}>
       <label className="modal-label">
         {label}
         {required ? <span className="modal-required"> *</span> : null}
       </label>
-      <div className="modal-role-select">
+      <div className={`modal-role-select${focused ? ' modal-field-control--focused' : ''}`}>
         <span className="modal-role-placeholder">{display}</span>
         <span className="modal-role-chevron">▾</span>
       </div>
@@ -41,12 +44,14 @@ function AnimatedModalInput({
   label,
   type,
   required,
+  focused,
 }: {
   customId: string;
   value: string;
   label: string;
   type: 'short' | 'paragraph';
   required: boolean;
+  focused?: boolean;
 }) {
   const hostRef = useRef<HTMLDivElement>(null);
 
@@ -64,10 +69,23 @@ function AnimatedModalInput({
     };
   }, [value]);
 
-  const fieldClass = type === 'paragraph' ? 'modal-textarea' : 'modal-input';
+  useEffect(() => {
+    if (!focused) return;
+    const field = hostRef.current?.querySelector('input, textarea') as
+      HTMLInputElement | HTMLTextAreaElement | null;
+    field?.focus({ preventScroll: true });
+  }, [focused, value]);
+
+  const fieldClass = `${type === 'paragraph' ? 'modal-textarea' : 'modal-input'}${
+    focused ? ' modal-field-control--focused' : ''
+  }`;
 
   return (
-    <div ref={hostRef} className="modal-field" data-modal-field={customId}>
+    <div
+      ref={hostRef}
+      className={`modal-field${focused ? ' modal-field--focused' : ''}`}
+      data-modal-field={customId}
+    >
       <label className="modal-label">
         {label}
         {required ? <span className="modal-required"> *</span> : null}
@@ -81,15 +99,29 @@ function AnimatedModalInput({
   );
 }
 
+function ModalTextDisplay({ content }: { content: string }) {
+  return (
+    <div className="modal-field modal-text-display">
+      <Markdown content={content} />
+    </div>
+  );
+}
+
 function ModalField({
   comp,
   values,
   roleDisplay,
+  focusedField,
 }: {
   comp: Record<string, unknown>;
   values?: Record<string, string | string[] | null>;
   roleDisplay?: Record<string, string>;
+  focusedField?: string | null;
 }) {
+  if (comp.type === ComponentType.TextDisplay) {
+    return <ModalTextDisplay content={(comp.content as string) ?? ''} />;
+  }
+
   if (comp.type === ComponentType.Label) {
     const label = (comp.label as string) ?? '';
     const inner = comp.component as Record<string, unknown> | undefined;
@@ -106,18 +138,21 @@ function ModalField({
           label={label}
           type={style === TextInputStyle.Paragraph ? 'paragraph' : 'short'}
           required={Boolean(inner.required)}
+          focused={focusedField === customId}
         />
       );
     }
 
     if (inner.type === ComponentType.RoleSelect) {
       const customId = (inner.custom_id as string) ?? '';
+      const focused = focusedField === customId;
       return (
         <ModalRoleSelect
           key={customId}
           label={label}
           required={Boolean(inner.required)}
           display={roleDisplay?.[customId] ?? 'Select roles'}
+          focused={focused}
         />
       );
     }
@@ -137,6 +172,10 @@ function getModalElements(host: HTMLDivElement | null) {
   return {
     dialog: shadow?.querySelector('dialog') as HTMLDialogElement | null,
     box: shadow?.querySelector('.discord-modal-box') as HTMLElement | null,
+    submitButton: shadow?.querySelector('.discord-modal-button-submit') as HTMLButtonElement | null,
+    submitContent: shadow?.querySelector(
+      '.discord-modal-button-submit .discord-modal-button-content',
+    ) as HTMLElement | null,
   };
 }
 
@@ -148,6 +187,31 @@ function applySkyraModalStyleOverrides(host: HTMLDivElement | null) {
   style.setAttribute('data-scenario-modal-overrides', '');
   style.textContent = skyraModalOverrides;
   shadow.appendChild(style);
+}
+
+function setModalSubmitLoading(host: HTMLDivElement | null, loading: boolean) {
+  const { submitButton, submitContent } = getModalElements(host);
+  if (!submitButton || !submitContent) return;
+
+  if (loading) {
+    if (!submitContent.dataset.originalText) {
+      submitContent.dataset.originalText = submitContent.textContent ?? 'Submit';
+    }
+    submitContent.innerHTML =
+      '<span class="interaction-dots" aria-hidden="true"><span></span><span></span><span></span></span>';
+    submitButton.disabled = true;
+    submitButton.classList.add('discord-modal-button-submit--loading');
+    submitButton.setAttribute('aria-busy', 'true');
+    return;
+  }
+
+  if (submitContent.dataset.originalText) {
+    submitContent.textContent = submitContent.dataset.originalText;
+    delete submitContent.dataset.originalText;
+  }
+  submitButton.disabled = false;
+  submitButton.classList.remove('discord-modal-button-submit--loading');
+  submitButton.removeAttribute('aria-busy');
 }
 
 function openSkyraModal(host: HTMLDivElement | null, useTopLayer: boolean) {
@@ -173,11 +237,13 @@ function closeSkyraModal(host: HTMLDivElement | null) {
 export function ModalOverlay({
   modal,
   closing,
+  submitting = false,
   /** false en scénario : dialog.show() pour laisser le curseur au-dessus (z-index) */
   useTopLayer = true,
 }: {
   modal: ModalLayer;
   closing?: boolean;
+  submitting?: boolean;
   useTopLayer?: boolean;
 }) {
   const hostRef = useRef<HTMLDivElement>(null);
@@ -200,8 +266,20 @@ export function ModalOverlay({
 
   useEffect(() => {
     if (!closing) return;
+    setModalSubmitLoading(hostRef.current, false);
     closeSkyraModal(hostRef.current);
   }, [closing]);
+
+  useEffect(() => {
+    if (closing) return;
+    applySkyraModalStyleOverrides(hostRef.current);
+    setModalSubmitLoading(hostRef.current, submitting);
+    const id = window.setTimeout(() => {
+      applySkyraModalStyleOverrides(hostRef.current);
+      setModalSubmitLoading(hostRef.current, submitting);
+    }, 0);
+    return () => window.clearTimeout(id);
+  }, [submitting, closing, modal]);
 
   return createPortal(
     <div
@@ -210,7 +288,13 @@ export function ModalOverlay({
     >
       <DiscordModal modalId="scenario-modal" modalTitle={title} {...authorProps}>
         {components.map((comp, i) => (
-          <ModalField key={i} comp={comp} values={modal.values} roleDisplay={modal.roleDisplay} />
+          <ModalField
+            key={i}
+            comp={comp}
+            values={modal.values}
+            roleDisplay={modal.roleDisplay}
+            focusedField={modal.focusedField}
+          />
         ))}
       </DiscordModal>
     </div>,

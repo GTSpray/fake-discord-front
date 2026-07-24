@@ -1,7 +1,10 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import {
   buttonCenter,
+  CURSOR_TARGET_MODAL_SUBMIT,
+  findModalSubmitRect,
   findScenarioButtonRect,
+  findScenarioClickTargetRect,
   waitForScenarioButtonRect,
 } from './findScenarioButton.ts';
 
@@ -99,6 +102,37 @@ describe('findScenarioButton', () => {
 
   it('computes button center coordinates', () => {
     expect(buttonCenter(new DOMRect(10, 20, 100, 40))).toEqual({ x: 60, y: 40 });
+  });
+
+  it('finds the modal Submit button in discord-modal shadow DOM', () => {
+    const host = document.createElement('discord-modal');
+    const shadow = host.attachShadow({ mode: 'open' });
+    const submit = document.createElement('button');
+    submit.className = 'discord-modal-button-submit';
+    submit.getBoundingClientRect = () => new DOMRect(400, 500, 96, 36);
+    shadow.append(submit);
+    document.body.append(host);
+
+    expect(findModalSubmitRect()).toEqual(new DOMRect(400, 500, 96, 36));
+    expect(findScenarioClickTargetRect(CURSOR_TARGET_MODAL_SUBMIT)).toEqual(
+      new DOMRect(400, 500, 96, 36),
+    );
+  });
+
+  it('finds modal Submit outside [data-capture-root] (portal to body)', () => {
+    const captureRoot = document.createElement('div');
+    captureRoot.setAttribute('data-capture-root', '');
+    document.body.append(captureRoot);
+
+    const host = document.createElement('discord-modal');
+    const shadow = host.attachShadow({ mode: 'open' });
+    const submit = document.createElement('button');
+    submit.className = 'discord-modal-button-submit';
+    submit.getBoundingClientRect = () => new DOMRect(400, 500, 96, 36);
+    shadow.append(submit);
+    document.body.append(host);
+
+    expect(findModalSubmitRect()).toEqual(new DOMRect(400, 500, 96, 36));
   });
 
   it('waits until a button becomes measurable', async () => {

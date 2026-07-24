@@ -128,6 +128,8 @@ export interface PlaybackState {
   slash: import('./types.ts').SlashLayer | null;
   modal: ModalLayer | null;
   modalClosing: boolean;
+  /** Submit de la modale en attente de réponse bot (points de chargement) */
+  modalSubmitting: boolean;
   ephemeral: EphemeralLayer | null;
   highlightedButton: string | null;
   /** Bouton en attente de réponse bot (spinner) */
