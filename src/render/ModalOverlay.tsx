@@ -11,18 +11,20 @@ function ModalRoleSelect({
   label,
   required,
   display,
+  focused,
 }: {
   label: string;
   required?: boolean;
   display: string;
+  focused?: boolean;
 }) {
   return (
-    <div className="modal-field">
+    <div className={`modal-field${focused ? ' modal-field--focused' : ''}`}>
       <label className="modal-label">
         {label}
         {required ? <span className="modal-required"> *</span> : null}
       </label>
-      <div className="modal-role-select">
+      <div className={`modal-role-select${focused ? ' modal-field-control--focused' : ''}`}>
         <span className="modal-role-placeholder">{display}</span>
         <span className="modal-role-chevron">▾</span>
       </div>
@@ -42,12 +44,14 @@ function AnimatedModalInput({
   label,
   type,
   required,
+  focused,
 }: {
   customId: string;
   value: string;
   label: string;
   type: 'short' | 'paragraph';
   required: boolean;
+  focused?: boolean;
 }) {
   const hostRef = useRef<HTMLDivElement>(null);
 
@@ -65,10 +69,23 @@ function AnimatedModalInput({
     };
   }, [value]);
 
-  const fieldClass = type === 'paragraph' ? 'modal-textarea' : 'modal-input';
+  useEffect(() => {
+    if (!focused) return;
+    const field = hostRef.current?.querySelector('input, textarea') as
+      HTMLInputElement | HTMLTextAreaElement | null;
+    field?.focus({ preventScroll: true });
+  }, [focused, value]);
+
+  const fieldClass = `${type === 'paragraph' ? 'modal-textarea' : 'modal-input'}${
+    focused ? ' modal-field-control--focused' : ''
+  }`;
 
   return (
-    <div ref={hostRef} className="modal-field" data-modal-field={customId}>
+    <div
+      ref={hostRef}
+      className={`modal-field${focused ? ' modal-field--focused' : ''}`}
+      data-modal-field={customId}
+    >
       <label className="modal-label">
         {label}
         {required ? <span className="modal-required"> *</span> : null}
@@ -94,10 +111,12 @@ function ModalField({
   comp,
   values,
   roleDisplay,
+  focusedField,
 }: {
   comp: Record<string, unknown>;
   values?: Record<string, string | string[] | null>;
   roleDisplay?: Record<string, string>;
+  focusedField?: string | null;
 }) {
   if (comp.type === ComponentType.TextDisplay) {
     return <ModalTextDisplay content={(comp.content as string) ?? ''} />;
@@ -119,18 +138,21 @@ function ModalField({
           label={label}
           type={style === TextInputStyle.Paragraph ? 'paragraph' : 'short'}
           required={Boolean(inner.required)}
+          focused={focusedField === customId}
         />
       );
     }
 
     if (inner.type === ComponentType.RoleSelect) {
       const customId = (inner.custom_id as string) ?? '';
+      const focused = focusedField === customId;
       return (
         <ModalRoleSelect
           key={customId}
           label={label}
           required={Boolean(inner.required)}
           display={roleDisplay?.[customId] ?? 'Select roles'}
+          focused={focused}
         />
       );
     }
@@ -266,7 +288,13 @@ export function ModalOverlay({
     >
       <DiscordModal modalId="scenario-modal" modalTitle={title} {...authorProps}>
         {components.map((comp, i) => (
-          <ModalField key={i} comp={comp} values={modal.values} roleDisplay={modal.roleDisplay} />
+          <ModalField
+            key={i}
+            comp={comp}
+            values={modal.values}
+            roleDisplay={modal.roleDisplay}
+            focusedField={modal.focusedField}
+          />
         ))}
       </DiscordModal>
     </div>,

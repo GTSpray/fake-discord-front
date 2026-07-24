@@ -103,12 +103,14 @@ While waiting after `pressEnter`, a deferred bot message is shown (slash invocat
 animated dots + `Envoi de la commande...`). Override text via `defaults.botPendingText`.
 After `clickButton`, the button shows loading dots during the response delay. After
 `submitModal`, the modal Submit button shows loading dots, then the modal closes —
-no deferred « thinking » message.
+no deferred « thinking » message. During `fillModal`, the active text field gets a
+Discord focus ring (and DOM focus) while it is being typed.
 
 Slash input typing uses `react-type-animation` via `AnimatedSlashInput`.
 
 `clickButton` moves an animated pointer (`ScenarioCursor`) to the matching
-`discord-button` label before highlighting it.
+`discord-button` label before highlighting it. `submitModal` moves the same
+pointer to the modal Submit button before showing loading dots / closing.
 
 ## Authoring a playback file
 

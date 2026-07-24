@@ -408,6 +408,48 @@ describe('ScenarioRunner', () => {
     expect(runner.getState().modal?.data.title).toBe('Ajouter des choix');
   });
 
+  it('focuses each modal field while fillModal types into it', async () => {
+    const runner = new ScenarioRunner(
+      makeScenario([
+        {
+          type: 'openModal',
+          modal: {
+            type: 9,
+            data: {
+              title: 'Créer un sondage',
+              components: [],
+            },
+          },
+        },
+        {
+          type: 'fillModal',
+          values: { title: 'Hi', question: 'When?' },
+          msPerField: 10,
+          delayBeforeFieldMs: 0,
+        },
+      ]),
+    );
+
+    const focusedSequence: Array<string | null | undefined> = [];
+    runner.subscribe((snapshot) => {
+      const field = snapshot.state.modal?.focusedField;
+      if (field !== focusedSequence[focusedSequence.length - 1]) {
+        focusedSequence.push(field);
+      }
+    });
+
+    const playPromise = runner.play();
+    await vi.runAllTimersAsync();
+    await playPromise;
+
+    expect(focusedSequence).toEqual(['title', 'question']);
+    expect(runner.getState().modal?.focusedField).toBe('question');
+    expect(runner.getState().modal?.values).toEqual({
+      title: 'Hi',
+      question: 'When?',
+    });
+  });
+
   it('shows loading on modal submit but not a pending reply', async () => {
     const runner = new ScenarioRunner(
       makeScenario(
@@ -441,7 +483,11 @@ describe('ScenarioRunner', () => {
     let sawSubmitting = false;
     let sawPending = false;
     let sawSubmittingWhileModalOpen = false;
+    let sawCursorOnSubmit = false;
     runner.subscribe((snapshot) => {
+      if (snapshot.state.cursorTarget === '__modalSubmit') {
+        sawCursorOnSubmit = true;
+      }
       if (snapshot.state.modalSubmitting) {
         sawSubmitting = true;
         if (snapshot.state.modal && !snapshot.state.modalClosing) {
@@ -455,6 +501,7 @@ describe('ScenarioRunner', () => {
     await vi.runAllTimersAsync();
     await playPromise;
 
+    expect(sawCursorOnSubmit).toBe(true);
     expect(sawSubmitting).toBe(true);
     expect(sawSubmittingWhileModalOpen).toBe(true);
     expect(sawPending).toBe(false);

@@ -1459,6 +1459,14 @@ button {
   line-height: 1;
   font-weight: 400;
   resize: vertical;
+  outline: none;
+  transition: border-color 0.12s ease;
+}
+
+.modal-input:focus,
+.modal-textarea:focus,
+.modal-field-control--focused {
+  border-color: var(--brand);
 }
 
 .modal-input {

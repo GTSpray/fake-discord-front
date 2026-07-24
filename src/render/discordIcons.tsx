@@ -196,11 +196,7 @@ export function IconMicMuted({ className }: IconProps) {
           transform="matrix(0.03999999910593033,0,0,0.03999999910593033,0,0)"
           opacity="1"
         >
-          <g
-            clipPath="url(#__lottie_element_42)"
-            transform="matrix(1,0,0,1,-200,-200)"
-            opacity="1"
-          >
+          <g clipPath="url(#__lottie_element_42)" transform="matrix(1,0,0,1,-200,-200)" opacity="1">
             <g mask="url(#__lottie_element_43)">
               <g transform="matrix(-25,0,0,25,800,173)" opacity="1">
                 <g opacity="1" transform="matrix(1,0,0,1,12,8.5)">
@@ -239,11 +235,7 @@ export function IconMicMuted({ className }: IconProps) {
               </g>
             </g>
           </g>
-          <g
-            clipPath="url(#__lottie_element_25)"
-            transform="matrix(1,0,0,1,-200,-200)"
-            opacity="1"
-          >
+          <g clipPath="url(#__lottie_element_25)" transform="matrix(1,0,0,1,-200,-200)" opacity="1">
             <g transform="matrix(25,0,0,25,200,200)" opacity="1">
               <g opacity="1" transform="matrix(1,0,0,1,12,12)">
                 <path

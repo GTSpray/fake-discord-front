@@ -72,6 +72,8 @@ export interface ModalLayer {
   author?: Author;
   values?: Record<string, string | string[] | null>;
   roleDisplay?: Record<string, string>;
+  /** Runtime — champ actuellement focusé pendant fillModal */
+  focusedField?: string | null;
 }
 
 export interface SlashSuggestion {

@@ -31,6 +31,7 @@ import type {
 } from '../lib/types.ts';
 import { DEFAULT_BOT_NAME, resolveViewer } from '../lib/types.ts';
 import { formatSkyraClockTime } from '../lib/skyraTimestamp.ts';
+import { CURSOR_TARGET_MODAL_SUBMIT } from '../render/findScenarioButton.ts';
 import { runCursorClick } from './cursorBridge.ts';
 import { runTyping } from './typingBridge.ts';
 
@@ -434,9 +435,18 @@ export class ScenarioRunner {
             modalClosing: false,
             modalSubmitting: false,
             highlightedButton: null,
+            cursorTarget: null,
           });
           break;
         }
+        this.patch({
+          cursorTarget: CURSOR_TARGET_MODAL_SUBMIT,
+          highlightedButton: null,
+          loadingButton: null,
+        });
+        await runCursorClick(signal);
+        this.patch({ cursorTarget: null });
+        await sleep(220, signal);
         const next = this.nextAction();
         if (next && this.isBotResponseAction(next)) {
           this.patch({ modalSubmitting: true, highlightedButton: null });
@@ -763,6 +773,7 @@ export class ScenarioRunner {
           ...this.state.modal,
           values,
           roleDisplay: source.roleDisplay,
+          focusedField: fieldIds[fieldIds.length - 1] ?? null,
         },
       });
       return;
@@ -775,12 +786,21 @@ export class ScenarioRunner {
     const msPerChar = action.msPerField ?? 100;
 
     for (const fieldId of fieldIds) {
+      values[fieldId] = '';
+      this.patch({
+        modal: {
+          ...this.state.modal,
+          values: { ...values },
+          roleDisplay: source.roleDisplay,
+          focusedField: fieldId,
+        },
+      });
+
       if (delayBeforeField > 0) {
         await sleep(delayBeforeField, signal);
       }
 
       const fullValue = String(targetValues[fieldId] ?? '');
-      values[fieldId] = '';
 
       for (let i = 1; i <= fullValue.length; i++) {
         values[fieldId] = fullValue.slice(0, i);
@@ -789,6 +809,7 @@ export class ScenarioRunner {
             ...this.state.modal,
             values: { ...values },
             roleDisplay: source.roleDisplay,
+            focusedField: fieldId,
           },
         });
         await sleep(msPerChar, signal);

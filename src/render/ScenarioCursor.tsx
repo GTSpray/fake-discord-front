@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState, type RefObject } from 'react';
 import { createPortal } from 'react-dom';
 import { completeCursorClick } from '../scenario/cursorBridge.ts';
-import { buttonCenter, waitForScenarioButtonRect } from './findScenarioButton.ts';
+import { buttonCenter, waitForScenarioClickTargetRect } from './findScenarioButton.ts';
 import pointerArrowIcon from '../styles/pointer-arrow-icon.svg';
 
 const MOVE_DURATION_MS = 750;
@@ -143,7 +143,7 @@ export function ScenarioCursor({
         await sleep(32);
         if (cancelled) return;
 
-        const rect = await waitForScenarioButtonRect(target);
+        const rect = await waitForScenarioClickTargetRect(target);
         if (cancelled) return;
 
         const from = lastPos.current ?? defaultOrigin(canvasRef.current);
