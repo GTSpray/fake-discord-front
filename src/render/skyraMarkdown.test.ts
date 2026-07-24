@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { parseBlocks } from './skyraMarkdown.tsx';
+import { parseBlocks } from './parseSkyraBlocks.ts';
 
 describe('parseBlocks', () => {
   it('keeps consecutive numbered items in one ordered list', () => {
