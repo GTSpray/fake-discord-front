@@ -1478,7 +1478,7 @@ button {
   line-height: 1.375;
 }
 
-.modal-role-select {
+.modal-select {
   display: flex;
   align-items: center;
   justify-content: space-between;
@@ -1496,27 +1496,33 @@ button {
     background-color 80ms ease;
 }
 
-.modal-role-select-wrap {
+.modal-select-wrap {
   position: relative;
 }
 
-.modal-role-select--filled {
+.modal-select--filled {
   color: var(--text-normal);
 }
 
-.modal-role-select--open,
-.modal-role-select.modal-field-control--focused {
+.modal-select--open,
+.modal-select.modal-field-control--focused {
   border-color: var(--brand, #5865f2);
 }
 
-.modal-role-chevron {
+.modal-select-chevron {
   opacity: 0.6;
   display: inline-block;
   transition: transform 120ms ease;
 }
 
-.modal-role-select--open .modal-role-chevron {
+.modal-select--open .modal-select-chevron {
   transform: rotate(180deg);
+}
+
+.modal-select-placeholder {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
 .modal-select-dropdown {
@@ -1549,8 +1555,14 @@ button {
   transition: background-color 80ms ease;
 }
 
-.modal-select-option--role {
+.modal-select-option--role,
+.modal-select-option--channel {
   min-height: 36px;
+}
+
+.modal-select-option--string {
+  min-height: 32px;
+  justify-content: flex-start;
 }
 
 .modal-select-option__main {
@@ -1561,14 +1573,38 @@ button {
   overflow: hidden;
 }
 
+.modal-select-option__text {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0;
+  overflow: hidden;
+}
+
 .modal-select-option__label {
   overflow: hidden;
   text-overflow: ellipsis;
 }
 
-.modal-select-option__role-icon {
+.modal-select-option__description {
+  color: var(--text-muted);
+  font-size: 0.75rem;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.modal-select-option__leading-icon,
+.modal-select-option__channel-hash {
   flex-shrink: 0;
   color: #b5bac1;
+}
+
+.modal-select-option__channel-hash {
+  width: 20px;
+  text-align: center;
+  font-size: 1.25rem;
+  font-weight: 700;
+  line-height: 1;
 }
 
 .modal-select-option__count {

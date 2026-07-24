@@ -71,7 +71,7 @@ export type ScenarioAction =
   | { type: 'submitModal' }
   | {
       type: 'selectModalOption';
-      /** custom_id du RoleSelect / StringSelect dans la modale */
+      /** custom_id du RoleSelect / ChannelSelect / StringSelect dans la modale */
       field: string;
       /** Label de l’option à sélectionner */
       option: string;

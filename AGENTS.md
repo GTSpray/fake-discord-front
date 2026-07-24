@@ -72,7 +72,10 @@ payloads (bot messages) using Discord interaction response shapes.
 | `ComponentType.Button`                   | `2`     |
 | `ComponentType.StringSelect`             | `3`     |
 | `ComponentType.TextInput`                | `4`     |
+| `ComponentType.UserSelect`               | `5`     |
 | `ComponentType.RoleSelect`               | `6`     |
+| `ComponentType.MentionableSelect`        | `7`     |
+| `ComponentType.ChannelSelect`            | `8`     |
 | `ComponentType.Section`                  | `9`     |
 | `ComponentType.TextDisplay`              | `10`    |
 | `ComponentType.Thumbnail`                | `11`    |
@@ -111,8 +114,10 @@ Slash input typing uses `react-type-animation` via `AnimatedSlashInput`.
 `clickButton` moves an animated pointer (`ScenarioCursor`) to the matching
 `discord-button` label before highlighting it. `submitModal` moves the same
 pointer to the modal Submit button before showing loading dots / closing.
-`selectModalOption` moves the pointer to the RoleSelect control to open the
-options list, then to the chosen option.
+`selectModalOption` moves the pointer to a modal select (RoleSelect,
+ChannelSelect, or StringSelect) to open the options list, then to the chosen
+option. Option rows adapt to the select kind (role shield + member count,
+channel `#`/voice icon, or plain text ± description).
 
 ## Authoring a playback file
 
@@ -129,10 +134,10 @@ Reference examples: `examples/poll-moderator-flow.json`, `examples/gimme-otter.j
 When implementing component support, prioritize common Discord bot patterns:
 
 1. Buttons, ActionRow, ephemeral banner
-2. Modals (Label + TextInput, RoleSelect)
+2. Modals (Label + TextInput, RoleSelect / ChannelSelect / StringSelect)
 3. Components V2: TextDisplay, Section, Separator, Thumbnail
 4. MediaGallery (gimme emoji/otter)
-5. StringSelect (vote modal)
+5. StringSelect / ChannelSelect in channel messages (vote flows)
 
 Unsupported component types should render a visible fallback block in dev mode,
 not fail silently.

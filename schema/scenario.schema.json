@@ -454,7 +454,7 @@
         "field": {
           "type": "string",
           "minLength": 1,
-          "description": "custom_id du RoleSelect / StringSelect dans la modale"
+          "description": "custom_id du RoleSelect / ChannelSelect / StringSelect dans la modale"
         },
         "option": {
           "type": "string",
@@ -478,7 +478,15 @@
         "memberCount": {
           "type": "integer",
           "minimum": 0,
-          "description": "Compteur membres affiché à droite (RoleSelect). Défaut 1"
+          "description": "Compteur membres (RoleSelect). Défaut 1"
+        },
+        "description": {
+          "type": "string",
+          "description": "Description sous le label (StringSelect)"
+        },
+        "channelType": {
+          "enum": ["text", "voice", "announcement", "forum", "category"],
+          "description": "Icône canal (ChannelSelect). Défaut text"
         }
       }
     },

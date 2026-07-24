@@ -68,9 +68,15 @@ export interface InteractionData {
 
 export interface ModalSelectOption {
   label: string;
-  /** Nombre de membres affiché à droite (RoleSelect Discord). Défaut : 1 */
+  /** Compteur membres (RoleSelect). Défaut : 1 */
   memberCount?: number;
+  /** Description sous le label (StringSelect) */
+  description?: string;
+  /** Icône canal (ChannelSelect). Défaut : text (#) */
+  channelType?: 'text' | 'voice' | 'announcement' | 'forum' | 'category';
 }
+
+export type ModalSelectKind = 'role' | 'channel' | 'string';
 
 export interface ModalLayer {
   type: 9;
@@ -153,7 +159,10 @@ export const ComponentType = {
   Button: 2,
   StringSelect: 3,
   TextInput: 4,
+  UserSelect: 5,
   RoleSelect: 6,
+  MentionableSelect: 7,
+  ChannelSelect: 8,
   Section: 9,
   TextDisplay: 10,
   Thumbnail: 11,
