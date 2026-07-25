@@ -1144,6 +1144,13 @@ button {
 }
 
 .discord-markdown .md-h2 {
+  font-size: 1.25rem;
+  font-weight: 700;
+  margin: 0 0 4px;
+  color: var(--header-primary);
+}
+
+.discord-markdown .md-h3 {
   font-size: 1rem;
   font-weight: 700;
   margin: 0 0 4px;
@@ -1157,9 +1164,75 @@ button {
   margin-bottom: 4px;
 }
 
-.discord-markdown .md-list {
+.discord-markdown .md-quote {
   margin: 4px 0;
-  padding-left: 1.25rem;
+  padding: 0 8px 0 12px;
+  border-left: 4px solid #4e5058;
+  color: var(--text-normal);
+}
+
+.discord-markdown .md-inline-code {
+  font-family: Consolas, 'Courier New', monospace;
+  font-size: 0.85em;
+  background: #2b2d31;
+  padding: 0.1em 0.3em;
+  border-radius: 3px;
+}
+
+.discord-markdown .md-code-block {
+  margin: 4px 0;
+  padding: 8px;
+  background: #2b2d31;
+  border-radius: 4px;
+  overflow-x: auto;
+  font-family: Consolas, 'Courier New', monospace;
+  font-size: 0.875rem;
+  line-height: 1.375;
+}
+
+.discord-markdown .md-spoiler {
+  background: #1e1f22;
+  color: transparent;
+  border-radius: 3px;
+}
+
+.discord-markdown .md-link {
+  color: #00a8fc;
+  text-decoration: none;
+}
+
+.discord-markdown .md-link:hover {
+  text-decoration: underline;
+}
+
+.discord-markdown .md-channel-mention,
+.discord-markdown .md-timestamp {
+  background: rgba(88, 101, 242, 0.3);
+  color: #c9cdfb;
+  padding: 0 2px;
+  border-radius: 3px;
+  font-weight: 500;
+}
+
+.discord-markdown .md-list {
+  list-style: disc;
+  list-style-position: outside;
+  margin: 4px 0 0 16px;
+  padding: 0;
+}
+
+.discord-markdown .md-list .md-list,
+.discord-markdown .md-list--nested {
+  list-style: circle;
+}
+
+.discord-markdown .md-list li {
+  margin-bottom: 4px;
+}
+
+.discord-markdown ol.md-list {
+  list-style: decimal;
+  margin-left: calc(0.4em + 1.2em);
 }
 
 .discord-markdown .md-role-mention,
@@ -1230,10 +1303,28 @@ button {
   margin: 0 0 2px;
 }
 
+.components-v2--flat .cv2-text-display .md-h2 {
+  font-size: 1.125rem;
+  font-weight: 700;
+  line-height: 1.3;
+  margin: 0 0 2px;
+}
+
+.components-v2--flat .cv2-text-display .md-h3 {
+  font-size: 1rem;
+  font-weight: 700;
+  line-height: 1.3;
+  margin: 0 0 2px;
+}
+
 .components-v2--flat .cv2-text-display .md-subtext {
   font-size: 0.875rem;
   line-height: 1.35;
   margin-bottom: 6px;
+}
+
+.components-v2--flat .cv2-text-display .md-quote {
+  margin: 4px 0;
 }
 
 .components-v2--flat .cv2-text-display p {
