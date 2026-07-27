@@ -369,34 +369,41 @@ function probeScaledGifSize(ffmpeg, webmPath) {
 }
 
 function extractRgbFrames(ffmpeg, webmPath, width, height) {
-  const raw = execFileSync(
-    ffmpeg,
-    [
-      '-y',
-      '-loglevel',
-      'error',
-      '-i',
-      webmPath,
-      '-an',
-      '-vf',
-      `fps=${GIF_FPS},scale=720:-1,format=rgb24`,
-      '-f',
-      'rawvideo',
-      'pipe:1',
-    ],
-    { maxBuffer: 512 * 1024 * 1024, stdio: ['ignore', 'pipe', 'inherit'] },
-  );
-  const frameSize = width * height * 3;
-  if (raw.length % frameSize !== 0) {
-    throw new Error(
-      `Raw RGB length ${raw.length} is not a multiple of frame size ${frameSize} (${width}x${height})`,
+  const tmp = mkdtempSync(join(tmpdir(), 'doc-studio-gif-raw-'));
+  const rawPath = join(tmp, 'frames.rgb');
+  try {
+    execFileSync(
+      ffmpeg,
+      [
+        '-y',
+        '-loglevel',
+        'error',
+        '-i',
+        webmPath,
+        '-an',
+        '-vf',
+        `fps=${GIF_FPS},scale=720:-1,format=rgb24`,
+        '-f',
+        'rawvideo',
+        rawPath,
+      ],
+      { stdio: ['ignore', 'ignore', 'inherit'] },
     );
+    const raw = readFileSync(rawPath);
+    const frameSize = width * height * 3;
+    if (raw.length % frameSize !== 0) {
+      throw new Error(
+        `Raw RGB length ${raw.length} is not a multiple of frame size ${frameSize} (${width}x${height})`,
+      );
+    }
+    const frames = [];
+    for (let offset = 0; offset < raw.length; offset += frameSize) {
+      frames.push(Uint8Array.prototype.slice.call(raw, offset, offset + frameSize));
+    }
+    return frames;
+  } finally {
+    rmSync(tmp, { recursive: true, force: true });
   }
-  const frames = [];
-  for (let offset = 0; offset < raw.length; offset += frameSize) {
-    frames.push(Uint8Array.prototype.slice.call(raw, offset, offset + frameSize));
-  }
-  return frames;
 }
 
 function encodeGifFromRgbFrames(ffmpeg, frames, width, height, targetPath) {
