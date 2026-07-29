@@ -6,6 +6,7 @@ import {
   meanAbsDiffBytes,
   replaceFlashFrames,
   resolveVideoFormat,
+  resolveVideoFormats,
   VIDEO_FORMATS,
 } from '../../scripts/capture-lib.mjs';
 
@@ -19,6 +20,24 @@ describe('resolveVideoFormat', () => {
 
   it('rejects unknown formats', () => {
     expect(() => resolveVideoFormat('avi')).toThrow(/Unsupported video format/);
+  });
+});
+
+describe('resolveVideoFormats', () => {
+  it('accepts a single format', () => {
+    expect(resolveVideoFormats('gif')).toEqual(['gif']);
+    expect(resolveVideoFormats('MP4')).toEqual(['mp4']);
+  });
+
+  it('accepts comma/space-separated lists and arrays', () => {
+    expect(resolveVideoFormats('gif,mp4,webm')).toEqual(['gif', 'mp4', 'webm']);
+    expect(resolveVideoFormats('gif, mp4')).toEqual(['gif', 'mp4']);
+    expect(resolveVideoFormats(['webm', 'GIF'])).toEqual(['webm', 'gif']);
+    expect(resolveVideoFormats(['gif', 'mp4', 'gif'])).toEqual(['gif', 'mp4']);
+  });
+
+  it('rejects unknown formats in a list', () => {
+    expect(() => resolveVideoFormats('gif,avi')).toThrow(/Unsupported video format/);
   });
 });
 

@@ -95,8 +95,10 @@ Filename prefix comes from the optional `output` block in the JSON file
 Use `--output-dir` / `-o` to choose where files are written (default: `output/`).
 Priority: `--output-dir` → `output.directory` in JSON → `output/`.
 
-Use `--no-video` to skip recording. Choose the animated output with `--format gif|mp4|webm`
-(default: `gif`). Priority: `--format` → `output.format` in JSON → `CAPTURE_VIDEO_FORMAT` → `gif`.
+Use `--no-video` to skip recording. Choose animated output with `--format gif|mp4|webm`
+(default: `gif`). Pass several formats at once (`--format gif,mp4,webm` or repeated
+`--format gif --format mp4`). In JSON, `output.format` may be a string or an array.
+Priority: `--format` → `output.format` in JSON → `CAPTURE_VIDEO_FORMAT` → `gif`.
 
 ```bash
 npm run capture -- --file examples/poll-moderator-flow.json --output-dir docs/assets

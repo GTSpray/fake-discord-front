@@ -49,10 +49,23 @@
         "prefix": { "type": "string" },
         "video": { "type": "boolean", "default": true },
         "format": {
-          "type": "string",
-          "enum": ["gif", "mp4", "webm"],
+          "oneOf": [
+            {
+              "type": "string",
+              "enum": ["gif", "mp4", "webm"]
+            },
+            {
+              "type": "array",
+              "minItems": 1,
+              "uniqueItems": true,
+              "items": {
+                "type": "string",
+                "enum": ["gif", "mp4", "webm"]
+              }
+            }
+          ],
           "default": "gif",
-          "description": "Animated capture format (overridable with --format / CAPTURE_VIDEO_FORMAT)"
+          "description": "Animated capture format(s). One value or an array (overridable with --format gif,mp4 / CAPTURE_VIDEO_FORMAT)"
         }
       }
     }
