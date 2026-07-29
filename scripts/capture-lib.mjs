@@ -329,10 +329,7 @@ export function encodeCaptureVideos(webmPath, formats, outPathForFormat) {
     const format = encodeOrder[i];
     const isLast = i === encodeOrder.length - 1;
     const targetPath = outPathForFormat(format);
-    byFormat.set(
-      format,
-      encodeCaptureVideo(webmPath, format, targetPath, { keepSource: !isLast }),
-    );
+    byFormat.set(format, encodeCaptureVideo(webmPath, format, targetPath, { keepSource: !isLast }));
   }
 
   return resolved.map((format) => byFormat.get(format));
