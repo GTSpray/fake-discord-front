@@ -5,6 +5,7 @@
  * Usage:
  *   node scripts/capture-dir.mjs scenarios/
  *   node scripts/capture-dir.mjs --dir /work/scenarios --format mp4
+ *   node scripts/capture-dir.mjs --dir /work/scenarios --format gif,mp4
  *   node scripts/capture-dir.mjs --dir /work/scenarios --output-dir docs/assets
  *   node scripts/capture-dir.mjs --dir /work/scenarios --no-video
  */
@@ -18,15 +19,17 @@ import {
   DEFAULT_VIDEO_FORMAT,
   logCaptureOutputs,
   readScenarioFile,
-  resolveVideoFormat,
+  resolveVideoFormats,
   VIDEO_FORMATS,
 } from './capture-lib.mjs';
+
+const FORMAT_HELP = `${VIDEO_FORMATS.join('|')}[,...]`;
 
 const { values, positionals } = parseArgs({
   options: {
     dir: { type: 'string', short: 'd' },
     'no-video': { type: 'boolean', default: false },
-    format: { type: 'string' },
+    format: { type: 'string', multiple: true },
     'output-dir': { type: 'string', short: 'o' },
     'base-url': { type: 'string' },
   },
@@ -36,7 +39,7 @@ const { values, positionals } = parseArgs({
 const dirArg = values.dir ?? positionals[0];
 if (!dirArg) {
   console.error(
-    `Usage: capture-dir.mjs <directory> [--output-dir <dir>] [--format ${VIDEO_FORMATS.join('|')}] [--no-video] [--base-url <url>]`,
+    `Usage: capture-dir.mjs <directory> [--output-dir <dir>] [--format ${FORMAT_HELP}] [--no-video] [--base-url <url>]`,
   );
   process.exit(2);
 }
@@ -61,10 +64,10 @@ if (files.length === 0) {
 const baseUrl = values['base-url'] ?? DEFAULT_BASE_URL;
 const recordVideo = !values['no-video'];
 
-let cliFormat = null;
-if (values.format) {
+let cliFormats = null;
+if (values.format?.length) {
   try {
-    cliFormat = resolveVideoFormat(values.format);
+    cliFormats = resolveVideoFormats(values.format);
   } catch (err) {
     console.error(err instanceof Error ? err.message : err);
     process.exit(2);
@@ -88,10 +91,10 @@ async function captureDirectory() {
         continue;
       }
 
-      let videoFormat;
+      let videoFormats;
       try {
-        videoFormat = resolveVideoFormat(
-          cliFormat ??
+        videoFormats = resolveVideoFormats(
+          cliFormats ??
             scenario.output?.format ??
             process.env.CAPTURE_VIDEO_FORMAT ??
             DEFAULT_VIDEO_FORMAT,
@@ -105,14 +108,14 @@ async function captureDirectory() {
       const outDir = join(workDir, values['output-dir'] ?? scenario.output?.directory ?? 'output');
       const prefix = scenario.output?.prefix ?? scenario.id;
 
-      console.log(`→ ${join(dirArg, file)} (${scenario.id}) [${videoFormat}]`);
+      console.log(`→ ${join(dirArg, file)} (${scenario.id}) [${videoFormats.join(',')}]`);
       const outputs = await captureScenario({
         scenario,
         outDir,
         prefix,
         baseUrl,
         recordVideo,
-        videoFormat,
+        videoFormat: videoFormats,
         browser,
       });
       logCaptureOutputs(workDir, outputs);

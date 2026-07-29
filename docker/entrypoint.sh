@@ -17,6 +17,9 @@ Mount your scenarios and output directory on /work, then run:
     capture --file scenarios/my-flow.json --format mp4
 
   docker run --rm -v "\$PWD:/work" doc-studio-capture \\
+    capture --file scenarios/my-flow.json --format gif,mp4,webm
+
+  docker run --rm -v "\$PWD:/work" doc-studio-capture \\
     capture-dir scenarios/ --format webm
 
 Commands:
@@ -28,7 +31,7 @@ Options:
   --file <path>              Playback JSON (capture)
   --dir <path>               Directory of JSON files (capture-dir)
   --output-dir <dir>, -o     Output directory (default: output/ or JSON output.directory)
-  --format gif|mp4|webm      Output video format (default: gif)
+  --format gif|mp4|webm[,…]  Output video format(s) (default: gif)
   --no-video                 Skip video/GIF, keep PNG only
   --base-url <url>           Studio URL override
 

@@ -1,6 +1,7 @@
 import { createHash } from 'node:crypto';
 import { execFileSync, execSync } from 'node:child_process';
 import {
+  copyFileSync,
   existsSync,
   mkdirSync,
   mkdtempSync,
@@ -217,22 +218,58 @@ export function resolveVideoFormat(value = DEFAULT_VIDEO_FORMAT) {
 }
 
 /**
+ * Resolve one or more video formats.
+ * Accepts a single format, a comma/space-separated list, or an array.
+ * @returns {string[]} unique formats in input order
+ */
+export function resolveVideoFormats(value = DEFAULT_VIDEO_FORMAT) {
+  const raw = Array.isArray(value)
+    ? value
+    : String(value)
+        .split(/[,+\s]+/)
+        .map((part) => part.trim())
+        .filter(Boolean);
+
+  if (raw.length === 0) {
+    throw new Error(
+      `Unsupported video format "${value}". Expected one or more of: ${VIDEO_FORMATS.join(', ')}`,
+    );
+  }
+
+  const seen = new Set();
+  const formats = [];
+  for (const item of raw) {
+    const format = resolveVideoFormat(item);
+    if (!seen.has(format)) {
+      seen.add(format);
+      formats.push(format);
+    }
+  }
+  return formats;
+}
+
+/**
  * Convert a Playwright WebM recording to the requested format.
- * gif/mp4: re-encode with ffmpeg and delete the source WebM.
- * webm: keep the recording as-is (optionally renamed).
+ * gif/mp4: re-encode with ffmpeg; delete the source WebM unless keepSource.
+ * webm: keep the recording as-is (optionally renamed/copied).
  * @returns {string} path to the written video
  */
 export function encodeCaptureVideo(
   webmPath,
   format = DEFAULT_VIDEO_FORMAT,
   outPath = webmPath.replace(/\.webm$/i, `.${resolveVideoFormat(format)}`),
+  { keepSource = false } = {},
 ) {
   const resolved = resolveVideoFormat(format);
   const targetPath = outPath;
 
   if (resolved === 'webm') {
     if (webmPath !== targetPath) {
-      renameSync(webmPath, targetPath);
+      if (keepSource) {
+        copyFileSync(webmPath, targetPath);
+      } else {
+        renameSync(webmPath, targetPath);
+      }
     }
     return targetPath;
   }
@@ -269,8 +306,33 @@ export function encodeCaptureVideo(
     );
   }
 
-  rmSync(webmPath, { force: true });
+  if (!keepSource) {
+    rmSync(webmPath, { force: true });
+  }
   return targetPath;
+}
+
+/**
+ * Encode one WebM recording into one or more output formats.
+ * Non-webm formats are written first (keeping the source); webm last when requested.
+ * @returns {string[]} paths to written videos (input format order)
+ */
+export function encodeCaptureVideos(webmPath, formats, outPathForFormat) {
+  const resolved = resolveVideoFormats(formats);
+  const encodeOrder = [
+    ...resolved.filter((format) => format !== 'webm'),
+    ...resolved.filter((format) => format === 'webm'),
+  ];
+  const byFormat = new Map();
+
+  for (let i = 0; i < encodeOrder.length; i++) {
+    const format = encodeOrder[i];
+    const isLast = i === encodeOrder.length - 1;
+    const targetPath = outPathForFormat(format);
+    byFormat.set(format, encodeCaptureVideo(webmPath, format, targetPath, { keepSource: !isLast }));
+  }
+
+  return resolved.map((format) => byFormat.get(format));
 }
 
 /** Mean absolute difference between two equal-length byte buffers (0–255 scale). */
@@ -548,8 +610,8 @@ export async function captureScenario({
 
   const ownsBrowser = !browser;
   const activeBrowser = browser ?? (await firefox.launch());
-  const format = recordVideo ? resolveVideoFormat(videoFormat) : null;
-  const outputs = { png: null, video: null, stepHashes: null };
+  const formats = recordVideo ? resolveVideoFormats(videoFormat) : [];
+  const outputs = { png: null, video: null, videos: [], stepHashes: null };
 
   try {
     // Step hashes need capture_steps (no typing). Video needs full playback.
@@ -614,8 +676,10 @@ export async function captureScenario({
       }
 
       if (recordVideo && webmPath && existsSync(webmPath)) {
-        const videoPath = join(outDir, `${prefix}.${format}`);
-        outputs.video = encodeCaptureVideo(webmPath, format, videoPath);
+        outputs.videos = encodeCaptureVideos(webmPath, formats, (format) =>
+          join(outDir, `${prefix}.${format}`),
+        );
+        outputs.video = outputs.videos[0] ?? null;
       }
     }
   } finally {
@@ -631,8 +695,9 @@ export function logCaptureOutputs(root, outputs) {
   if (outputs.png) {
     console.log(`✓ ${relative(root, outputs.png)}`);
   }
-  if (outputs.video) {
-    console.log(`✓ ${relative(root, outputs.video)}`);
+  const videos = outputs.videos?.length ? outputs.videos : outputs.video ? [outputs.video] : [];
+  for (const video of videos) {
+    console.log(`✓ ${relative(root, video)}`);
   }
 }
 

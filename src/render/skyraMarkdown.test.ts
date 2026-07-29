@@ -4,7 +4,7 @@ import { parseBlocks } from './parseSkyraBlocks.ts';
 describe('parseBlocks', () => {
   it('keeps consecutive numbered items in one ordered list', () => {
     const content =
-      "## Repas de fin d'année\n\n1. Quel jour ?\n    - mercredi\n    - jeudi\n    - vendredi\n2. avez vous des alergenes";
+      "## Repas de fin d'année\n\n1. Quel jour ?\n    - mercredi\n    - jeudi\n    - vendredi\n2. avez vous des allergies";
 
     expect(parseBlocks(content)).toEqual([
       { kind: 'header', level: 2, text: "Repas de fin d'année" },
@@ -16,7 +16,7 @@ describe('parseBlocks', () => {
             text: 'Quel jour ?',
             children: ['mercredi', 'jeudi', 'vendredi'],
           },
-          { text: 'avez vous des alergenes' },
+          { text: 'avez vous des allergies' },
         ],
       },
     ]);

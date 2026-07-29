@@ -126,7 +126,7 @@ export interface Scenario {
     directory?: string;
     prefix?: string;
     video?: boolean;
-    format?: 'gif' | 'mp4' | 'webm';
+    format?: 'gif' | 'mp4' | 'webm' | Array<'gif' | 'mp4' | 'webm'>;
   };
 }
 

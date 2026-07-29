@@ -6,6 +6,7 @@
  *   npm run build && npm run preview
  *   npm run capture -- --file examples/poll-moderator-flow.json
  *   npm run capture -- --file my-flow.json --format mp4
+ *   npm run capture -- --file my-flow.json --format gif,mp4,webm
  *   npm run capture -- --file my-flow.json --output-dir docs/assets
  *   CAPTURE_BASE_URL=http://127.0.0.1:4173 npm run capture -- --file my-flow.json
  */
@@ -17,15 +18,17 @@ import {
   DEFAULT_VIDEO_FORMAT,
   readScenarioFile,
   logCaptureOutputs,
-  resolveVideoFormat,
+  resolveVideoFormats,
   VIDEO_FORMATS,
 } from './capture-lib.mjs';
+
+const FORMAT_HELP = `${VIDEO_FORMATS.join('|')}[,...]`;
 
 const { values, positionals } = parseArgs({
   options: {
     file: { type: 'string', short: 'f' },
     'no-video': { type: 'boolean', default: false },
-    format: { type: 'string' },
+    format: { type: 'string', multiple: true },
     'output-dir': { type: 'string', short: 'o' },
     'base-url': { type: 'string' },
   },
@@ -35,7 +38,7 @@ const { values, positionals } = parseArgs({
 const filePath = values.file ?? positionals[0];
 if (!filePath) {
   console.error(
-    `Usage: capture.mjs --file <playback.json> [--output-dir <dir>] [--format ${VIDEO_FORMATS.join('|')}] [--no-video] [--base-url <url>]`,
+    `Usage: capture.mjs --file <playback.json> [--output-dir <dir>] [--format ${FORMAT_HELP}] [--no-video] [--base-url <url>]`,
   );
   process.exit(2);
 }
@@ -51,13 +54,12 @@ try {
   process.exit(1);
 }
 
-let videoFormat;
+let videoFormats;
 try {
-  videoFormat = resolveVideoFormat(
-    values.format ??
-      scenario.output?.format ??
-      process.env.CAPTURE_VIDEO_FORMAT ??
-      DEFAULT_VIDEO_FORMAT,
+  videoFormats = resolveVideoFormats(
+    values.format?.length
+      ? values.format
+      : (scenario.output?.format ?? process.env.CAPTURE_VIDEO_FORMAT ?? DEFAULT_VIDEO_FORMAT),
   );
 } catch (err) {
   console.error(err instanceof Error ? err.message : err);
@@ -74,7 +76,7 @@ captureScenario({
   prefix,
   baseUrl,
   recordVideo,
-  videoFormat,
+  videoFormat: videoFormats,
 })
   .then((outputs) => {
     logCaptureOutputs(workDir, outputs);
