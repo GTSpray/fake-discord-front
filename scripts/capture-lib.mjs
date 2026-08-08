@@ -223,12 +223,11 @@ export function resolveVideoFormat(value = DEFAULT_VIDEO_FORMAT) {
  * @returns {string[]} unique formats in input order
  */
 export function resolveVideoFormats(value = DEFAULT_VIDEO_FORMAT) {
-  const raw = Array.isArray(value)
-    ? value
-    : String(value)
-        .split(/[,+\s]+/)
-        .map((part) => part.trim())
-        .filter(Boolean);
+  // CLI `--format webm,mp4` with multiple:true yields ['webm,mp4'] — split each part.
+  const raw = (Array.isArray(value) ? value : [value])
+    .flatMap((part) => String(part).split(/[,+\s]+/))
+    .map((part) => part.trim())
+    .filter(Boolean);
 
   if (raw.length === 0) {
     throw new Error(

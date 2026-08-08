@@ -34,6 +34,9 @@ describe('resolveVideoFormats', () => {
     expect(resolveVideoFormats('gif, mp4')).toEqual(['gif', 'mp4']);
     expect(resolveVideoFormats(['webm', 'GIF'])).toEqual(['webm', 'gif']);
     expect(resolveVideoFormats(['gif', 'mp4', 'gif'])).toEqual(['gif', 'mp4']);
+    // parseArgs multiple:true keeps commas inside a single argv token
+    expect(resolveVideoFormats(['webm,mp4'])).toEqual(['webm', 'mp4']);
+    expect(resolveVideoFormats(['gif', 'mp4,webm'])).toEqual(['gif', 'mp4', 'webm']);
   });
 
   it('rejects unknown formats in a list', () => {
