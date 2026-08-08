@@ -1,7 +1,7 @@
 #!/usr/bin/env node
 /* eslint-disable no-undef */
 /**
- * Visual debug — Playwright Firefox headed, full playback.
+ * Visual debug — Playwright Chromium headed, full playback.
  *
  * Usage:
  *   npm run build
@@ -12,7 +12,7 @@ import { readFileSync } from 'node:fs';
 import { spawn } from 'node:child_process';
 import { setTimeout as sleep } from 'node:timers/promises';
 import { parseArgs } from 'node:util';
-import { firefox } from 'playwright';
+import { chromium } from 'playwright';
 
 const UPLOAD_KEY = 'doc-studio-scenario-upload';
 const CAPTURE_FIXED_DATE_ISO = '2026-06-16T12:17:00.000Z';
@@ -77,11 +77,11 @@ async function readPlayer(page) {
 
 async function main() {
   console.log(`Scenario: ${values.file}`);
-  console.log('Launching Firefox (headed)…');
+  console.log('Launching Chromium (headed)…');
 
   await startPreview();
 
-  const browser = await firefox.launch({
+  const browser = await chromium.launch({
     headless: false,
     slowMo: 50,
   });

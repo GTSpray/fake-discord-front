@@ -1,18 +1,22 @@
 import { createHash } from 'node:crypto';
 import { execFileSync, execSync } from 'node:child_process';
 import {
+  closeSync,
   copyFileSync,
   existsSync,
   mkdirSync,
   mkdtempSync,
+  openSync,
   readFileSync,
-  renameSync,
+  readSync,
   rmSync,
+  statSync,
   writeFileSync,
+  writeSync,
 } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join, relative, resolve } from 'node:path';
-import { firefox } from 'playwright';
+import { chromium } from 'playwright';
 
 export const DEFAULT_BASE_URL = process.env.CAPTURE_BASE_URL ?? 'http://127.0.0.1:4173';
 export const DEFAULT_VIEWPORT = { width: 1280, height: 720 };
@@ -170,7 +174,7 @@ async function captureStepPngHashes(page, timeoutMs = 120_000) {
   throw new Error('Timed out while capturing per-step PNG hashes.');
 }
 
-/** Playwright records WebM; optional ffmpeg pass converts to gif/mp4. */
+/** Playwright records WebM; ffmpeg re-encodes to gif/mp4/webm after tear-frame cleanup. */
 export const VIDEO_FORMATS = ['gif', 'mp4', 'webm'];
 export const DEFAULT_VIDEO_FORMAT = 'gif';
 
@@ -188,6 +192,12 @@ export const GIF_VF = `fps=${GIF_FPS},hqdn3d=4:3:6:4,scale=720:-1:flags=lanczos,
  * Offsetting writes 1×1 “diff” tiles that flash in many viewers; mp4 never does this.
  */
 export const GIF_MUX_FLAGS = '-offsetting';
+
+/**
+ * Constant frame rate for stabilized webm/mp4.
+ * Playwright screencast can be variable and occasionally includes one-frame paint tears.
+ */
+export const VIDEO_FPS = 30;
 
 /** Mean abs channel delta (0–255) above which a middle frame is considered a screencast tear. */
 export const GIF_FLASH_MAE_MIN = 1.0;
@@ -249,8 +259,8 @@ export function resolveVideoFormats(value = DEFAULT_VIDEO_FORMAT) {
 
 /**
  * Convert a Playwright WebM recording to the requested format.
- * gif/mp4: re-encode with ffmpeg; delete the source WebM unless keepSource.
- * webm: keep the recording as-is (optionally renamed/copied).
+ * webm/mp4: stabilize tear frames then re-encode; gif: 12fps tear-frame pass.
+ * Deletes the source WebM unless keepSource.
  * @returns {string} path to the written video
  */
 export function encodeCaptureVideo(
@@ -259,24 +269,101 @@ export function encodeCaptureVideo(
   outPath = webmPath.replace(/\.webm$/i, `.${resolveVideoFormat(format)}`),
   { keepSource = false } = {},
 ) {
+  const paths = encodeCaptureVideos(webmPath, [format], () => outPath, { keepSource });
+  return paths[0];
+}
+
+/**
+ * Encode one WebM recording into one or more output formats.
+ * When webm/mp4 are requested, stabilizes the screencast once (drop tear frames)
+ * then encodes each format from that cleaned source. GIF-only keeps the lighter
+ * 12fps path (with its own tear-frame pass).
+ * @returns {string[]} paths to written videos (input format order)
+ */
+export function encodeCaptureVideos(
+  webmPath,
+  formats,
+  outPathForFormat,
+  { keepSource = false } = {},
+) {
+  const resolved = resolveVideoFormats(formats);
+  const ffmpeg = resolveFfmpegBinary();
+  const needsVideoStabilize = resolved.some((format) => format === 'webm' || format === 'mp4');
+  const byFormat = new Map();
+
+  if (!needsVideoStabilize) {
+    // GIF only — avoid a full-resolution 30fps stabilize pass.
+    for (const format of resolved) {
+      const targetPath = outPathForFormat(format);
+      encodeGifFromWebm(ffmpeg, webmPath, targetPath);
+      byFormat.set(format, targetPath);
+    }
+    if (!keepSource) {
+      rmSync(webmPath, { force: true });
+    }
+    return resolved.map((format) => byFormat.get(format));
+  }
+
+  const tmpDir = mkdtempSync(join(tmpdir(), 'doc-studio-stabilize-'));
+  const stabilizedPath = join(tmpDir, 'stabilized.webm');
+
+  try {
+    const flashes = stabilizeScreencastWebm(ffmpeg, webmPath, stabilizedPath);
+    if (flashes > 0) {
+      console.log(`  · Capture: removed ${flashes} screencast tear frame(s)`);
+    }
+
+    const encodeOrder = [
+      ...resolved.filter((format) => format !== 'webm'),
+      ...resolved.filter((format) => format === 'webm'),
+    ];
+
+    for (let i = 0; i < encodeOrder.length; i++) {
+      const format = encodeOrder[i];
+      const isLast = i === encodeOrder.length - 1;
+      const targetPath = outPathForFormat(format);
+      byFormat.set(
+        format,
+        encodeFromStabilizedWebm(ffmpeg, stabilizedPath, format, targetPath, {
+          keepSource: !isLast,
+        }),
+      );
+    }
+  } finally {
+    rmSync(tmpDir, { recursive: true, force: true });
+    if (!keepSource) {
+      rmSync(webmPath, { force: true });
+    }
+  }
+
+  return resolved.map((format) => byFormat.get(format));
+}
+
+/**
+ * Re-encode a already-stabilized WebM into gif/mp4/webm.
+ * @returns {string} path to the written video
+ */
+function encodeFromStabilizedWebm(
+  ffmpeg,
+  stabilizedPath,
+  format,
+  targetPath,
+  { keepSource = false } = {},
+) {
   const resolved = resolveVideoFormat(format);
-  const targetPath = outPath;
 
   if (resolved === 'webm') {
-    if (webmPath !== targetPath) {
-      if (keepSource) {
-        copyFileSync(webmPath, targetPath);
-      } else {
-        renameSync(webmPath, targetPath);
+    if (stabilizedPath !== targetPath) {
+      copyFileSync(stabilizedPath, targetPath);
+      if (!keepSource) {
+        rmSync(stabilizedPath, { force: true });
       }
     }
     return targetPath;
   }
 
-  const ffmpeg = resolveFfmpegBinary();
-
   if (resolved === 'gif') {
-    encodeGifFromWebm(ffmpeg, webmPath, targetPath);
+    encodeGifFromWebm(ffmpeg, stabilizedPath, targetPath);
   } else {
     execFileSync(
       ffmpeg,
@@ -285,14 +372,14 @@ export function encodeCaptureVideo(
         '-loglevel',
         'error',
         '-i',
-        webmPath,
+        stabilizedPath,
         '-an',
         '-c:v',
         'libx264',
         '-pix_fmt',
         'yuv420p',
         '-r',
-        '30',
+        String(VIDEO_FPS),
         '-preset',
         'medium',
         '-crf',
@@ -306,32 +393,9 @@ export function encodeCaptureVideo(
   }
 
   if (!keepSource) {
-    rmSync(webmPath, { force: true });
+    rmSync(stabilizedPath, { force: true });
   }
   return targetPath;
-}
-
-/**
- * Encode one WebM recording into one or more output formats.
- * Non-webm formats are written first (keeping the source); webm last when requested.
- * @returns {string[]} paths to written videos (input format order)
- */
-export function encodeCaptureVideos(webmPath, formats, outPathForFormat) {
-  const resolved = resolveVideoFormats(formats);
-  const encodeOrder = [
-    ...resolved.filter((format) => format !== 'webm'),
-    ...resolved.filter((format) => format === 'webm'),
-  ];
-  const byFormat = new Map();
-
-  for (let i = 0; i < encodeOrder.length; i++) {
-    const format = encodeOrder[i];
-    const isLast = i === encodeOrder.length - 1;
-    const targetPath = outPathForFormat(format);
-    byFormat.set(format, encodeCaptureVideo(webmPath, format, targetPath, { keepSource: !isLast }));
-  }
-
-  return resolved.map((format) => byFormat.get(format));
 }
 
 /** Mean absolute difference between two equal-length byte buffers (0–255 scale). */
@@ -386,24 +450,100 @@ export function replaceFlashFrames(frames, flashIndices) {
   return flashIndices.length;
 }
 
-function probeScaledGifSize(ffmpeg, webmPath) {
-  const tmp = mkdtempSync(join(tmpdir(), 'doc-studio-gif-probe-'));
+function readFrameAt(fd, index, frameSize) {
+  const buf = Buffer.allocUnsafe(frameSize);
+  let offset = 0;
+  const base = index * frameSize;
+  while (offset < frameSize) {
+    const n = readSync(fd, buf, offset, frameSize - offset, base + offset);
+    if (n === 0) throw new Error(`Unexpected EOF reading frame ${index}`);
+    offset += n;
+  }
+  return buf;
+}
+
+function writeFrame(fd, frame) {
+  let offset = 0;
+  const length = frame.length;
+  while (offset < length) {
+    offset += writeSync(fd, frame, offset, length - offset);
+  }
+}
+
+/**
+ * Stream raw RGB through tear-frame filter without loading the whole file into RAM
+ * (Node readFileSync cannot load files > 2 GiB).
+ * Detection uses original frames; replacement chains like replaceFlashFrames.
+ * @returns {number} number of tear frames replaced
+ */
+export function filterFlashFramesFile(
+  rawPath,
+  outPath,
+  frameSize,
+  { maeMin = GIF_FLASH_MAE_MIN, skipRatio = GIF_FLASH_SKIP_RATIO } = {},
+) {
+  const { size } = statSync(rawPath);
+  if (size % frameSize !== 0) {
+    throw new Error(`Raw RGB length ${size} is not a multiple of frame size ${frameSize}`);
+  }
+  const frameCount = size / frameSize;
+  const fdIn = openSync(rawPath, 'r');
+  const fdOut = openSync(outPath, 'w');
+  let flashes = 0;
+
+  try {
+    if (frameCount === 0) return 0;
+    if (frameCount <= 2) {
+      for (let i = 0; i < frameCount; i++) {
+        writeFrame(fdOut, readFrameAt(fdIn, i, frameSize));
+      }
+      return 0;
+    }
+
+    let prevOrig = readFrameAt(fdIn, 0, frameSize);
+    let currOrig = readFrameAt(fdIn, 1, frameSize);
+    let prevWritten = Buffer.from(prevOrig);
+    writeFrame(fdOut, prevWritten);
+
+    for (let i = 2; i < frameCount; i++) {
+      const nextOrig = readFrameAt(fdIn, i, frameSize);
+      const dPrev = meanAbsDiffBytes(prevOrig, currOrig);
+      const dNext = meanAbsDiffBytes(currOrig, nextOrig);
+      let isFlash = false;
+      if (dPrev >= maeMin && dNext >= maeMin) {
+        const dSkip = meanAbsDiffBytes(prevOrig, nextOrig);
+        if (dSkip < skipRatio * Math.min(dPrev, dNext)) {
+          isFlash = true;
+        }
+      }
+
+      if (isFlash) {
+        writeFrame(fdOut, prevWritten);
+        flashes += 1;
+      } else {
+        writeFrame(fdOut, currOrig);
+        prevWritten = Buffer.from(currOrig);
+      }
+
+      prevOrig = currOrig;
+      currOrig = nextOrig;
+    }
+
+    writeFrame(fdOut, currOrig);
+    return flashes;
+  } finally {
+    closeSync(fdIn);
+    closeSync(fdOut);
+  }
+}
+
+function probeFilteredFrameSize(ffmpeg, webmPath, vf) {
+  const tmp = mkdtempSync(join(tmpdir(), 'doc-studio-probe-'));
   try {
     const framePath = join(tmp, 'f.png');
     execFileSync(
       ffmpeg,
-      [
-        '-y',
-        '-loglevel',
-        'error',
-        '-i',
-        webmPath,
-        '-vf',
-        `fps=${GIF_FPS},scale=720:-1`,
-        '-frames:v',
-        '1',
-        framePath,
-      ],
+      ['-y', '-loglevel', 'error', '-i', webmPath, '-vf', vf, '-frames:v', '1', framePath],
       { stdio: 'inherit' },
     );
     const probe = execFileSync(
@@ -422,32 +562,32 @@ function probeScaledGifSize(ffmpeg, webmPath) {
       { encoding: 'utf8' },
     ).trim();
     const [w, h] = probe.split('x').map(Number);
-    if (!w || !h) throw new Error(`Cannot probe GIF frame size from ${webmPath} (${probe})`);
+    if (!w || !h) throw new Error(`Cannot probe frame size from ${webmPath} (${probe})`);
     return { width: w, height: h };
   } finally {
     rmSync(tmp, { recursive: true, force: true });
   }
 }
 
-function extractRgbFrames(ffmpeg, webmPath, width, height) {
-  const tmp = mkdtempSync(join(tmpdir(), 'doc-studio-gif-raw-'));
+/**
+ * Extract RGB frames at a constant fps (optionally scaled), then drop screencast tears.
+ * @returns {{ frames: Uint8Array[], width: number, height: number, flashes: number }}
+ */
+function extractStabilizedRgbFrames(ffmpeg, webmPath, { fps, scaleWidth = null } = {}) {
+  const scale = scaleWidth ? `scale=${scaleWidth}:-1,` : '';
+  const vf = `fps=${fps},${scale}format=rgb24`;
+  const { width, height } = probeFilteredFrameSize(
+    ffmpeg,
+    webmPath,
+    vf.replace(/,format=rgb24$/, ''),
+  );
+
+  const tmp = mkdtempSync(join(tmpdir(), 'doc-studio-raw-'));
   const rawPath = join(tmp, 'frames.rgb');
   try {
     execFileSync(
       ffmpeg,
-      [
-        '-y',
-        '-loglevel',
-        'error',
-        '-i',
-        webmPath,
-        '-an',
-        '-vf',
-        `fps=${GIF_FPS},scale=720:-1,format=rgb24`,
-        '-f',
-        'rawvideo',
-        rawPath,
-      ],
+      ['-y', '-loglevel', 'error', '-i', webmPath, '-an', '-vf', vf, '-f', 'rawvideo', rawPath],
       { stdio: ['ignore', 'ignore', 'inherit'] },
     );
     const raw = readFileSync(rawPath);
@@ -461,7 +601,70 @@ function extractRgbFrames(ffmpeg, webmPath, width, height) {
     for (let offset = 0; offset < raw.length; offset += frameSize) {
       frames.push(Uint8Array.prototype.slice.call(raw, offset, offset + frameSize));
     }
-    return frames;
+    const flashIndices = findFlashFrameIndices(frames);
+    replaceFlashFrames(frames, flashIndices);
+    return { frames, width, height, flashes: flashIndices.length };
+  } finally {
+    rmSync(tmp, { recursive: true, force: true });
+  }
+}
+
+/**
+ * Drop screencast tear frames and re-encode a constant-FPS VP9 WebM.
+ * Streams RGB so long captures stay under Node's 2 GiB buffer limit.
+ * @returns {number} number of tear frames replaced
+ */
+export function stabilizeScreencastWebm(ffmpeg, webmPath, targetPath) {
+  const vf = `fps=${VIDEO_FPS},format=rgb24`;
+  const { width, height } = probeFilteredFrameSize(ffmpeg, webmPath, `fps=${VIDEO_FPS}`);
+  const frameSize = width * height * 3;
+
+  const tmp = mkdtempSync(join(tmpdir(), 'doc-studio-webm-enc-'));
+  const rawPath = join(tmp, 'frames.rgb');
+  const cleanedPath = join(tmp, 'cleaned.rgb');
+  try {
+    execFileSync(
+      ffmpeg,
+      ['-y', '-loglevel', 'error', '-i', webmPath, '-an', '-vf', vf, '-f', 'rawvideo', rawPath],
+      { stdio: ['ignore', 'ignore', 'inherit'] },
+    );
+    const flashes = filterFlashFramesFile(rawPath, cleanedPath, frameSize);
+    execFileSync(
+      ffmpeg,
+      [
+        '-y',
+        '-loglevel',
+        'error',
+        '-f',
+        'rawvideo',
+        '-pix_fmt',
+        'rgb24',
+        '-s',
+        `${width}x${height}`,
+        '-r',
+        String(VIDEO_FPS),
+        '-i',
+        cleanedPath,
+        '-an',
+        '-vf',
+        'hqdn3d=2:1:2:3,format=yuv420p',
+        '-c:v',
+        'libvpx-vp9',
+        '-crf',
+        '32',
+        '-b:v',
+        '0',
+        '-row-mt',
+        '1',
+        '-deadline',
+        'good',
+        '-cpu-used',
+        '2',
+        targetPath,
+      ],
+      { stdio: 'inherit' },
+    );
+    return flashes;
   } finally {
     rmSync(tmp, { recursive: true, force: true });
   }
@@ -508,12 +711,12 @@ function encodeGifFromRgbFrames(ffmpeg, frames, width, height, targetPath) {
 }
 
 function encodeGifFromWebm(ffmpeg, webmPath, targetPath) {
-  const { width, height } = probeScaledGifSize(ffmpeg, webmPath);
-  const frames = extractRgbFrames(ffmpeg, webmPath, width, height);
-  const flashes = findFlashFrameIndices(frames);
-  if (flashes.length > 0) {
-    replaceFlashFrames(frames, flashes);
-    console.log(`  · GIF: removed ${flashes.length} screencast tear frame(s)`);
+  const { frames, width, height, flashes } = extractStabilizedRgbFrames(ffmpeg, webmPath, {
+    fps: GIF_FPS,
+    scaleWidth: 720,
+  });
+  if (flashes > 0) {
+    console.log(`  · GIF: removed ${flashes} screencast tear frame(s)`);
   }
   encodeGifFromRgbFrames(ffmpeg, frames, width, height, targetPath);
 }
@@ -608,7 +811,7 @@ export async function captureScenario({
   mkdirSync(outDir, { recursive: true });
 
   const ownsBrowser = !browser;
-  const activeBrowser = browser ?? (await firefox.launch());
+  const activeBrowser = browser ?? (await chromium.launch());
   const formats = recordVideo ? resolveVideoFormats(videoFormat) : [];
   const outputs = { png: null, video: null, videos: [], stepHashes: null };
 
@@ -636,7 +839,8 @@ export async function captureScenario({
     if (recordVideo || (saveFinalPng && !outputs.png)) {
       const playContext = await createCaptureContext(activeBrowser, { scenario });
       const playPage = await playContext.newPage();
-      const webmPath = recordVideo ? join(outDir, `${prefix}.webm`) : null;
+      // Raw Playwright screencast — never the final webm output (stabilize rewrites that).
+      const rawWebmPath = recordVideo ? join(outDir, `.${prefix}.screencast.webm`) : null;
       let screencastStarted = false;
 
       try {
@@ -653,7 +857,7 @@ export async function captureScenario({
             timeout: 15_000,
           });
           await playPage.screencast.start({
-            path: webmPath,
+            path: rawWebmPath,
             size: DEFAULT_VIEWPORT,
           });
           screencastStarted = true;
@@ -674,8 +878,8 @@ export async function captureScenario({
         await playContext.close();
       }
 
-      if (recordVideo && webmPath && existsSync(webmPath)) {
-        outputs.videos = encodeCaptureVideos(webmPath, formats, (format) =>
+      if (recordVideo && rawWebmPath && existsSync(rawWebmPath)) {
+        outputs.videos = encodeCaptureVideos(rawWebmPath, formats, (format) =>
           join(outDir, `${prefix}.${format}`),
         );
         outputs.video = outputs.videos[0] ?? null;

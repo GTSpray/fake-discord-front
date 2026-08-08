@@ -99,6 +99,8 @@ Use `--no-video` to skip recording. Choose animated output with `--format gif|mp
 (default: `gif`). Pass several formats at once (`--format gif,mp4,webm` or repeated
 `--format gif --format mp4`). In JSON, `output.format` may be a string or an array.
 Priority: `--format` → `output.format` in JSON → `CAPTURE_VIDEO_FORMAT` → `gif`.
+`webm`/`mp4` are re-encoded after dropping screencast tear frames (same class of
+one-frame paint glitches previously fixed for GIF).
 
 ```bash
 npm run capture -- --file examples/poll-moderator-flow.json --output-dir docs/assets
