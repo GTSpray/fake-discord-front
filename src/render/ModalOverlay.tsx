@@ -143,7 +143,9 @@ function ModalFieldHeading({
   required?: boolean;
 }) {
   return (
-    <div className={`modal-label-block${description ? ' modal-label-block--with-description' : ''}`}>
+    <div
+      className={`modal-label-block${description ? ' modal-label-block--with-description' : ''}`}
+    >
       <label className="modal-label">
         {label}
         {required ? <span className="modal-required"> *</span> : null}
