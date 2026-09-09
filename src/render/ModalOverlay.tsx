@@ -133,26 +133,18 @@ function ModalSelectOptionRow({
   );
 }
 
-function ModalFieldHeading({
-  label,
-  description,
-  required,
-}: {
-  label: string;
-  description?: string;
-  required?: boolean;
-}) {
+function ModalFieldHeading({ label, required }: { label: string; required?: boolean }) {
   return (
-    <div
-      className={`modal-label-block${description ? ' modal-label-block--with-description' : ''}`}
-    >
-      <label className="modal-label">
-        {label}
-        {required ? <span className="modal-required"> *</span> : null}
-      </label>
-      {description ? <p className="modal-label-description">{description}</p> : null}
-    </div>
+    <label className="modal-label">
+      {label}
+      {required ? <span className="modal-required"> *</span> : null}
+    </label>
   );
+}
+
+function ModalFieldDescription({ description }: { description?: string }) {
+  if (!description) return null;
+  return <p className="modal-label-description">{description}</p>;
 }
 
 function ModalSelect({
@@ -182,7 +174,7 @@ function ModalSelect({
   const isFocused = Boolean(focused || open);
   return (
     <div className={`modal-field${isFocused ? ' modal-field--focused' : ''}`}>
-      <ModalFieldHeading label={label} description={description} required={required} />
+      <ModalFieldHeading label={label} required={required} />
       <div className="modal-select-wrap">
         <div
           className={`modal-select${isFocused ? ' modal-field-control--focused' : ''}${
@@ -203,6 +195,7 @@ function ModalSelect({
           </div>
         ) : null}
       </div>
+      <ModalFieldDescription description={description} />
     </div>
   );
 }
@@ -270,12 +263,13 @@ function AnimatedModalInput({
       className={`modal-field${focused ? ' modal-field--focused' : ''}`}
       data-modal-field={customId}
     >
-      <ModalFieldHeading label={label} description={description} required={required} />
+      <ModalFieldHeading label={label} required={required} />
       {type === 'paragraph' ? (
         <textarea className={fieldClass} readOnly defaultValue={value} rows={4} />
       ) : (
         <input className={fieldClass} type="text" readOnly defaultValue={value} />
       )}
+      <ModalFieldDescription description={description} />
     </div>
   );
 }

@@ -1525,22 +1525,15 @@ button {
   font-size: 0.75rem;
 }
 
-.modal-label-block {
-  margin-bottom: 8px;
-}
-
 .modal-label {
   display: block;
   font-weight: 500;
+  margin-bottom: 8px;
   letter-spacing: 0.02em;
 }
 
-.modal-label-block--with-description .modal-label {
-  margin-bottom: 4px;
-}
-
 .modal-label-description {
-  margin: 0;
+  margin: 8px 0 0;
   color: var(--text-muted);
   font-size: 0.875rem;
   font-weight: 400;
