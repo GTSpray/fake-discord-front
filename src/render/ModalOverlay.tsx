@@ -133,9 +133,30 @@ function ModalSelectOptionRow({
   );
 }
 
+function ModalFieldHeading({
+  label,
+  description,
+  required,
+}: {
+  label: string;
+  description?: string;
+  required?: boolean;
+}) {
+  return (
+    <div className={`modal-label-block${description ? ' modal-label-block--with-description' : ''}`}>
+      <label className="modal-label">
+        {label}
+        {required ? <span className="modal-required"> *</span> : null}
+      </label>
+      {description ? <p className="modal-label-description">{description}</p> : null}
+    </div>
+  );
+}
+
 function ModalSelect({
   customId,
   label,
+  description,
   required,
   display,
   placeholder,
@@ -146,6 +167,7 @@ function ModalSelect({
 }: {
   customId: string;
   label: string;
+  description?: string;
   required?: boolean;
   display: string;
   placeholder: string;
@@ -158,10 +180,7 @@ function ModalSelect({
   const isFocused = Boolean(focused || open);
   return (
     <div className={`modal-field${isFocused ? ' modal-field--focused' : ''}`}>
-      <label className="modal-label">
-        {label}
-        {required ? <span className="modal-required"> *</span> : null}
-      </label>
+      <ModalFieldHeading label={label} description={description} required={required} />
       <div className="modal-select-wrap">
         <div
           className={`modal-select${isFocused ? ' modal-field-control--focused' : ''}${
@@ -203,6 +222,7 @@ function AnimatedModalInput({
   customId,
   value,
   label,
+  description,
   type,
   required,
   focused,
@@ -210,6 +230,7 @@ function AnimatedModalInput({
   customId: string;
   value: string;
   label: string;
+  description?: string;
   type: 'short' | 'paragraph';
   required: boolean;
   focused?: boolean;
@@ -247,10 +268,7 @@ function AnimatedModalInput({
       className={`modal-field${focused ? ' modal-field--focused' : ''}`}
       data-modal-field={customId}
     >
-      <label className="modal-label">
-        {label}
-        {required ? <span className="modal-required"> *</span> : null}
-      </label>
+      <ModalFieldHeading label={label} description={description} required={required} />
       {type === 'paragraph' ? (
         <textarea className={fieldClass} readOnly defaultValue={value} rows={4} />
       ) : (
@@ -289,6 +307,7 @@ function ModalField({
 
   if (comp.type === ComponentType.Label) {
     const label = (comp.label as string) ?? '';
+    const description = (comp.description as string | undefined) || undefined;
     const inner = comp.component as Record<string, unknown> | undefined;
     if (!inner) return null;
 
@@ -301,6 +320,7 @@ function ModalField({
           customId={customId}
           value={value}
           label={label}
+          description={description}
           type={style === TextInputStyle.Paragraph ? 'paragraph' : 'short'}
           required={Boolean(inner.required)}
           focused={focusedField === customId}
@@ -320,6 +340,7 @@ function ModalField({
           key={customId}
           customId={customId}
           label={label}
+          description={description}
           required={Boolean(inner.required)}
           display={roleDisplay?.[customId] ?? placeholder}
           placeholder={placeholder}

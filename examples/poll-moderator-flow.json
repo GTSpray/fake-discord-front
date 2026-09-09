@@ -70,6 +70,7 @@
             {
               "type": 18,
               "label": "Role des sondés",
+              "description": "Les membres avec ce rôle pourront voter",
               "component": {
                 "type": 6,
                 "custom_id": "role",
