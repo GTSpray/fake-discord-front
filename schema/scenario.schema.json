@@ -94,6 +94,25 @@
             "type": { "enum": ["text"], "default": "text" }
           }
         },
+        "thread": {
+          "type": "object",
+          "description": "When set, the thread is always listed under the parent channel in the sidebar. Set active to true (default) when the playback is inside the thread.",
+          "required": ["name"],
+          "additionalProperties": false,
+          "properties": {
+            "name": { "type": "string", "minLength": 1 },
+            "active": {
+              "type": "boolean",
+              "default": true,
+              "description": "When true, viewing the thread (breadcrumb + active row). When false, listed under the channel while the channel view remains active."
+            },
+            "startedBy": {
+              "type": "string",
+              "minLength": 1,
+              "description": "Display name shown in the thread intro (“Started by …”)."
+            }
+          }
+        },
         "membersOnline": { "type": "integer", "minimum": 0 },
         "viewer": {
           "type": "object",
@@ -306,6 +325,7 @@
         { "$ref": "#/$defs/SelectModalOptionAction" },
         { "$ref": "#/$defs/ShowEphemeralAction" },
         { "$ref": "#/$defs/ClickButtonAction" },
+        { "$ref": "#/$defs/ClickThreadAction" },
         { "$ref": "#/$defs/ApplyStateAction" }
       ]
     },
@@ -524,6 +544,19 @@
       "properties": {
         "type": { "const": "clickButton" },
         "label": { "type": "string", "minLength": 1 }
+      }
+    },
+    "ClickThreadAction": {
+      "type": "object",
+      "required": ["type", "name"],
+      "additionalProperties": false,
+      "properties": {
+        "type": { "const": "clickThread" },
+        "name": {
+          "type": "string",
+          "minLength": 1,
+          "description": "Thread name as shown in the sidebar (must match chrome.thread.name)."
+        }
       }
     },
     "ApplyStateAction": {

@@ -6,6 +6,7 @@ export const CURSOR_TARGET_MODAL_SUBMIT = '__modalSubmit';
 
 const CURSOR_TARGET_MODAL_SELECT_PREFIX = '__modalSelect:';
 const CURSOR_TARGET_MODAL_SELECT_OPTION_PREFIX = '__modalSelectOption:';
+const CURSOR_TARGET_THREAD_PREFIX = '__thread:';
 
 /** Sentinel `cursorTarget` for a modal RoleSelect / StringSelect control. */
 export function cursorTargetModalSelect(field: string): string {
@@ -15,6 +16,11 @@ export function cursorTargetModalSelect(field: string): string {
 /** Sentinel `cursorTarget` for an option in an open modal select dropdown. */
 export function cursorTargetModalSelectOption(option: string): string {
   return `${CURSOR_TARGET_MODAL_SELECT_OPTION_PREFIX}${option}`;
+}
+
+/** Sentinel `cursorTarget` for a sidebar thread row. */
+export function cursorTargetThread(name: string): string {
+  return `${CURSOR_TARGET_THREAD_PREFIX}${name}`;
 }
 
 function sleep(ms: number): Promise<void> {
@@ -238,6 +244,11 @@ export function syncModalSelectOptionHover(x: number, y: number): void {
   }
 }
 
+/** Locate a sidebar thread row by name (`data-scenario-thread`). */
+export function findScenarioThreadRect(name: string): DOMRect | null {
+  return pickBestElementRect(queryAllDeepByAttr('data-scenario-thread', name, captureRoot()));
+}
+
 /** Resolve any scenario cursor target (channel button label or modal Submit). */
 export function findScenarioClickTargetRect(target: string): DOMRect | null {
   if (target === CURSOR_TARGET_MODAL_SUBMIT) return findModalSubmitRect();
@@ -246,6 +257,9 @@ export function findScenarioClickTargetRect(target: string): DOMRect | null {
   }
   if (target.startsWith(CURSOR_TARGET_MODAL_SELECT_PREFIX)) {
     return findModalSelectRect(target.slice(CURSOR_TARGET_MODAL_SELECT_PREFIX.length));
+  }
+  if (target.startsWith(CURSOR_TARGET_THREAD_PREFIX)) {
+    return findScenarioThreadRect(target.slice(CURSOR_TARGET_THREAD_PREFIX.length));
   }
   return findScenarioButtonRect(target);
 }

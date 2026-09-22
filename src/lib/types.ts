@@ -5,9 +5,20 @@ import defaultAvatarPng from '../styles/default-avatar.png';
 export interface Chrome {
   guild: { name: string; iconUrl?: string };
   channel: { name: string; type?: 'text' };
+  /**
+   * When set, the thread is always listed under the parent channel.
+   * `active` defaults to true (viewing the thread). Set `active: false` to keep
+   * it in the sidebar while showing the parent channel view.
+   */
+  thread?: { name: string; active?: boolean; startedBy?: string };
   membersOnline?: number;
   /** Connected user shown in the bottom-left user panel */
   viewer?: { name: string; status?: string; avatarUrl?: string };
+}
+
+/** True when chrome.thread is present and not explicitly inactive. */
+export function isThreadActive(chrome: Chrome): boolean {
+  return chrome.thread != null && chrome.thread.active !== false;
 }
 
 export const DEFAULT_VIEWER = {

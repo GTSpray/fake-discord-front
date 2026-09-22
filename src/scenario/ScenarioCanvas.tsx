@@ -1,4 +1,5 @@
 import { useRef } from 'react';
+import { isThreadActive } from '../lib/types.ts';
 import type { PlaybackState } from '../lib/scenarioTypes.ts';
 import { ChannelView } from '../render/ChannelView.tsx';
 import { DiscordShell } from '../render/DiscordShell.tsx';
@@ -30,6 +31,10 @@ export function ScenarioCanvas({ state, scenarioDone }: ScenarioCanvasProps) {
     pendingBotReply,
   } = state;
 
+  const threadActive = isThreadActive(chrome);
+  const inputChannelName =
+    threadActive && chrome.thread ? chrome.thread.name : chrome.channel.name;
+
   return (
     <EmojiRegistryProvider emojis={emojis}>
       <div
@@ -41,9 +46,9 @@ export function ScenarioCanvas({ state, scenarioDone }: ScenarioCanvasProps) {
           chrome={chrome}
           inputBar={
             slash ? (
-              <SlashBar slash={slash} channelName={chrome.channel.name} />
+              <SlashBar slash={slash} channelName={inputChannelName} />
             ) : (
-              <DiscordMessageInput channelName={chrome.channel.name} />
+              <DiscordMessageInput channelName={inputChannelName} />
             )
           }
         >
@@ -55,8 +60,13 @@ export function ScenarioCanvas({ state, scenarioDone }: ScenarioCanvasProps) {
               highlightedButton={highlightedButton}
               loadingButton={loadingButton}
               guildName={chrome.guild.name}
-              channelName={chrome.channel.name}
+              channelName={inputChannelName}
               showWelcome={false}
+              threadIntro={
+                threadActive && chrome.thread
+                  ? { name: chrome.thread.name, startedBy: chrome.thread.startedBy }
+                  : null
+              }
             />
           </div>
         </DiscordShell>
