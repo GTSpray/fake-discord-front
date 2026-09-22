@@ -159,9 +159,7 @@ export function ChannelView({
 
   return (
     <div ref={messagesRef} className="channel-messages channel-messages--skyra">
-      {threadIntro && (
-        <ThreadIntro name={threadIntro.name} startedBy={threadIntro.startedBy} />
-      )}
+      {threadIntro && <ThreadIntro name={threadIntro.name} startedBy={threadIntro.startedBy} />}
       {(hasMessages || hasEphemeral || hasPending) && (
         <DiscordMessages noBackground>
           {messages?.map((msg, i) => (

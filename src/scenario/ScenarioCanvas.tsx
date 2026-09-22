@@ -32,8 +32,7 @@ export function ScenarioCanvas({ state, scenarioDone }: ScenarioCanvasProps) {
   } = state;
 
   const threadActive = isThreadActive(chrome);
-  const inputChannelName =
-    threadActive && chrome.thread ? chrome.thread.name : chrome.channel.name;
+  const inputChannelName = threadActive && chrome.thread ? chrome.thread.name : chrome.channel.name;
 
   return (
     <EmojiRegistryProvider emojis={emojis}>
