@@ -8,7 +8,7 @@ import { useEffect, useRef } from 'react';
 import type { ChannelMessage, EphemeralLayer } from '../lib/types.ts';
 import type { PendingBotReply } from '../lib/scenarioTypes.ts';
 import { BotPendingReplyMessage } from './BotPendingReply.tsx';
-import { IconHash } from './discordIcons.tsx';
+import { IconHash, IconThreads } from './discordIcons.tsx';
 import { InteractionBody } from './InteractionComponents.tsx';
 import { Markdown } from './markdown.tsx';
 import { SkyraMarkdown } from './skyraMarkdown.tsx';
@@ -89,6 +89,23 @@ function SkyraEphemeralMessage({
   );
 }
 
+function ThreadIntro({ name, startedBy }: { name: string; startedBy?: string }) {
+  return (
+    <div className="thread-intro">
+      <div className="thread-intro__icon" aria-hidden>
+        <IconThreads />
+      </div>
+      <h2 className="thread-intro__title">{name}</h2>
+      {startedBy && (
+        <p className="thread-intro__started">
+          Started by <strong>{startedBy}</strong>
+        </p>
+      )}
+      <hr className="thread-intro__divider" />
+    </div>
+  );
+}
+
 export function ChannelView({
   messages,
   ephemeral,
@@ -97,6 +114,7 @@ export function ChannelView({
   loadingButton,
   guildName,
   showWelcome = true,
+  threadIntro,
 }: {
   messages?: ChannelMessage[];
   ephemeral?: EphemeralLayer | null;
@@ -106,12 +124,14 @@ export function ChannelView({
   guildName?: string;
   channelName?: string;
   showWelcome?: boolean;
+  threadIntro?: { name: string; startedBy?: string } | null;
 }) {
   const messagesRef = useRef<HTMLDivElement>(null);
   const hasMessages = Boolean(messages?.length);
   const hasEphemeral = Boolean(ephemeral) && !pendingBotReply?.ephemeral;
   const hasPending = Boolean(pendingBotReply);
   const hasContent = hasMessages || hasEphemeral || hasPending;
+  const showThreadIntro = Boolean(threadIntro);
 
   useEffect(() => {
     if (!hasContent) return;
@@ -120,7 +140,7 @@ export function ChannelView({
     scrollParent.scrollTop = scrollParent.scrollHeight;
   }, [hasContent, messages, ephemeral, pendingBotReply, loadingButton]);
 
-  if (!hasContent) {
+  if (!hasContent && !showThreadIntro) {
     if (!showWelcome) {
       return <div className="channel-messages" />;
     }
@@ -139,24 +159,27 @@ export function ChannelView({
 
   return (
     <div ref={messagesRef} className="channel-messages channel-messages--skyra">
-      <DiscordMessages noBackground>
-        {messages?.map((msg, i) => (
-          <SkyraMessageItem
-            key={i}
-            message={msg}
-            highlightedButton={highlightedButton}
-            loadingButton={loadingButton}
-          />
-        ))}
-        {pendingBotReply && <BotPendingReplyMessage pending={pendingBotReply} />}
-        {ephemeral && !pendingBotReply?.ephemeral && (
-          <SkyraEphemeralMessage
-            ephemeral={ephemeral}
-            highlightedButton={highlightedButton}
-            loadingButton={loadingButton}
-          />
-        )}
-      </DiscordMessages>
+      {threadIntro && <ThreadIntro name={threadIntro.name} startedBy={threadIntro.startedBy} />}
+      {(hasMessages || hasEphemeral || hasPending) && (
+        <DiscordMessages noBackground>
+          {messages?.map((msg, i) => (
+            <SkyraMessageItem
+              key={i}
+              message={msg}
+              highlightedButton={highlightedButton}
+              loadingButton={loadingButton}
+            />
+          ))}
+          {pendingBotReply && <BotPendingReplyMessage pending={pendingBotReply} />}
+          {ephemeral && !pendingBotReply?.ephemeral && (
+            <SkyraEphemeralMessage
+              ephemeral={ephemeral}
+              highlightedButton={highlightedButton}
+              loadingButton={loadingButton}
+            />
+          )}
+        </DiscordMessages>
+      )}
     </div>
   );
 }

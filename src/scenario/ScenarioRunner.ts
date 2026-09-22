@@ -35,6 +35,7 @@ import {
   CURSOR_TARGET_MODAL_SUBMIT,
   cursorTargetModalSelect,
   cursorTargetModalSelectOption,
+  cursorTargetThread,
 } from '../render/findScenarioButton.ts';
 import { runCursorClick } from './cursorBridge.ts';
 import { runTyping } from './typingBridge.ts';
@@ -500,6 +501,18 @@ export class ScenarioRunner {
         } else {
           this.patch({ highlightedButton: null });
         }
+        break;
+      }
+
+      case 'clickThread': {
+        if (this.captureStepMode) {
+          this.patch({ cursorTarget: null });
+          break;
+        }
+        this.patch({ cursorTarget: cursorTargetThread(action.name) });
+        await runCursorClick(signal);
+        this.patch({ cursorTarget: null });
+        await sleep(220, signal);
         break;
       }
 

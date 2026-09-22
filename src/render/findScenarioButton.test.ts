@@ -5,6 +5,7 @@ import {
   CURSOR_TARGET_MODAL_SUBMIT,
   cursorTargetModalSelect,
   cursorTargetModalSelectOption,
+  cursorTargetThread,
   findModalSubmitRect,
   findScenarioButtonRect,
   findScenarioClickTargetRect,
@@ -139,6 +140,21 @@ describe('findScenarioButton', () => {
     );
     expect(findScenarioClickTargetRect(cursorTargetModalSelectOption('@Modérateurs'))).toEqual(
       new DOMRect(80, 170, 240, 32),
+    );
+  });
+
+  it('finds a sidebar thread by data-scenario-thread', () => {
+    const captureRoot = document.createElement('div');
+    captureRoot.setAttribute('data-capture-root', '');
+    document.body.append(captureRoot);
+
+    const thread = document.createElement('div');
+    thread.setAttribute('data-scenario-thread', 'test_thread');
+    thread.getBoundingClientRect = () => new DOMRect(40, 200, 120, 28);
+    captureRoot.append(thread);
+
+    expect(findScenarioClickTargetRect(cursorTargetThread('test_thread'))).toEqual(
+      new DOMRect(40, 200, 120, 28),
     );
   });
 

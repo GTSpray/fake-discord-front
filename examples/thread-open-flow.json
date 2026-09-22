@@ -1,0 +1,255 @@
+{
+  "$schema": "../schema/scenario.schema.json",
+  "id": "thread-open-flow",
+  "title": "Opening a thread",
+  "chrome": {
+    "guild": {
+      "name": "Acme Engineering"
+    },
+    "channel": {
+      "name": "releases",
+      "type": "text"
+    },
+    "thread": {
+      "name": "rollback-notes",
+      "active": false,
+      "startedBy": "Paul"
+    },
+    "viewer": {
+      "name": "Luc",
+      "status": "Online"
+    }
+  },
+  "actions": [
+    {
+      "type": "applyState",
+      "holdMs": 4200,
+      "layers": {
+        "messages": [
+          {
+            "author": {
+              "name": "Luc",
+              "color": "#57F287"
+            },
+            "content": "Morning — anything urgent before standup?",
+            "timestamp": "13:58"
+          },
+          {
+            "author": {
+              "name": "Paul",
+              "color": "#5865F2"
+            },
+            "content": "Hey Luc. Mostly checking if last night's deploy went through cleanly.",
+            "timestamp": "13:58"
+          },
+          {
+            "author": {
+              "name": "Luc",
+              "color": "#57F287"
+            },
+            "content": "Did it? I saw a green pipeline but didn't dig into the logs yet.",
+            "timestamp": "13:59"
+          },
+          {
+            "author": {
+              "name": "Paul",
+              "color": "#5865F2"
+            },
+            "content": "Yeah, it's live. Latency looks fine so far.",
+            "timestamp": "13:59"
+          },
+          {
+            "author": {
+              "name": "Luc",
+              "color": "#57F287"
+            },
+            "content": "What about error rates on the API?",
+            "timestamp": "14:00"
+          },
+          {
+            "author": {
+              "name": "Paul",
+              "color": "#5865F2"
+            },
+            "content": "Stable around 0.2%. Nothing spike-y after the cutover.",
+            "timestamp": "14:00"
+          },
+          {
+            "author": {
+              "name": "Luc",
+              "color": "#57F287"
+            },
+            "content": "Good. Did the migrations finish without locks?",
+            "timestamp": "14:01"
+          },
+          {
+            "author": {
+              "name": "Paul",
+              "color": "#5865F2"
+            },
+            "content": "Yep — ran in under three minutes. No blocking queries.",
+            "timestamp": "14:01"
+          },
+          {
+            "author": {
+              "name": "Luc",
+              "color": "#57F287"
+            },
+            "content": "Nice. Do we have a rollback plan if something breaks mid-day?",
+            "timestamp": "14:02"
+          },
+          {
+            "author": {
+              "name": "Paul",
+              "color": "#5865F2"
+            },
+            "content": "Yep — I left the rollback notes in a thread so we don't clutter this channel.",
+            "timestamp": "14:02"
+          },
+          {
+            "author": {
+              "name": "Luc",
+              "color": "#57F287"
+            },
+            "content": "Does the thread cover feature flags too?",
+            "timestamp": "14:03"
+          },
+          {
+            "author": {
+              "name": "Paul",
+              "color": "#5865F2"
+            },
+            "content": "It does — kill switch steps and which flags to flip first.",
+            "timestamp": "14:03"
+          },
+          {
+            "author": {
+              "name": "Luc",
+              "color": "#57F287"
+            },
+            "content": "Perfect. Anyone else watching the release?",
+            "timestamp": "14:04"
+          },
+          {
+            "author": {
+              "name": "Paul",
+              "color": "#5865F2"
+            },
+            "content": "Just us for now. Ops is on call if we need them.",
+            "timestamp": "14:04"
+          },
+          {
+            "author": {
+              "name": "Luc",
+              "color": "#57F287"
+            },
+            "content": "Should I ping them before I dig into the checklist?",
+            "timestamp": "14:05"
+          },
+          {
+            "author": {
+              "name": "Paul",
+              "color": "#5865F2"
+            },
+            "content": "No need — they're already in the war room channel.",
+            "timestamp": "14:05"
+          },
+          {
+            "author": {
+              "name": "Luc",
+              "color": "#57F287"
+            },
+            "content": "Alright. Anything else I should know before I open the thread?",
+            "timestamp": "14:06"
+          },
+          {
+            "author": {
+              "name": "Paul",
+              "color": "#5865F2"
+            },
+            "content": "Watch the payment webhook suite — it was flaky in staging.",
+            "timestamp": "14:06"
+          },
+          {
+            "author": {
+              "name": "Luc",
+              "color": "#57F287"
+            },
+            "content": "Got it — I'll jump into the thread and review the checklist.",
+            "timestamp": "14:07"
+          }
+        ]
+      }
+    },
+    {
+      "type": "clickThread",
+      "name": "rollback-notes"
+    },
+    {
+      "type": "applyState",
+      "holdMs": 2800,
+      "chrome": {
+        "guild": {
+          "name": "Acme Engineering"
+        },
+        "channel": {
+          "name": "releases",
+          "type": "text"
+        },
+        "thread": {
+          "name": "rollback-notes",
+          "active": true,
+          "startedBy": "Paul"
+        },
+        "viewer": {
+          "name": "Luc",
+          "status": "Online"
+        }
+      },
+      "layers": {
+        "messages": [
+          {
+            "author": {
+              "name": "Paul",
+              "color": "#5865F2"
+            },
+            "content": "Rollback checklist if something breaks:",
+            "timestamp": "14:05"
+          },
+          {
+            "author": {
+              "name": "Paul",
+              "color": "#5865F2"
+            },
+            "content": "1. Revert the release tag\n2. Restart the workers\n3. Ping me in #ops",
+            "timestamp": "14:10"
+          },
+          {
+            "author": {
+              "name": "Luc",
+              "color": "#57F287"
+            },
+            "content": "Got it. Any known flaky tests I should watch?",
+            "timestamp": "14:11"
+          },
+          {
+            "author": {
+              "name": "Paul",
+              "color": "#5865F2"
+            },
+            "content": "The payment webhook suite — it timed out twice during staging.",
+            "timestamp": "14:11"
+          },
+          {
+            "author": {
+              "name": "Luc",
+              "color": "#57F287"
+            },
+            "content": "Thanks, I'll keep an eye on those.",
+            "timestamp": "14:12"
+          }
+        ]
+      }
+    }
+  ]
+}

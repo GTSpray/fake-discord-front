@@ -1,6 +1,6 @@
 import type { ReactNode } from 'react';
 import type { Chrome } from '../lib/types.ts';
-import { resolveViewer, VIEWER_DEFAULT_AVATAR } from '../lib/types.ts';
+import { isThreadActive, resolveViewer, VIEWER_DEFAULT_AVATAR } from '../lib/types.ts';
 import { DiscordChannelHeader } from './DiscordChannelHeader.tsx';
 import { DiscordTitleBar } from './DiscordTitleBar.tsx';
 import {
@@ -120,6 +120,8 @@ function UserPanel({ chrome, showGuildRail }: { chrome: Chrome; showGuildRail: b
 }
 
 function ChannelSidebar({ chrome }: { chrome: Chrome }) {
+  const threadActive = isThreadActive(chrome);
+
   return (
     <aside className="channel-sidebar">
       <header className="guild-header">
@@ -147,18 +149,29 @@ function ChannelSidebar({ chrome }: { chrome: Chrome }) {
           <span>Text Channels</span>
           <IconChevronDown className="channel-category__chevron" />
         </div>
-        <div className="channel-item channel-item--active">
+        <div className={`channel-item${threadActive ? '' : ' channel-item--active'}`}>
           <IconHash className="channel-item__hash-icon" />
           <span className="channel-item__label">{chrome.channel.name}</span>
-          <button
-            type="button"
-            className="channel-item__invite"
-            disabled
-            aria-label="Invite People"
-          >
-            <IconInvite />
-          </button>
+          {!threadActive && (
+            <button
+              type="button"
+              className="channel-item__invite"
+              disabled
+              aria-label="Invite People"
+            >
+              <IconInvite />
+            </button>
+          )}
         </div>
+        {chrome.thread && (
+          <div
+            className={`channel-item channel-item--thread${threadActive ? ' channel-item--active' : ''}`}
+            data-scenario-thread={chrome.thread.name}
+          >
+            <span className="channel-item__thread-spine" aria-hidden="true" />
+            <span className="channel-item__label">{chrome.thread.name}</span>
+          </div>
+        )}
 
         <div className="channel-category">
           <span>Voice Channels</span>
@@ -184,7 +197,11 @@ export function DiscordShell({ chrome, children, inputBar, hideGuildSidebar }: D
           <UserPanel chrome={chrome} showGuildRail={!hideGuildSidebar} />
         </div>
         <main className="main-panel">
-          <DiscordChannelHeader channelName={chrome.channel.name} guildName={chrome.guild.name} />
+          <DiscordChannelHeader
+            channelName={chrome.channel.name}
+            threadName={isThreadActive(chrome) ? chrome.thread?.name : undefined}
+            guildName={chrome.guild.name}
+          />
           {children}
           {inputBar}
         </main>

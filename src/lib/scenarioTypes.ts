@@ -85,6 +85,11 @@ export type ScenarioAction =
     }
   | { type: 'clickButton'; label: string }
   | {
+      type: 'clickThread';
+      /** Thread name as shown in the sidebar (must match chrome.thread.name) */
+      name: string;
+    }
+  | {
       type: 'applyState';
       chrome?: Chrome;
       layers?: {
