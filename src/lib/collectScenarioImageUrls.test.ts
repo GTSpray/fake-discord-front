@@ -87,4 +87,41 @@ describe('collectScenarioImageUrls', () => {
 
     expect(collectScenarioImageUrls(scenario)).toContain('https://cdn.example/party.gif');
   });
+
+  it('collects Twemoji and custom reaction image URLs from applyState', () => {
+    const scenario = makeScenario(
+      [
+        {
+          type: 'applyState',
+          layers: {
+            messages: [
+              {
+                author: { name: 'Bot', bot: true },
+                content: 'react to me',
+                reactions: [
+                  { emoji: '👍', count: 2 },
+                  { emoji: '<:party:1>', reacted: true },
+                ],
+              },
+            ],
+          },
+        },
+      ],
+      {
+        emojis: [
+          {
+            id: '1',
+            name: 'party',
+            url: 'https://cdn.example/party.gif',
+          },
+        ],
+      },
+    );
+
+    const urls = collectScenarioImageUrls(scenario);
+    expect(urls).toContain(
+      'https://cdn.jsdelivr.net/gh/twitter/twemoji@14.0.2/assets/72x72/1f44d.png',
+    );
+    expect(urls).toContain('https://cdn.example/party.gif');
+  });
 });

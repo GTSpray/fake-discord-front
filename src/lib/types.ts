@@ -54,6 +54,16 @@ export interface SlashInvocation {
   command: string;
 }
 
+/** Reaction shown under a channel message (unicode or custom mention) */
+export interface MessageReaction {
+  /** Unicode (👍) or custom Discord mention <:name:id> / <a:name:id> */
+  emoji: string;
+  /** Number of reactors (default 1) */
+  count?: number;
+  /** Highlighted as reacted by the viewer */
+  reacted?: boolean;
+}
+
 export interface ChannelMessage {
   author: Author;
   content?: string;
@@ -63,6 +73,7 @@ export interface ChannelMessage {
   ephemeral?: boolean;
   slashInvocation?: SlashInvocation;
   interaction?: BotInteractionResponse;
+  reactions?: MessageReaction[];
 }
 
 export interface BotInteractionResponse {

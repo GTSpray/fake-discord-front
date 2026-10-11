@@ -71,7 +71,7 @@ test: docker-build
 
 pretty:
 	$(DOCKER_RUN) npm ci
-	$(DOCKER_RUN) npm run lint
+	$(DOCKER_RUN) npm run lint:fix
 	$(DOCKER_RUN) npm run format
 
 lint: docker-build

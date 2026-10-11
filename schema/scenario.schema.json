@@ -168,6 +168,30 @@
         }
       }
     },
+    "MessageReaction": {
+      "type": "object",
+      "required": ["emoji"],
+      "additionalProperties": false,
+      "description": "Réaction Discord affichée sous un message",
+      "properties": {
+        "emoji": {
+          "type": "string",
+          "minLength": 1,
+          "description": "Unicode (👍) ou mention custom <:name:id> / <a:name:id> (résolue via emojis[])"
+        },
+        "count": {
+          "type": "integer",
+          "minimum": 1,
+          "default": 1,
+          "description": "Nombre de réacteurs"
+        },
+        "reacted": {
+          "type": "boolean",
+          "default": false,
+          "description": "Surbrillance « réagi par le viewer »"
+        }
+      }
+    },
     "ChannelMessage": {
       "type": "object",
       "required": ["author"],
@@ -190,7 +214,12 @@
             "command": { "type": "string", "minLength": 1 }
           }
         },
-        "interaction": { "$ref": "#/$defs/BotInteractionResponse" }
+        "interaction": { "$ref": "#/$defs/BotInteractionResponse" },
+        "reactions": {
+          "type": "array",
+          "items": { "$ref": "#/$defs/MessageReaction" },
+          "description": "Réactions affichées sous le message"
+        }
       },
       "oneOf": [{ "required": ["content"] }, { "required": ["interaction"] }]
     },
