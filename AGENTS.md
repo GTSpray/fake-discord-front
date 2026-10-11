@@ -118,6 +118,8 @@ pointer to the modal Submit button before showing loading dots / closing.
 ChannelSelect, or StringSelect) to open the options list, then to the chosen
 option. Option rows adapt to the select kind (role shield + member count,
 channel `#`/voice icon, or plain text ± description).
+`selectMessageOption` does the same for a `StringSelect` in a channel /
+ephemeral message (`field` = `custom_id`, `option` = label).
 
 ## Authoring a playback file
 

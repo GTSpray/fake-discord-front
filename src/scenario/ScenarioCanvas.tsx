@@ -28,6 +28,9 @@ export function ScenarioCanvas({ state, scenarioDone }: ScenarioCanvasProps) {
     highlightedButton,
     loadingButton,
     cursorTarget,
+    openMessageSelect,
+    loadingMessageSelect,
+    messageSelectValues,
     pendingBotReply,
   } = state;
 
@@ -58,6 +61,9 @@ export function ScenarioCanvas({ state, scenarioDone }: ScenarioCanvasProps) {
               pendingBotReply={pendingBotReply}
               highlightedButton={highlightedButton}
               loadingButton={loadingButton}
+              openMessageSelect={openMessageSelect}
+              loadingMessageSelect={loadingMessageSelect}
+              messageSelectValues={messageSelectValues}
               guildName={chrome.guild.name}
               channelName={inputChannelName}
               showWelcome={false}

@@ -6,6 +6,8 @@ export const CURSOR_TARGET_MODAL_SUBMIT = '__modalSubmit';
 
 const CURSOR_TARGET_MODAL_SELECT_PREFIX = '__modalSelect:';
 const CURSOR_TARGET_MODAL_SELECT_OPTION_PREFIX = '__modalSelectOption:';
+const CURSOR_TARGET_MESSAGE_SELECT_PREFIX = '__messageSelect:';
+const CURSOR_TARGET_MESSAGE_SELECT_OPTION_PREFIX = '__messageSelectOption:';
 const CURSOR_TARGET_THREAD_PREFIX = '__thread:';
 
 /** Sentinel `cursorTarget` for a modal RoleSelect / StringSelect control. */
@@ -16,6 +18,16 @@ export function cursorTargetModalSelect(field: string): string {
 /** Sentinel `cursorTarget` for an option in an open modal select dropdown. */
 export function cursorTargetModalSelectOption(option: string): string {
   return `${CURSOR_TARGET_MODAL_SELECT_OPTION_PREFIX}${option}`;
+}
+
+/** Sentinel `cursorTarget` for a message StringSelect control. */
+export function cursorTargetMessageSelect(field: string): string {
+  return `${CURSOR_TARGET_MESSAGE_SELECT_PREFIX}${field}`;
+}
+
+/** Sentinel `cursorTarget` for an option in an open message StringSelect. */
+export function cursorTargetMessageSelectOption(option: string): string {
+  return `${CURSOR_TARGET_MESSAGE_SELECT_OPTION_PREFIX}${option}`;
 }
 
 /** Sentinel `cursorTarget` for a sidebar thread row. */
@@ -195,12 +207,29 @@ export function findModalSelectOptionRect(option: string): DOMRect | null {
   return pickBestElementRect(queryAllDeepByAttr('data-modal-select-option', option));
 }
 
-function queryAllModalSelectOptions(): HTMLElement[] {
-  const results: HTMLElement[] = [];
+/** Locate a message StringSelect by custom_id (`data-scenario-select`). */
+export function findMessageSelectRect(field: string): DOMRect | null {
+  return pickBestElementRect(queryAllDeepByAttr('data-scenario-select', field));
+}
+
+/** Locate an option in an open message StringSelect (`data-scenario-select-option`). */
+export function findMessageSelectOptionRect(option: string): DOMRect | null {
+  return pickBestElementRect(queryAllDeepByAttr('data-scenario-select-option', option));
+}
+
+const SELECT_OPTION_HOVER_ATTRS = [
+  { attr: 'data-modal-select-option', hoverClass: 'modal-select-option--hovered' },
+  { attr: 'data-scenario-select-option', hoverClass: 'message-string-select-option--hovered' },
+] as const;
+
+function queryAllSelectOptions(): Array<{ el: HTMLElement; hoverClass: string }> {
+  const results: Array<{ el: HTMLElement; hoverClass: string }> = [];
 
   const walk = (node: Document | Element | ShadowRoot) => {
-    for (const el of node.querySelectorAll('[data-modal-select-option]')) {
-      if (el instanceof HTMLElement) results.push(el);
+    for (const { attr, hoverClass } of SELECT_OPTION_HOVER_ATTRS) {
+      for (const el of node.querySelectorAll(`[${attr}]`)) {
+        if (el instanceof HTMLElement) results.push({ el, hoverClass });
+      }
     }
     for (const el of node.querySelectorAll('*')) {
       if (el.shadowRoot) walk(el.shadowRoot);
@@ -211,22 +240,22 @@ function queryAllModalSelectOptions(): HTMLElement[] {
   return results;
 }
 
-/** Clear fake-cursor hover on all modal select options. */
+/** Clear fake-cursor hover on all modal / message select options. */
 export function clearModalSelectOptionHover(): void {
-  for (const el of queryAllModalSelectOptions()) {
-    el.classList.remove('modal-select-option--hovered');
+  for (const { el, hoverClass } of queryAllSelectOptions()) {
+    el.classList.remove(hoverClass);
   }
 }
 
 /**
- * Apply hover to the modal select option under the fake cursor tip (x, y in viewport).
+ * Apply hover to the select option under the fake cursor tip (x, y in viewport).
  * Real CSS :hover never fires for the synthetic pointer.
  */
 export function syncModalSelectOptionHover(x: number, y: number): void {
-  const options = queryAllModalSelectOptions();
+  const options = queryAllSelectOptions();
   let hovered: HTMLElement | null = null;
 
-  for (const el of options) {
+  for (const { el } of options) {
     const rect = el.getBoundingClientRect();
     if (
       isValidRect(rect) &&
@@ -239,8 +268,8 @@ export function syncModalSelectOptionHover(x: number, y: number): void {
     }
   }
 
-  for (const el of options) {
-    el.classList.toggle('modal-select-option--hovered', el === hovered);
+  for (const { el, hoverClass } of options) {
+    el.classList.toggle(hoverClass, el === hovered);
   }
 }
 
@@ -257,6 +286,14 @@ export function findScenarioClickTargetRect(target: string): DOMRect | null {
   }
   if (target.startsWith(CURSOR_TARGET_MODAL_SELECT_PREFIX)) {
     return findModalSelectRect(target.slice(CURSOR_TARGET_MODAL_SELECT_PREFIX.length));
+  }
+  if (target.startsWith(CURSOR_TARGET_MESSAGE_SELECT_OPTION_PREFIX)) {
+    return findMessageSelectOptionRect(
+      target.slice(CURSOR_TARGET_MESSAGE_SELECT_OPTION_PREFIX.length),
+    );
+  }
+  if (target.startsWith(CURSOR_TARGET_MESSAGE_SELECT_PREFIX)) {
+    return findMessageSelectRect(target.slice(CURSOR_TARGET_MESSAGE_SELECT_PREFIX.length));
   }
   if (target.startsWith(CURSOR_TARGET_THREAD_PREFIX)) {
     return findScenarioThreadRect(target.slice(CURSOR_TARGET_THREAD_PREFIX.length));

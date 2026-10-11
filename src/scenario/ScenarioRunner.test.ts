@@ -450,6 +450,73 @@ describe('ScenarioRunner', () => {
     });
   });
 
+  it('opens a message select with the cursor then picks an option', async () => {
+    const runner = new ScenarioRunner(
+      makeScenario([
+        {
+          type: 'showEphemeral',
+          ephemeral: {
+            type: 4,
+            data: {
+              flags: 64,
+              content: 'Que veux-tu faire ?',
+              components: [
+                {
+                  type: 1,
+                  components: [
+                    {
+                      type: 3,
+                      custom_id: 'trigger-action',
+                      placeholder: 'Choisis une action...',
+                      options: [
+                        { label: 'Créer', value: 'create' },
+                        { label: "Voir l'aide", value: 'help' },
+                      ],
+                    },
+                  ],
+                },
+              ],
+            },
+          },
+        },
+        {
+          type: 'selectMessageOption',
+          field: 'trigger-action',
+          option: "Voir l'aide",
+        },
+      ]),
+    );
+
+    const cursorTargets: Array<string | null> = [];
+    const openFields: Array<string | null> = [];
+    runner.subscribe((snapshot) => {
+      const target = snapshot.state.cursorTarget;
+      if (target !== cursorTargets[cursorTargets.length - 1]) {
+        cursorTargets.push(target);
+      }
+      const open = snapshot.state.openMessageSelect;
+      if (open !== openFields[openFields.length - 1]) {
+        openFields.push(open);
+      }
+    });
+
+    const playPromise = runner.play();
+    await vi.runAllTimersAsync();
+    await playPromise;
+
+    expect(cursorTargets).toContain('__messageSelect:trigger-action');
+    expect(cursorTargets).toContain("__messageSelectOption:Voir l'aide");
+    expect(cursorTargets.indexOf('__messageSelect:trigger-action')).toBeLessThan(
+      cursorTargets.indexOf("__messageSelectOption:Voir l'aide"),
+    );
+    expect(openFields).toContain('trigger-action');
+    expect(runner.getState().openMessageSelect).toBeNull();
+    expect(runner.getState().loadingMessageSelect).toBe('trigger-action');
+    expect(runner.getState().messageSelectValues).toEqual({
+      'trigger-action': "Voir l'aide",
+    });
+  });
+
   it('opens a modal select with the cursor then picks an option', async () => {
     const runner = new ScenarioRunner(
       makeScenario([

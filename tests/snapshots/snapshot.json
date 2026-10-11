@@ -72,6 +72,20 @@
         "001-done": "03e3cfaa75e79fdd203104d875e0c16f",
         "002-done": "6c41a75d85e8b826998d21e48b680ebf"
       }
+    },
+    "trigger-select-flow": {
+      "steps": {
+        "000-done": "3eaccb0552bf36aaf2cfa25b5add8d51",
+        "001-done": "1a98bc67daacd93cc4ad1d05d08e8ca1",
+        "002-done": "1a98bc67daacd93cc4ad1d05d08e8ca1",
+        "003-done": "3c76d2ea66f51b9166723f4131f13324",
+        "004-done": "3c76d2ea66f51b9166723f4131f13324",
+        "005-done": "f5ec91635764c3f44ceaa1d9b4d2ed00",
+        "006-done": "dec0b1901c36613f859262625a1b016c",
+        "007-done": "dec0b1901c36613f859262625a1b016c",
+        "008-done": "70cf0efd0c971bd6fa275652cea7a217",
+        "009-done": "025ce98270f1383d8a78b55618191c4a"
+      }
     }
   }
 }

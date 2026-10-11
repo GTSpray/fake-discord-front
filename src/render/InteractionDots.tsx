@@ -1,5 +1,9 @@
-/** Points animés « interaction en cours » (message différé ou bouton). */
-export function InteractionDots({ variant = 'message' }: { variant?: 'message' | 'button' }) {
+/** Points animés « interaction en cours » (message différé, bouton ou select). */
+export function InteractionDots({
+  variant = 'message',
+}: {
+  variant?: 'message' | 'button' | 'select';
+}) {
   return (
     <span className={`interaction-dots interaction-dots--${variant}`} aria-hidden>
       <span />
