@@ -1,3 +1,4 @@
+import { indexEmojisById, resolveMessageReactions } from './emojiResolve.ts';
 import {
   resolveApplyState,
   resolveEphemeral,
@@ -9,6 +10,7 @@ import type { Scenario } from './scenarioTypes.ts';
 import type {
   Author,
   ChannelMessage,
+  CustomEmoji,
   DiscordComponent,
   EphemeralLayer,
   InteractionData,
@@ -68,11 +70,18 @@ function collectInteractionData(urls: Set<string>, data?: InteractionData) {
   collectComponents(urls, data.components);
 }
 
-function collectMessage(urls: Set<string>, message?: ChannelMessage) {
+function collectMessage(
+  urls: Set<string>,
+  message?: ChannelMessage,
+  emojiById: Map<string, CustomEmoji> = new Map(),
+) {
   if (!message) return;
   collectAuthor(urls, message.author);
   collectAuthor(urls, message.slashInvocation?.user);
   collectInteractionData(urls, message.interaction?.data);
+  for (const reaction of resolveMessageReactions(message.reactions, emojiById)) {
+    add(urls, reaction.url);
+  }
 }
 
 function collectEphemeral(urls: Set<string>, ephemeral?: EphemeralLayer | null) {
@@ -90,6 +99,7 @@ function collectModal(urls: Set<string>, modal?: ModalLayer | null) {
 /** Collecte toutes les URLs d’images HTTP(S) utilisées pendant un scénario. */
 export function collectScenarioImageUrls(scenario: Scenario): string[] {
   const urls = new Set<string>();
+  const emojiById = indexEmojisById(scenario.emojis);
 
   collectChrome(urls, resolveScenarioChrome(scenario));
   for (const emoji of scenario.emojis ?? []) add(urls, emoji.url);
@@ -98,7 +108,7 @@ export function collectScenarioImageUrls(scenario: Scenario): string[] {
     switch (action.type) {
       case 'pressEnter': {
         if (action.userMessage) {
-          collectMessage(urls, resolveUserMessage(action.userMessage));
+          collectMessage(urls, resolveUserMessage(action.userMessage), emojiById);
         }
         break;
       }
@@ -111,7 +121,7 @@ export function collectScenarioImageUrls(scenario: Scenario): string[] {
       case 'applyState': {
         const applied = resolveApplyState(action);
         if (applied.chrome) collectChrome(urls, applied.chrome);
-        for (const msg of applied.messages) collectMessage(urls, msg);
+        for (const msg of applied.messages) collectMessage(urls, msg, emojiById);
         collectEphemeral(urls, applied.ephemeral);
         collectModal(urls, applied.modal);
         break;

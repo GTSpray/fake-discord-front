@@ -2,9 +2,12 @@ import {
   DiscordCommand,
   DiscordMessage,
   DiscordMessages,
+  DiscordReaction,
+  DiscordReactions,
   DiscordReply,
 } from '@skyra/discord-components-react';
 import { useEffect, useRef } from 'react';
+import { resolveMessageReactions } from '../lib/emojiResolve.ts';
 import type { ChannelMessage, EphemeralLayer } from '../lib/types.ts';
 import type { PendingBotReply } from '../lib/scenarioTypes.ts';
 import { BotPendingReplyMessage } from './BotPendingReply.tsx';
@@ -14,6 +17,7 @@ import { Markdown } from './markdown.tsx';
 import { SkyraMarkdown } from './skyraMarkdown.tsx';
 import { skyraAuthorProps, skyraCommand, defaultBotProps } from './skyraAuthor.ts';
 import { skyraTimestampProps } from '../lib/skyraTimestamp.ts';
+import { useEmojiRegistry } from './useEmojiRegistry.ts';
 
 function SkyraMessageItem({
   message,
@@ -24,9 +28,19 @@ function SkyraMessageItem({
   highlightedButton?: string | null;
   loadingButton?: string | null;
 }) {
-  const { author, content, timestamp, deletedReply, slashInvocation, interaction, ephemeral } =
-    message;
+  const {
+    author,
+    content,
+    timestamp,
+    deletedReply,
+    slashInvocation,
+    interaction,
+    ephemeral,
+    reactions,
+  } = message;
   const Content = ephemeral ? SkyraMarkdown : Markdown;
+  const emojiById = useEmojiRegistry();
+  const resolvedReactions = resolveMessageReactions(reactions, emojiById);
 
   return (
     <DiscordMessage
@@ -50,6 +64,19 @@ function SkyraMessageItem({
           loadingButton={loadingButton}
           useSkyraMarkdown={Boolean(ephemeral)}
         />
+      )}
+      {resolvedReactions.length > 0 && (
+        <DiscordReactions slot="reactions">
+          {resolvedReactions.map((reaction) => (
+            <DiscordReaction
+              key={`${reaction.name}:${reaction.url}`}
+              emoji={reaction.url}
+              name={reaction.name}
+              count={reaction.count}
+              reacted={reaction.reacted || undefined}
+            />
+          ))}
+        </DiscordReactions>
       )}
     </DiscordMessage>
   );

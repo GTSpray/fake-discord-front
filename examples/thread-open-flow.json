@@ -246,7 +246,11 @@
               "color": "#57F287"
             },
             "content": "Thanks, I'll keep an eye on those.",
-            "timestamp": "14:12"
+            "timestamp": "14:12",
+            "reactions": [
+              { "emoji": "👍", "count": 12 },
+              { "emoji": "👌", "count": 5, "reacted": true }
+            ]
           }
         ]
       }

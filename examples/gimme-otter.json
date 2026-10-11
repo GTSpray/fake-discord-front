@@ -98,6 +98,114 @@
         ]
       },
       "holdMs": 2000
+    },
+    {
+      "type": "wait",
+      "ms": 1100
+    },
+    {
+      "type": "applyState",
+      "layers": {
+        "messages": [
+          {
+            "author": {
+              "name": "Bot",
+              "bot": true
+            },
+            "timestamp": "14:10",
+            "slashInvocation": {
+              "user": {
+                "name": "You"
+              },
+              "command": "gimme otter"
+            },
+            "interaction": {
+              "type": 4,
+              "data": {
+                "flags": 32768,
+                "components": [
+                  {
+                    "type": 10,
+                    "content": "Voilà.. ce que j'ai trouvé"
+                  },
+                  {
+                    "type": 14,
+                    "divider": true,
+                    "spacing": 1
+                  },
+                  {
+                    "type": 12,
+                    "items": [
+                      {
+                        "description": "otter",
+                        "media": {
+                          "url": "https://placehold.co/400x300/png?text=Otter"
+                        }
+                      }
+                    ]
+                  }
+                ]
+              }
+            },
+            "reactions": [{ "emoji": "🦦", "count": 1 }]
+          }
+        ]
+      },
+      "holdMs": 0
+    },
+    {
+      "type": "wait",
+      "ms": 1000
+    },
+    {
+      "type": "applyState",
+      "layers": {
+        "messages": [
+          {
+            "author": {
+              "name": "Bot",
+              "bot": true
+            },
+            "timestamp": "14:10",
+            "slashInvocation": {
+              "user": {
+                "name": "You"
+              },
+              "command": "gimme otter"
+            },
+            "interaction": {
+              "type": 4,
+              "data": {
+                "flags": 32768,
+                "components": [
+                  {
+                    "type": 10,
+                    "content": "Voilà.. ce que j'ai trouvé"
+                  },
+                  {
+                    "type": 14,
+                    "divider": true,
+                    "spacing": 1
+                  },
+                  {
+                    "type": 12,
+                    "items": [
+                      {
+                        "description": "otter",
+                        "media": {
+                          "url": "https://placehold.co/400x300/png?text=Otter"
+                        }
+                      }
+                    ]
+                  }
+                ]
+              }
+            },
+            "reactions": [{ "emoji": "🦦", "count": 3 }]
+          }
+        ]
+      },
+      "holdMs": 0
     }
   ],
   "output": {
