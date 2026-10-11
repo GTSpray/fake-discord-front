@@ -51,7 +51,6 @@ export function resolveReactionEmoji(
 ): { url: string; name: string } | null {
   const custom = CUSTOM_EMOJI_MENTION.exec(emoji);
   if (custom) {
-    const name = custom[2];
     const id = custom[3];
     const resolved = emojiById.get(id);
     if (!resolved) return null;

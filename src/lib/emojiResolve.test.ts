@@ -63,9 +63,7 @@ describe('resolveMessageReactions', () => {
   });
 
   it('preserves count and reacted when set', () => {
-    expect(
-      resolveMessageReactions([{ emoji: '👍', count: 3, reacted: true }], new Map()),
-    ).toEqual([
+    expect(resolveMessageReactions([{ emoji: '👍', count: 3, reacted: true }], new Map())).toEqual([
       {
         url: 'https://cdn.jsdelivr.net/gh/twitter/twemoji@14.0.2/assets/72x72/1f44d.png',
         name: '👍',
