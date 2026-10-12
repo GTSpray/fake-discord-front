@@ -215,13 +215,6 @@ async function disableRuntimeAnimations(page) {
       .scenario-cursor-host {
         display: none !important;
       }
-      /* Brand focus borders AA-flicker (±1–2 RGB) and break step MD5 hashes. */
-      .modal-input:focus,
-      .modal-textarea:focus,
-      .modal-field-control--focused,
-      .modal-select.modal-field-control--focused {
-        border-color: var(--border-subtle) !important;
-      }
       /* Thread rail chips — same class of subpixel AA flake as reactions. */
       .channel-item--thread,
       .channel-item--thread .channel-item__label,

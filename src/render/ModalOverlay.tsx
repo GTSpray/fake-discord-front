@@ -247,10 +247,17 @@ function AnimatedModalInput({
   }, [value]);
 
   useEffect(() => {
-    if (!focused) return;
     const field = hostRef.current?.querySelector('input, textarea') as
       HTMLInputElement | HTMLTextAreaElement | null;
-    field?.focus({ preventScroll: true });
+    if (!field) return;
+    if (focused) {
+      field.focus({ preventScroll: true });
+      return;
+    }
+    // Clear native :focus ring when playback moves focus to a select/other field.
+    if (document.activeElement === field) {
+      field.blur();
+    }
   }, [focused, value]);
 
   const fieldClass = `${type === 'paragraph' ? 'modal-textarea' : 'modal-input'}${

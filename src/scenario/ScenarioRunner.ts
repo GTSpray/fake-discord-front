@@ -802,13 +802,12 @@ export class ScenarioRunner {
       const values = Object.fromEntries(
         fieldIds.map((fieldId) => [fieldId, String(targetValues[fieldId] ?? '')]),
       );
-      // Skip focus ring: Chromium AA on the brand border flakes step MD5s.
       this.patch({
         modal: {
           ...this.state.modal,
           values,
           roleDisplay: source.roleDisplay ?? this.state.modal.roleDisplay,
-          focusedField: null,
+          focusedField: fieldIds[fieldIds.length - 1] ?? null,
         },
       });
       return;
@@ -870,7 +869,7 @@ export class ScenarioRunner {
           },
           openSelectField: null,
           selectOptions: undefined,
-          focusedField: this.captureStepMode ? null : action.field,
+          focusedField: action.field,
         },
       });
     };
@@ -880,14 +879,13 @@ export class ScenarioRunner {
       return;
     }
 
-    // 1. Curseur vers le select fermé → clic
+    // 1. Curseur vers le select fermé (le champ texte garde le focus jusqu’au clic)
     this.patch({
       cursorTarget: cursorTargetModalSelect(action.field),
       highlightedButton: null,
       loadingButton: null,
       modal: {
         ...this.state.modal,
-        focusedField: null,
         openSelectField: null,
         selectOptions: undefined,
       },
@@ -896,7 +894,7 @@ export class ScenarioRunner {
 
     if (!this.state.modal) return;
 
-    // 2. Au moment du clic : focus + ouverture des options (curseur reste sur l’input)
+    // 2. Au clic : le texte perd le focus, le select s’ouvre
     this.patch({
       cursorTarget: cursorTargetModalSelect(action.field),
       modal: {

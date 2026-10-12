@@ -529,12 +529,23 @@ describe('ScenarioRunner', () => {
               components: [
                 {
                   type: 18,
+                  label: 'Titre',
+                  component: { type: 4, custom_id: 'title', style: 1, required: true },
+                },
+                {
+                  type: 18,
                   label: 'Role des sondés',
                   component: { type: 6, custom_id: 'role', required: false },
                 },
               ],
             },
           },
+        },
+        {
+          type: 'fillModal',
+          values: { title: 'Hi' },
+          msPerField: 10,
+          delayBeforeFieldMs: 0,
         },
         {
           type: 'selectModalOption',
@@ -550,6 +561,7 @@ describe('ScenarioRunner', () => {
     );
 
     const cursorTargets: Array<string | null> = [];
+    const focusedSequence: Array<string | null | undefined> = [];
     const openWhileFocused: Array<{
       open: string | null | undefined;
       focused: string | null | undefined;
@@ -559,8 +571,11 @@ describe('ScenarioRunner', () => {
       if (target !== cursorTargets[cursorTargets.length - 1]) {
         cursorTargets.push(target);
       }
-      const open = snapshot.state.modal?.openSelectField;
       const focused = snapshot.state.modal?.focusedField;
+      if (focused !== focusedSequence[focusedSequence.length - 1]) {
+        focusedSequence.push(focused);
+      }
+      const open = snapshot.state.modal?.openSelectField;
       const last = openWhileFocused[openWhileFocused.length - 1];
       if (!last || last.open !== open || last.focused !== focused) {
         openWhileFocused.push({ open, focused });
@@ -576,13 +591,15 @@ describe('ScenarioRunner', () => {
     expect(cursorTargets.indexOf('__modalSelect:role')).toBeLessThan(
       cursorTargets.indexOf('__modalSelectOption:@Modérateurs'),
     );
+    // Text focus stays until the select click, then moves (no early clear, no double ring).
+    expect(focusedSequence).toEqual(['title', 'role']);
     expect(openWhileFocused).toContainEqual({ open: 'role', focused: 'role' });
     expect(runner.getState().modal?.roleDisplay).toEqual({ role: '@Modérateurs' });
     expect(runner.getState().modal?.openSelectField).toBeNull();
     expect(runner.getState().modal?.focusedField).toBe('role');
   });
 
-  it('skips modal focus rings in capture_steps mode', async () => {
+  it('keeps modal focus rings in capture_steps mode', async () => {
     vi.stubGlobal('location', { search: '?capture_steps=1' });
 
     const runner = new ScenarioRunner(
@@ -634,7 +651,7 @@ describe('ScenarioRunner', () => {
 
     expect(runner.getState().modal?.values).toEqual({ title: 'Repas' });
     expect(runner.getState().modal?.roleDisplay).toEqual({ role: 'Staff' });
-    expect(runner.getState().modal?.focusedField).toBeNull();
+    expect(runner.getState().modal?.focusedField).toBe('role');
 
     vi.unstubAllGlobals();
   });
