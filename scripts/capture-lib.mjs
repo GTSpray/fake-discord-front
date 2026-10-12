@@ -22,6 +22,18 @@ export const DEFAULT_BASE_URL = process.env.CAPTURE_BASE_URL ?? 'http://127.0.0.
 export const DEFAULT_VIEWPORT = { width: 1280, height: 720 };
 export const UPLOAD_SCENARIO_STORAGE_KEY = 'doc-studio-scenario-upload';
 
+/** Chromium flags that reduce subpixel/LCD AA flake in step PNG MD5s. */
+export const CAPTURE_BROWSER_ARGS = [
+  '--disable-lcd-text',
+  '--disable-font-subpixel-positioning',
+  '--force-device-scale-factor=1',
+  '--font-render-hinting=none',
+];
+
+export function launchCaptureBrowser() {
+  return chromium.launch({ args: CAPTURE_BROWSER_ARGS });
+}
+
 export function readScenarioFile(filePath) {
   const absFile = resolve(process.cwd(), filePath);
   try {
@@ -75,30 +87,81 @@ function installCaptureClockInPage(fixedIso) {
 
 async function waitForCaptureReady(page) {
   await page.evaluate('document.fonts.ready');
-  await page.waitForFunction(
-    `() => {
-      const root = document.querySelector('[data-capture-root]');
-      if (!root) return false;
-      return [...root.querySelectorAll('img')].every(
-        (img) => img.complete && img.naturalWidth > 0,
-      );
-    }`,
-    undefined,
-    { timeout: 15_000 },
-  );
+  await page.waitForFunction(captureImagesReadyExpression(), undefined, { timeout: 15_000 });
+}
+
+/** Collect <img> in light DOM + open shadow roots (Skyra reactions use Twemoji <img>). */
+function captureImagesReadyExpression() {
+  return `() => {
+    const root = document.querySelector('[data-capture-root]');
+    if (!root) return false;
+    const images = [];
+    const visit = (node) => {
+      if (node.querySelectorAll) images.push(...node.querySelectorAll('img'));
+      for (const el of node.querySelectorAll?.('*') ?? []) {
+        if (el.shadowRoot) visit(el.shadowRoot);
+      }
+    };
+    visit(root);
+    return images.every((img) => img.complete && img.naturalWidth > 0);
+  }`;
+}
+
+/**
+ * Stabilize flaky chrome for MD5 step hashes:
+ * - Skyra reaction chips: square radius + pixel-snap (gimme-otter#010)
+ * - Thread rows in the channel rail: pixel-snap (thread-open-flow#001)
+ */
+async function stabilizeShadowDomForCapture(page) {
+  await page.evaluate(() => {
+    const attr = 'data-capture-stabilize';
+    const css = `
+      *, *::before, *::after {
+        animation: none !important;
+        transition: none !important;
+      }
+      :host > *:first-child {
+        border-radius: 0 !important;
+      }
+      :host img {
+        image-rendering: pixelated !important;
+      }
+    `;
+
+    const snap = (el) => {
+      el.style.removeProperty('transform');
+      const rect = el.getBoundingClientRect();
+      const dx = Math.round(rect.x) - rect.x;
+      const dy = Math.round(rect.y) - rect.y;
+      if (dx !== 0 || dy !== 0) {
+        el.style.transform = `translate(${dx}px, ${dy}px)`;
+      }
+    };
+
+    for (const host of document.querySelectorAll('discord-reaction')) {
+      const shadow = host.shadowRoot;
+      if (shadow && !shadow.querySelector(`[${attr}]`)) {
+        const style = document.createElement('style');
+        style.setAttribute(attr, '');
+        style.textContent = css;
+        shadow.appendChild(style);
+      }
+      snap(host);
+    }
+
+    for (const el of document.querySelectorAll(
+      '[data-scenario-thread], .channel-item--thread, .channel-item--active',
+    )) {
+      snap(el);
+    }
+  });
 }
 
 async function waitForStepCaptureReady(page) {
   await page.evaluate('document.fonts.ready');
+  await page.waitForFunction(captureImagesReadyExpression(), undefined, { timeout: 15_000 });
   await page.waitForFunction(
     `() => {
-      const root = document.querySelector('[data-capture-root]');
-      if (!root) return false;
-      const imagesReady = [...root.querySelectorAll('img')].every(
-        (img) => img.complete && img.naturalWidth > 0,
-      );
-      if (!imagesReady) return false;
-
       const modalHost = document.querySelector('.skyra-modal-host');
       if (!modalHost) return true;
 
@@ -114,7 +177,26 @@ async function waitForStepCaptureReady(page) {
     undefined,
     { timeout: 15_000 },
   );
-  await page.waitForTimeout(200);
+  // React commits after ScenarioRunner emits completedActionIndex. Under parallel
+  // capture load, discord-reaction hosts can appear a frame late — wait for their
+  // Twemoji <img> before we snap/screenshot (empty img list would otherwise pass).
+  await page.waitForFunction(
+    `() => {
+      const groups = document.querySelectorAll('discord-reactions');
+      for (const group of groups) {
+        const reactions = group.querySelectorAll('discord-reaction');
+        if (reactions.length === 0) return false;
+        for (const host of reactions) {
+          const img = host.shadowRoot?.querySelector('img');
+          if (!img?.complete || img.naturalWidth === 0) return false;
+        }
+      }
+      return true;
+    }`,
+    undefined,
+    { timeout: 15_000 },
+  );
+  await page.waitForTimeout(100);
 }
 
 async function disableRuntimeAnimations(page) {
@@ -136,6 +218,17 @@ async function disableRuntimeAnimations(page) {
       .modal-field-control--focused,
       .modal-select.modal-field-control--focused {
         border-color: var(--border-subtle) !important;
+      }
+      /* Thread rail chips — same class of subpixel AA flake as reactions. */
+      .channel-item--thread,
+      .channel-item--thread .channel-item__label,
+      .channel-item__thread-spine {
+        border-radius: 0 !important;
+      }
+      /* MediaGallery 12px corners AA-flicker ~4 pixels (gimme-otter#010). */
+      .cv2-media-gallery img,
+      .cv2-media-gallery--single img {
+        border-radius: 0 !important;
       }
     `,
   });
@@ -164,6 +257,12 @@ async function captureStepPngHashes(page, timeoutMs = 120_000) {
       if (player.completedActionIndex > lastCompletedStep) {
         const stepKey = `${String(player.completedActionIndex).padStart(3, '0')}-done`;
         await waitForStepCaptureReady(page);
+        // Snap/square reactions immediately before the shot (late React/Lit
+        // commits can undo transforms if we stabilize too early).
+        await stabilizeShadowDomForCapture(page);
+        await page.evaluate(
+          () => new Promise((r) => requestAnimationFrame(() => requestAnimationFrame(r))),
+        );
         const png = await root.screenshot();
         stepHashes[stepKey] = md5Buffer(png);
         lastCompletedStep = player.completedActionIndex;
@@ -818,7 +917,7 @@ export async function captureScenario({
   mkdirSync(outDir, { recursive: true });
 
   const ownsBrowser = !browser;
-  const activeBrowser = browser ?? (await chromium.launch());
+  const activeBrowser = browser ?? (await launchCaptureBrowser());
   const formats = recordVideo ? resolveVideoFormats(videoFormat) : [];
   const outputs = { png: null, video: null, videos: [], stepHashes: null };
 

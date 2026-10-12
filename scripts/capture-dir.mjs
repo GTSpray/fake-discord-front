@@ -12,11 +12,11 @@
 import { existsSync, readdirSync } from 'node:fs';
 import { join, resolve } from 'node:path';
 import { parseArgs } from 'node:util';
-import { chromium } from 'playwright';
 import {
   captureScenario,
   DEFAULT_BASE_URL,
   DEFAULT_VIDEO_FORMAT,
+  launchCaptureBrowser,
   logCaptureOutputs,
   readScenarioFile,
   resolveVideoFormats,
@@ -75,7 +75,7 @@ if (values.format?.length) {
 }
 
 async function captureDirectory() {
-  const browser = await chromium.launch();
+  const browser = await launchCaptureBrowser();
 
   try {
     console.log(`Capturing ${files.length} file(s) from ${dirArg}/`);

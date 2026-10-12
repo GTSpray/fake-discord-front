@@ -18,11 +18,11 @@ import { dirname, join, relative, resolve } from 'node:path';
 import { setTimeout as sleep } from 'node:timers/promises';
 import { fileURLToPath } from 'node:url';
 import { parseArgs } from 'node:util';
-import { chromium } from 'playwright';
 import {
   captureScenario,
   DEFAULT_BASE_URL,
   ensureBuilt,
+  launchCaptureBrowser,
   readScenarioFile,
   logCaptureOutputs,
 } from './capture-lib.mjs';
@@ -479,7 +479,7 @@ async function captureSnapshots() {
 
   try {
     previewProc = await startPreviewServer(requestedBaseUrl);
-    browser = await chromium.launch();
+    browser = await launchCaptureBrowser();
 
     const useTempDir = refreshMode || verifyMode;
     const recordVideo = refreshMode || (!verifyMode && !values['no-video']);
