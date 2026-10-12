@@ -915,6 +915,8 @@ export async function captureScenario({
   videoFormat = DEFAULT_VIDEO_FORMAT,
   saveFinalPng = true,
   captureStepHashes = false,
+  /** When false, leave the raw screencast WebM for the caller to encode later. */
+  encodeVideo = true,
   browser,
 }) {
   mkdirSync(outDir, { recursive: true });
@@ -922,94 +924,90 @@ export async function captureScenario({
   const ownsBrowser = !browser;
   const activeBrowser = browser ?? (await launchCaptureBrowser());
   const formats = recordVideo ? resolveVideoFormats(videoFormat) : [];
-  const outputs = { png: null, video: null, videos: [], stepHashes: null };
+  const outputs = {
+    png: null,
+    video: null,
+    videos: [],
+    stepHashes: null,
+    rawWebm: null,
+  };
 
   try {
     // Step hashes need capture_steps (no typing). Video needs full playback.
-    // When both are requested, run them in parallel on separate browser contexts.
-    const passes = [];
-
+    // Run sequentially: parallel passes + sync ffmpeg starved sibling screencasts
+    // (Node event loop blocked → truncated GIFs under snapshot concurrency).
     if (captureStepHashes) {
-      passes.push(
-        (async () => {
-          const hashContext = await createCaptureContext(activeBrowser, { scenario });
-          try {
-            const hashPage = await hashContext.newPage();
-            outputs.stepHashes = await playScenarioCapture(hashPage, {
-              baseUrl,
-              captureSteps: true,
-            });
-            if (saveFinalPng && !recordVideo) {
-              const pngPath = join(outDir, `${prefix}.png`);
-              await hashPage.locator('[data-capture-root]').screenshot({ path: pngPath });
-              outputs.png = pngPath;
-            }
-          } finally {
-            await hashContext.close();
-          }
-        })(),
-      );
+      const hashContext = await createCaptureContext(activeBrowser, { scenario });
+      try {
+        const hashPage = await hashContext.newPage();
+        outputs.stepHashes = await playScenarioCapture(hashPage, {
+          baseUrl,
+          captureSteps: true,
+        });
+        if (saveFinalPng && !recordVideo) {
+          const pngPath = join(outDir, `${prefix}.png`);
+          await hashPage.locator('[data-capture-root]').screenshot({ path: pngPath });
+          outputs.png = pngPath;
+        }
+      } finally {
+        await hashContext.close();
+      }
     }
 
-    // Play pass: video and/or final PNG when the hash pass will not write one.
-    const needPlayPass = recordVideo || (saveFinalPng && !captureStepHashes);
+    const needPlayPass = recordVideo || (saveFinalPng && !outputs.png);
     if (needPlayPass) {
-      passes.push(
-        (async () => {
-          const playContext = await createCaptureContext(activeBrowser, { scenario });
-          const playPage = await playContext.newPage();
-          // Raw Playwright screencast — never the final webm output (stabilize rewrites that).
-          const rawWebmPath = recordVideo ? join(outDir, `.${prefix}.screencast.webm`) : null;
-          let screencastStarted = false;
+      const playContext = await createCaptureContext(activeBrowser, { scenario });
+      const playPage = await playContext.newPage();
+      // Raw Playwright screencast — never the final webm output (stabilize rewrites that).
+      const rawWebmPath = recordVideo ? join(outDir, `.${prefix}.screencast.webm`) : null;
+      let screencastStarted = false;
 
-          try {
-            // record=1 arms a gate: page loads fully, then waits until we start the screencast.
-            await prepareScenarioPage(playPage, {
-              baseUrl,
-              captureSteps: false,
-              autoplay: true,
-              record: recordVideo,
-            });
+      try {
+        // record=1 arms a gate: page loads fully, then waits until we start the screencast.
+        await prepareScenarioPage(playPage, {
+          baseUrl,
+          captureSteps: false,
+          autoplay: true,
+          record: recordVideo,
+        });
 
-            if (recordVideo) {
-              await playPage.waitForFunction(
-                'window.__SCENARIO_CAPTURE_ARMED__ === true',
-                undefined,
-                { timeout: 15_000 },
-              );
-              await playPage.screencast.start({
-                path: rawWebmPath,
-                size: DEFAULT_VIEWPORT,
-              });
-              screencastStarted = true;
-              await playPage.evaluate('window.__SCENARIO_CAPTURE_BEGIN__()');
-            }
+        if (recordVideo) {
+          await playPage.waitForFunction('window.__SCENARIO_CAPTURE_ARMED__ === true', undefined, {
+            timeout: 15_000,
+          });
+          await playPage.screencast.start({
+            path: rawWebmPath,
+            size: DEFAULT_VIEWPORT,
+          });
+          screencastStarted = true;
+          await playPage.evaluate('window.__SCENARIO_CAPTURE_BEGIN__()');
+        }
 
-            await waitForPlaybackDone(playPage);
+        await waitForPlaybackDone(playPage);
 
-            if (saveFinalPng && !outputs.png) {
-              const pngPath = join(outDir, `${prefix}.png`);
-              await playPage.locator('[data-capture-root]').screenshot({ path: pngPath });
-              outputs.png = pngPath;
-            }
-          } finally {
-            if (screencastStarted) {
-              await playPage.screencast.stop();
-            }
-            await playContext.close();
-          }
+        if (saveFinalPng && !outputs.png) {
+          const pngPath = join(outDir, `${prefix}.png`);
+          await playPage.locator('[data-capture-root]').screenshot({ path: pngPath });
+          outputs.png = pngPath;
+        }
+      } finally {
+        if (screencastStarted) {
+          await playPage.screencast.stop();
+        }
+        await playContext.close();
+      }
 
-          if (recordVideo && rawWebmPath && existsSync(rawWebmPath)) {
-            outputs.videos = encodeCaptureVideos(rawWebmPath, formats, (format) =>
-              join(outDir, `${prefix}.${format}`),
-            );
-            outputs.video = outputs.videos[0] ?? null;
-          }
-        })(),
-      );
+      if (recordVideo && rawWebmPath && existsSync(rawWebmPath)) {
+        if (encodeVideo) {
+          outputs.videos = encodeCaptureVideos(rawWebmPath, formats, (format) =>
+            join(outDir, `${prefix}.${format}`),
+          );
+          outputs.video = outputs.videos[0] ?? null;
+        } else {
+          outputs.rawWebm = rawWebmPath;
+        }
+      }
     }
-
-    await Promise.all(passes);
   } finally {
     if (ownsBrowser) {
       await activeBrowser.close();

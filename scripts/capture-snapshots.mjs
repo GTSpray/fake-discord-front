@@ -21,6 +21,7 @@ import { parseArgs } from 'node:util';
 import {
   captureScenario,
   DEFAULT_BASE_URL,
+  encodeCaptureVideos,
   ensureBuilt,
   launchCaptureBrowser,
   readScenarioFile,
@@ -314,7 +315,12 @@ async function captureAllExamples({
   concurrency,
 }) {
   const currentScenarios = {};
+  /** @type {Array<{ id: string, rawWebm: string }>} */
+  const pendingEncodes = [];
 
+  // Record screencasts in parallel, but encode GIFs afterward. Sync ffmpeg
+  // (execFileSync) blocks the Node event loop and drops frames from sibling
+  // Playwright screencasts still in flight.
   await mapPool(entries, concurrency, async ({ relPath, id, scenario }) => {
     console.log(`→ ${relPath} (${id})`);
     const outputs = await captureScenario({
@@ -326,15 +332,29 @@ async function captureAllExamples({
       videoFormat: 'gif',
       saveFinalPng: false,
       captureStepHashes: true,
+      encodeVideo: false,
       browser,
     });
     currentScenarios[id] = { steps: outputs.stepHashes ?? {} };
-    if (!useTempDir) {
+    if (outputs.rawWebm) {
+      pendingEncodes.push({ id, rawWebm: outputs.rawWebm });
+    }
+    if (!useTempDir && !recordVideo) {
       logCaptureOutputs(root, outputs);
-    } else if (outputs.video) {
-      console.log(`  · ${id}.gif (temp)`);
     }
   });
+
+  for (const { id, rawWebm } of pendingEncodes) {
+    console.log(`  · encoding ${id}.gif…`);
+    const videos = encodeCaptureVideos(rawWebm, ['gif'], (format) =>
+      join(outDir, `${id}.${format}`),
+    );
+    if (!useTempDir) {
+      logCaptureOutputs(root, { png: null, video: videos[0] ?? null, videos });
+    } else if (videos[0]) {
+      console.log(`  · ${id}.gif (temp)`);
+    }
+  }
 
   return currentScenarios;
 }

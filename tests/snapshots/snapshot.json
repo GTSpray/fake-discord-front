@@ -2,6 +2,18 @@
   "algorithm": "md5",
   "artifact": "step-png",
   "scenarios": {
+    "gimme-emoji": {
+      "steps": {
+        "000-done": "2b5f1d83cfcf18c2ddcd6e69bf11f990",
+        "001-done": "0ee3ee0a83b22b9eb7c6217a83280e09",
+        "002-done": "132bbfd79b20c6bbcfeada1c072ac21e",
+        "003-done": "a2d6a8ae53c38da0e63d9ac2d003c38b",
+        "004-done": "37c8d5261e5a0695db2e7e3b105074b3",
+        "005-done": "37c8d5261e5a0695db2e7e3b105074b3",
+        "006-done": "a1ce1dd0bbb29105e8edfb2bfe7ba75e",
+        "007-done": "d9ac2ecc5eb31d951672de72f805076e"
+      }
+    },
     "say-hello-flow": {
       "steps": {
         "000-done": "77c1f5de3b84b83c9a059984ea53ebf4",
@@ -18,18 +30,6 @@
         "011-done": "0ad79e739d68ecbca8aa2d8d02d10aec"
       }
     },
-    "gimme-emoji": {
-      "steps": {
-        "000-done": "2b5f1d83cfcf18c2ddcd6e69bf11f990",
-        "001-done": "0ee3ee0a83b22b9eb7c6217a83280e09",
-        "002-done": "132bbfd79b20c6bbcfeada1c072ac21e",
-        "003-done": "a2d6a8ae53c38da0e63d9ac2d003c38b",
-        "004-done": "37c8d5261e5a0695db2e7e3b105074b3",
-        "005-done": "37c8d5261e5a0695db2e7e3b105074b3",
-        "006-done": "a1ce1dd0bbb29105e8edfb2bfe7ba75e",
-        "007-done": "d9ac2ecc5eb31d951672de72f805076e"
-      }
-    },
     "gimme-otter": {
       "steps": {
         "000-done": "d87912d66e9c598d84512dcbf54870d1",
@@ -43,6 +43,13 @@
         "008-done": "cb7ba484697ffe805bc7124fa9e94248",
         "009-done": "cb7ba484697ffe805bc7124fa9e94248",
         "010-done": "19ea4e4d01cfb7d5111995aaa79c9e92"
+      }
+    },
+    "thread-open-flow": {
+      "steps": {
+        "000-done": "396359909132c66a92fffae9e89bd375",
+        "001-done": "396359909132c66a92fffae9e89bd375",
+        "002-done": "3dec139ea69eaf115b1cf54e5e9e1a1b"
       }
     },
     "poll-moderator-flow": {
@@ -64,13 +71,6 @@
         "014-done": "375693a6ca613b4f809c595f3ee76adf",
         "015-done": "29d17855565e3ad609c76e95b5d5e994",
         "016-done": "0e6104b2cefe6973dc3295d339c23e02"
-      }
-    },
-    "thread-open-flow": {
-      "steps": {
-        "000-done": "396359909132c66a92fffae9e89bd375",
-        "001-done": "396359909132c66a92fffae9e89bd375",
-        "002-done": "3dec139ea69eaf115b1cf54e5e9e1a1b"
       }
     },
     "trigger-select-flow": {
