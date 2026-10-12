@@ -113,7 +113,9 @@ function captureImagesReadyExpression() {
  * - Thread rows in the channel rail: pixel-snap (thread-open-flow#001)
  */
 async function stabilizeShadowDomForCapture(page) {
+  // Function body runs in the browser (Playwright), not Node.
   await page.evaluate(() => {
+    /* eslint-disable no-undef -- browser realm via page.evaluate */
     const attr = 'data-capture-stabilize';
     const css = `
       *, *::before, *::after {
@@ -154,6 +156,7 @@ async function stabilizeShadowDomForCapture(page) {
     )) {
       snap(el);
     }
+    /* eslint-enable no-undef */
   });
 }
 
@@ -261,7 +264,7 @@ async function captureStepPngHashes(page, timeoutMs = 120_000) {
         // commits can undo transforms if we stabilize too early).
         await stabilizeShadowDomForCapture(page);
         await page.evaluate(
-          () => new Promise((r) => requestAnimationFrame(() => requestAnimationFrame(r))),
+          `() => new Promise((r) => requestAnimationFrame(() => requestAnimationFrame(r)))`,
         );
         const png = await root.screenshot();
         stepHashes[stepKey] = md5Buffer(png);
