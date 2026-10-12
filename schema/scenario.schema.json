@@ -352,6 +352,7 @@
         { "$ref": "#/$defs/FillModalAction" },
         { "$ref": "#/$defs/SubmitModalAction" },
         { "$ref": "#/$defs/SelectModalOptionAction" },
+        { "$ref": "#/$defs/SelectMessageOptionAction" },
         { "$ref": "#/$defs/ShowEphemeralAction" },
         { "$ref": "#/$defs/ClickButtonAction" },
         { "$ref": "#/$defs/ClickThreadAction" },
@@ -528,6 +529,24 @@
           "minItems": 1,
           "items": { "$ref": "#/$defs/ModalSelectOption" },
           "description": "Options affichées une fois le select ouvert"
+        }
+      }
+    },
+    "SelectMessageOptionAction": {
+      "type": "object",
+      "required": ["type", "field", "option"],
+      "additionalProperties": false,
+      "properties": {
+        "type": { "const": "selectMessageOption" },
+        "field": {
+          "type": "string",
+          "minLength": 1,
+          "description": "custom_id du StringSelect dans le message / éphémère"
+        },
+        "option": {
+          "type": "string",
+          "minLength": 1,
+          "description": "Label de l’option à sélectionner"
         }
       }
     },

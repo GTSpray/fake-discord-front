@@ -33,6 +33,8 @@ import { DEFAULT_BOT_NAME, resolveViewer } from '../lib/types.ts';
 import { formatSkyraClockTime } from '../lib/skyraTimestamp.ts';
 import {
   CURSOR_TARGET_MODAL_SUBMIT,
+  cursorTargetMessageSelect,
+  cursorTargetMessageSelectOption,
   cursorTargetModalSelect,
   cursorTargetModalSelectOption,
   cursorTargetThread,
@@ -115,6 +117,9 @@ export function createInitialState(scenario: Scenario): PlaybackState {
     highlightedButton: null,
     loadingButton: null,
     cursorTarget: null,
+    openMessageSelect: null,
+    loadingMessageSelect: null,
+    messageSelectValues: {},
     pendingBotReply: null,
   };
 }
@@ -467,6 +472,10 @@ export class ScenarioRunner {
         await this.selectModalOption(action, signal);
         break;
 
+      case 'selectMessageOption':
+        await this.selectMessageOption(action, signal);
+        break;
+
       case 'showEphemeral': {
         const ephemeral = resolveEphemeral(action);
         this.patch({
@@ -476,6 +485,8 @@ export class ScenarioRunner {
           pendingBotReply: null,
           loadingButton: null,
           modalSubmitting: false,
+          openMessageSelect: null,
+          loadingMessageSelect: null,
         });
         break;
       }
@@ -529,6 +540,8 @@ export class ScenarioRunner {
           highlightedButton: null,
           loadingButton: null,
           cursorTarget: null,
+          openMessageSelect: null,
+          loadingMessageSelect: null,
           pendingBotReply: null,
         });
         if (action.holdMs && !this.captureStepMode) await sleep(action.holdMs, signal);
@@ -866,14 +879,13 @@ export class ScenarioRunner {
       return;
     }
 
-    // 1. Curseur vers le select fermé → clic
+    // 1. Curseur vers le select fermé (le champ texte garde le focus jusqu’au clic)
     this.patch({
       cursorTarget: cursorTargetModalSelect(action.field),
       highlightedButton: null,
       loadingButton: null,
       modal: {
         ...this.state.modal,
-        focusedField: null,
         openSelectField: null,
         selectOptions: undefined,
       },
@@ -882,7 +894,7 @@ export class ScenarioRunner {
 
     if (!this.state.modal) return;
 
-    // 2. Au moment du clic : focus + ouverture des options (curseur reste sur l’input)
+    // 2. Au clic : le texte perd le focus, le select s’ouvre
     this.patch({
       cursorTarget: cursorTargetModalSelect(action.field),
       modal: {
@@ -901,6 +913,65 @@ export class ScenarioRunner {
     await runCursorClick(signal);
     applySelection();
     await sleep(220, signal);
+  }
+
+  private async selectMessageOption(
+    action: Extract<ScenarioAction, { type: 'selectMessageOption' }>,
+    signal: AbortSignal,
+  ) {
+    const applySelection = (loading: boolean) => {
+      this.patch({
+        cursorTarget: null,
+        openMessageSelect: null,
+        loadingMessageSelect: loading ? action.field : null,
+        messageSelectValues: {
+          ...this.state.messageSelectValues,
+          [action.field]: action.option,
+        },
+      });
+    };
+
+    if (this.captureStepMode) {
+      const next = this.nextAction();
+      applySelection(Boolean(next && this.isBotResponseAction(next)));
+      if (next && this.isBotResponseAction(next)) {
+        await this.awaitBotResponse(signal, this.getResponseDelayMs(next));
+      }
+      return;
+    }
+
+    // 1. Curseur vers le select fermé → clic
+    this.patch({
+      cursorTarget: cursorTargetMessageSelect(action.field),
+      highlightedButton: null,
+      loadingButton: null,
+      loadingMessageSelect: null,
+      openMessageSelect: null,
+    });
+    await runCursorClick(signal);
+
+    // 2. Ouverture des options (curseur reste sur le select)
+    this.patch({
+      cursorTarget: cursorTargetMessageSelect(action.field),
+      openMessageSelect: action.field,
+    });
+    await sleep(400, signal);
+
+    // 3. Curseur vers l’option → clic → valeur + loader (comme Discord)
+    this.patch({
+      cursorTarget: cursorTargetMessageSelectOption(action.option),
+    });
+    await runCursorClick(signal);
+    applySelection(true);
+    await sleep(220, signal);
+
+    const next = this.nextAction();
+    if (next && this.isBotResponseAction(next)) {
+      await this.awaitBotResponse(signal, this.getResponseDelayMs(next));
+    } else {
+      // Garder le loader visible un moment si aucune réponse bot ne suit
+      await sleep(this.scenario.defaults?.botResponseMs ?? DEFAULT_BOT_RESPONSE_MS, signal);
+    }
   }
 }
 

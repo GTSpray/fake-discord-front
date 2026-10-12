@@ -109,10 +109,10 @@
     {
       "type": "selectModalOption",
       "field": "role",
-      "option": "P'titPoteDev",
+      "option": "Staff",
       "options": [
         { "label": "Dev", "memberCount": 1 },
-        { "label": "P'titPoteDev", "memberCount": 1 }
+        { "label": "Staff", "memberCount": 1 }
       ]
     },
     {

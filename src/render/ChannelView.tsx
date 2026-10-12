@@ -23,10 +23,16 @@ function SkyraMessageItem({
   message,
   highlightedButton,
   loadingButton,
+  openMessageSelect,
+  loadingMessageSelect,
+  messageSelectValues,
 }: {
   message: ChannelMessage;
   highlightedButton?: string | null;
   loadingButton?: string | null;
+  openMessageSelect?: string | null;
+  loadingMessageSelect?: string | null;
+  messageSelectValues?: Record<string, string>;
 }) {
   const {
     author,
@@ -62,6 +68,9 @@ function SkyraMessageItem({
           data={interaction.data}
           highlightedButton={highlightedButton}
           loadingButton={loadingButton}
+          openMessageSelect={openMessageSelect}
+          loadingMessageSelect={loadingMessageSelect}
+          messageSelectValues={messageSelectValues}
           useSkyraMarkdown={Boolean(ephemeral)}
         />
       )}
@@ -86,10 +95,16 @@ function SkyraEphemeralMessage({
   ephemeral,
   highlightedButton,
   loadingButton,
+  openMessageSelect,
+  loadingMessageSelect,
+  messageSelectValues,
 }: {
   ephemeral: EphemeralLayer;
   highlightedButton?: string | null;
   loadingButton?: string | null;
+  openMessageSelect?: string | null;
+  loadingMessageSelect?: string | null;
+  messageSelectValues?: Record<string, string>;
 }) {
   if (ephemeral.type !== 4 || !ephemeral.data) return null;
 
@@ -110,6 +125,9 @@ function SkyraEphemeralMessage({
         data={ephemeral.data}
         highlightedButton={highlightedButton}
         loadingButton={loadingButton}
+        openMessageSelect={openMessageSelect}
+        loadingMessageSelect={loadingMessageSelect}
+        messageSelectValues={messageSelectValues}
         useSkyraMarkdown
       />
     </DiscordMessage>
@@ -139,6 +157,9 @@ export function ChannelView({
   pendingBotReply,
   highlightedButton,
   loadingButton,
+  openMessageSelect,
+  loadingMessageSelect,
+  messageSelectValues,
   guildName,
   showWelcome = true,
   threadIntro,
@@ -148,6 +169,9 @@ export function ChannelView({
   pendingBotReply?: PendingBotReply | null;
   highlightedButton?: string | null;
   loadingButton?: string | null;
+  openMessageSelect?: string | null;
+  loadingMessageSelect?: string | null;
+  messageSelectValues?: Record<string, string>;
   guildName?: string;
   channelName?: string;
   showWelcome?: boolean;
@@ -195,6 +219,9 @@ export function ChannelView({
               message={msg}
               highlightedButton={highlightedButton}
               loadingButton={loadingButton}
+              openMessageSelect={openMessageSelect}
+              loadingMessageSelect={loadingMessageSelect}
+              messageSelectValues={messageSelectValues}
             />
           ))}
           {pendingBotReply && <BotPendingReplyMessage pending={pendingBotReply} />}
@@ -203,6 +230,9 @@ export function ChannelView({
               ephemeral={ephemeral}
               highlightedButton={highlightedButton}
               loadingButton={loadingButton}
+              openMessageSelect={openMessageSelect}
+              loadingMessageSelect={loadingMessageSelect}
+              messageSelectValues={messageSelectValues}
             />
           )}
         </DiscordMessages>

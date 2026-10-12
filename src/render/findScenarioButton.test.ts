@@ -3,6 +3,8 @@ import {
   buttonCenter,
   clearModalSelectOptionHover,
   CURSOR_TARGET_MODAL_SUBMIT,
+  cursorTargetMessageSelect,
+  cursorTargetMessageSelectOption,
   cursorTargetModalSelect,
   cursorTargetModalSelectOption,
   cursorTargetThread,
@@ -143,6 +145,25 @@ describe('findScenarioButton', () => {
     );
   });
 
+  it('finds message select controls and options by data attributes', () => {
+    const select = document.createElement('button');
+    select.setAttribute('data-scenario-select', 'trigger-action');
+    select.getBoundingClientRect = () => new DOMRect(100, 300, 280, 40);
+
+    const option = document.createElement('div');
+    option.setAttribute('data-scenario-select-option', "Voir l'aide");
+    option.getBoundingClientRect = () => new DOMRect(100, 220, 280, 36);
+
+    document.body.append(select, option);
+
+    expect(findScenarioClickTargetRect(cursorTargetMessageSelect('trigger-action'))).toEqual(
+      new DOMRect(100, 300, 280, 40),
+    );
+    expect(findScenarioClickTargetRect(cursorTargetMessageSelectOption("Voir l'aide"))).toEqual(
+      new DOMRect(100, 220, 280, 36),
+    );
+  });
+
   it('finds a sidebar thread by data-scenario-thread', () => {
     const captureRoot = document.createElement('div');
     captureRoot.setAttribute('data-capture-root', '');
@@ -164,7 +185,7 @@ describe('findScenarioButton', () => {
     first.getBoundingClientRect = () => new DOMRect(80, 170, 240, 32);
 
     const second = document.createElement('div');
-    second.setAttribute('data-modal-select-option', "P'titPoteDev");
+    second.setAttribute('data-modal-select-option', 'Staff');
     second.getBoundingClientRect = () => new DOMRect(80, 210, 240, 32);
 
     document.body.append(first, second);
@@ -175,6 +196,19 @@ describe('findScenarioButton', () => {
 
     clearModalSelectOptionHover();
     expect(second.classList.contains('modal-select-option--hovered')).toBe(false);
+  });
+
+  it('applies hover on message select options', () => {
+    const option = document.createElement('div');
+    option.setAttribute('data-scenario-select-option', "Voir l'aide");
+    option.getBoundingClientRect = () => new DOMRect(100, 200, 240, 36);
+    document.body.append(option);
+
+    syncModalSelectOptionHover(120, 210);
+    expect(option.classList.contains('message-string-select-option--hovered')).toBe(true);
+
+    clearModalSelectOptionHover();
+    expect(option.classList.contains('message-string-select-option--hovered')).toBe(false);
   });
 
   it('finds modal Submit outside [data-capture-root] (portal to body)', () => {

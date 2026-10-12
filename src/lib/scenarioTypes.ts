@@ -79,6 +79,13 @@ export type ScenarioAction =
       options: ModalSelectOption[];
     }
   | {
+      type: 'selectMessageOption';
+      /** custom_id du StringSelect dans le message / éphémère */
+      field: string;
+      /** Label de l’option à sélectionner */
+      option: string;
+    }
+  | {
       type: 'showEphemeral';
       ephemeral: EphemeralLayer;
       responseDelayMs?: number;
@@ -153,6 +160,12 @@ export interface PlaybackState {
   loadingButton: string | null;
   /** Runtime — bouton ciblé par le curseur animé */
   cursorTarget: string | null;
+  /** Runtime — custom_id du StringSelect ouvert dans un message */
+  openMessageSelect: string | null;
+  /** Runtime — custom_id du StringSelect en chargement (points à droite) */
+  loadingMessageSelect: string | null;
+  /** Runtime — label sélectionné par custom_id de StringSelect message */
+  messageSelectValues: Record<string, string>;
   /** Message bot différé pendant l’attente de réponse */
   pendingBotReply: PendingBotReply | null;
 }

@@ -450,6 +450,73 @@ describe('ScenarioRunner', () => {
     });
   });
 
+  it('opens a message select with the cursor then picks an option', async () => {
+    const runner = new ScenarioRunner(
+      makeScenario([
+        {
+          type: 'showEphemeral',
+          ephemeral: {
+            type: 4,
+            data: {
+              flags: 64,
+              content: 'Que veux-tu faire ?',
+              components: [
+                {
+                  type: 1,
+                  components: [
+                    {
+                      type: 3,
+                      custom_id: 'trigger-action',
+                      placeholder: 'Choisis une action...',
+                      options: [
+                        { label: 'Créer', value: 'create' },
+                        { label: "Voir l'aide", value: 'help' },
+                      ],
+                    },
+                  ],
+                },
+              ],
+            },
+          },
+        },
+        {
+          type: 'selectMessageOption',
+          field: 'trigger-action',
+          option: "Voir l'aide",
+        },
+      ]),
+    );
+
+    const cursorTargets: Array<string | null> = [];
+    const openFields: Array<string | null> = [];
+    runner.subscribe((snapshot) => {
+      const target = snapshot.state.cursorTarget;
+      if (target !== cursorTargets[cursorTargets.length - 1]) {
+        cursorTargets.push(target);
+      }
+      const open = snapshot.state.openMessageSelect;
+      if (open !== openFields[openFields.length - 1]) {
+        openFields.push(open);
+      }
+    });
+
+    const playPromise = runner.play();
+    await vi.runAllTimersAsync();
+    await playPromise;
+
+    expect(cursorTargets).toContain('__messageSelect:trigger-action');
+    expect(cursorTargets).toContain("__messageSelectOption:Voir l'aide");
+    expect(cursorTargets.indexOf('__messageSelect:trigger-action')).toBeLessThan(
+      cursorTargets.indexOf("__messageSelectOption:Voir l'aide"),
+    );
+    expect(openFields).toContain('trigger-action');
+    expect(runner.getState().openMessageSelect).toBeNull();
+    expect(runner.getState().loadingMessageSelect).toBe('trigger-action');
+    expect(runner.getState().messageSelectValues).toEqual({
+      'trigger-action': "Voir l'aide",
+    });
+  });
+
   it('opens a modal select with the cursor then picks an option', async () => {
     const runner = new ScenarioRunner(
       makeScenario([
@@ -462,12 +529,23 @@ describe('ScenarioRunner', () => {
               components: [
                 {
                   type: 18,
+                  label: 'Titre',
+                  component: { type: 4, custom_id: 'title', style: 1, required: true },
+                },
+                {
+                  type: 18,
                   label: 'Role des sondés',
                   component: { type: 6, custom_id: 'role', required: false },
                 },
               ],
             },
           },
+        },
+        {
+          type: 'fillModal',
+          values: { title: 'Hi' },
+          msPerField: 10,
+          delayBeforeFieldMs: 0,
         },
         {
           type: 'selectModalOption',
@@ -483,6 +561,7 @@ describe('ScenarioRunner', () => {
     );
 
     const cursorTargets: Array<string | null> = [];
+    const focusedSequence: Array<string | null | undefined> = [];
     const openWhileFocused: Array<{
       open: string | null | undefined;
       focused: string | null | undefined;
@@ -492,8 +571,11 @@ describe('ScenarioRunner', () => {
       if (target !== cursorTargets[cursorTargets.length - 1]) {
         cursorTargets.push(target);
       }
-      const open = snapshot.state.modal?.openSelectField;
       const focused = snapshot.state.modal?.focusedField;
+      if (focused !== focusedSequence[focusedSequence.length - 1]) {
+        focusedSequence.push(focused);
+      }
+      const open = snapshot.state.modal?.openSelectField;
       const last = openWhileFocused[openWhileFocused.length - 1];
       if (!last || last.open !== open || last.focused !== focused) {
         openWhileFocused.push({ open, focused });
@@ -509,10 +591,69 @@ describe('ScenarioRunner', () => {
     expect(cursorTargets.indexOf('__modalSelect:role')).toBeLessThan(
       cursorTargets.indexOf('__modalSelectOption:@Modérateurs'),
     );
+    // Text focus stays until the select click, then moves (no early clear, no double ring).
+    expect(focusedSequence).toEqual(['title', 'role']);
     expect(openWhileFocused).toContainEqual({ open: 'role', focused: 'role' });
     expect(runner.getState().modal?.roleDisplay).toEqual({ role: '@Modérateurs' });
     expect(runner.getState().modal?.openSelectField).toBeNull();
     expect(runner.getState().modal?.focusedField).toBe('role');
+  });
+
+  it('keeps modal focus rings in capture_steps mode', async () => {
+    vi.stubGlobal('location', { search: '?capture_steps=1' });
+
+    const runner = new ScenarioRunner(
+      makeScenario([
+        {
+          type: 'openModal',
+          modal: {
+            type: 9,
+            data: {
+              title: 'Créer un sondage',
+              components: [
+                {
+                  type: 18,
+                  label: 'Titre',
+                  component: { type: 4, custom_id: 'title', style: 1, required: true },
+                },
+                {
+                  type: 18,
+                  label: 'Role',
+                  component: { type: 6, custom_id: 'role', required: false },
+                },
+              ],
+            },
+          },
+        },
+        {
+          type: 'fillModal',
+          values: { title: 'Repas' },
+          msPerField: 10,
+          delayBeforeFieldMs: 0,
+        },
+        {
+          type: 'selectModalOption',
+          field: 'role',
+          option: 'Staff',
+          options: [{ label: 'Staff', memberCount: 1 }],
+        },
+      ]),
+    );
+
+    // capture_steps pauses after each action until __SCENARIO_CAPTURE_NEXT_STEP__
+    const playPromise = runner.play();
+    await vi.advanceTimersByTimeAsync(0);
+    for (let i = 0; i < 3; i++) {
+      window.__SCENARIO_CAPTURE_NEXT_STEP__?.();
+      await vi.advanceTimersByTimeAsync(0);
+    }
+    await playPromise;
+
+    expect(runner.getState().modal?.values).toEqual({ title: 'Repas' });
+    expect(runner.getState().modal?.roleDisplay).toEqual({ role: 'Staff' });
+    expect(runner.getState().modal?.focusedField).toBe('role');
+
+    vi.unstubAllGlobals();
   });
 
   it('shows loading on modal submit but not a pending reply', async () => {

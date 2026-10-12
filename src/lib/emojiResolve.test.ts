@@ -3,6 +3,7 @@ import {
   indexEmojisById,
   resolveMessageReactions,
   resolveReactionEmoji,
+  resolveSelectOptionEmoji,
   twemojiUrl,
 } from './emojiResolve.ts';
 import type { CustomEmoji } from './types.ts';
@@ -87,5 +88,35 @@ describe('resolveMessageReactions', () => {
         reacted: false,
       },
     ]);
+  });
+});
+
+describe('resolveSelectOptionEmoji', () => {
+  const byId = indexEmojisById(customEmojis);
+
+  it('returns empty for missing emoji', () => {
+    expect(resolveSelectOptionEmoji(undefined, byId)).toEqual({});
+  });
+
+  it('passes through a unicode string', () => {
+    expect(resolveSelectOptionEmoji('🔥', byId)).toEqual({ emoji: '🔥', emojiName: '🔥' });
+  });
+
+  it('uses unicode name when no id', () => {
+    expect(resolveSelectOptionEmoji({ name: '🔥' }, byId)).toEqual({
+      emoji: '🔥',
+      emojiName: '🔥',
+    });
+  });
+
+  it('resolves custom emoji by id from the registry', () => {
+    expect(resolveSelectOptionEmoji({ id: '123456789', name: 'otter' }, byId)).toEqual({
+      emoji: 'https://cdn.example/otter.png',
+      emojiName: 'otter',
+    });
+  });
+
+  it('skips unresolved custom emoji ids', () => {
+    expect(resolveSelectOptionEmoji({ id: 'missing', name: 'x' }, byId)).toEqual({});
   });
 });

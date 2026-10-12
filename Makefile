@@ -19,6 +19,7 @@ endif
 DOCKER_RUN = docker run --rm $(DOCKER_USER) \
 	-e HOME=/tmp \
 	-e npm_config_cache=/tmp/.npm \
+	-e SNAPSHOT_CONCURRENCY \
 	-v "$(CURDIR):/app" \
 	-w /app \
 	$(DOCKER_IMAGE)
@@ -39,7 +40,7 @@ help:
 	@echo "  make lint                  ESLint (in Docker)"
 	@echo "  make format-check          Prettier check (in Docker)"
 	@echo "  make validate              Validate example JSON files"
-	@echo "  make snapshots-refresh     Refresh snapshots (exit 0 if none, 1 if updated; max 2 retries)"
+	@echo "  make snapshots-refresh     Refresh snapshots (parallel; exit 0 if none, 1 if updated)"
 	@echo "  make ci                    Run lint-ci, test-ci, and snapshots-refresh"
 	@echo "  make lint-ci               format:check + lint (CI job)"
 	@echo "  make test-ci               validate + build + test (CI job)"

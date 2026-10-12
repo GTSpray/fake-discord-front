@@ -4,11 +4,31 @@ const CUSTOM_EMOJI_MENTION = /^<(a?):([a-zA-Z0-9_]+):(\d+)>$/;
 
 const TWEMOJI_CDN = 'https://cdn.jsdelivr.net/gh/twitter/twemoji@14.0.2/assets/72x72';
 
+export type SelectOptionEmoji = string | { id?: string | null; name?: string; animated?: boolean };
+
 export interface ResolvedMessageReaction {
   url: string;
   name: string;
   count: number;
   reacted: boolean;
+}
+
+/** Resolve a Discord select option emoji for Skyra (URL or unicode glyph). */
+export function resolveSelectOptionEmoji(
+  emoji: SelectOptionEmoji | undefined,
+  emojiById: Map<string, CustomEmoji>,
+): { emoji?: string; emojiName?: string } {
+  if (!emoji) return {};
+  if (typeof emoji === 'string') {
+    return { emoji, emojiName: emoji };
+  }
+  if (emoji.id) {
+    const resolved = emojiById.get(emoji.id);
+    if (resolved) return { emoji: resolved.url, emojiName: resolved.name };
+    return {};
+  }
+  if (emoji.name) return { emoji: emoji.name, emojiName: emoji.name };
+  return {};
 }
 
 export function indexEmojisById(emojis: CustomEmoji[] | undefined): Map<string, CustomEmoji> {
