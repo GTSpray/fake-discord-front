@@ -8,11 +8,12 @@
  *   npm run snapshots -- --no-video
  *   npm run snapshots:check
  *   npm run snapshots:verify
- *   CAPTURE_BASE_URL=http://127.0.0.1:4173 npm run snapshots
+ *   npm run snapshots:refresh -- --concurrency 4
+ *   SNAPSHOT_CONCURRENCY=4 CAPTURE_BASE_URL=http://127.0.0.1:4173 npm run snapshots
  */
 import { spawn } from 'node:child_process';
 import { copyFileSync, existsSync, mkdtempSync, readdirSync, rmSync } from 'node:fs';
-import { tmpdir } from 'node:os';
+import { availableParallelism, tmpdir } from 'node:os';
 import { dirname, join, relative, resolve } from 'node:path';
 import { setTimeout as sleep } from 'node:timers/promises';
 import { fileURLToPath } from 'node:url';
@@ -50,6 +51,9 @@ const verifyReportPath = join(snapshotsDir, VERIFY_REPORT_FILENAME);
 /** Retries after a first hash mismatch, to filter capture flakiness. */
 const MAX_SNAPSHOT_RETRIES = 2;
 
+/** Default: min(example count, CPUs, 4) — keep CI RAM in check. */
+const DEFAULT_CONCURRENCY = Math.min(4, Math.max(1, availableParallelism()));
+
 const { values } = parseArgs({
   options: {
     'no-video': { type: 'boolean', default: false },
@@ -58,6 +62,7 @@ const { values } = parseArgs({
     'check-only': { type: 'boolean', default: false },
     verify: { type: 'boolean', default: false },
     refresh: { type: 'boolean', default: false },
+    concurrency: { type: 'string' },
   },
 });
 
@@ -65,6 +70,34 @@ const requestedBaseUrl = values['base-url'] ?? DEFAULT_BASE_URL;
 const checkOnly = values['check-only'];
 const verifyMode = values.verify;
 const refreshMode = values.refresh;
+
+function resolveConcurrency(exampleCount) {
+  const raw = values.concurrency ?? process.env.SNAPSHOT_CONCURRENCY;
+  const parsed = raw !== undefined ? Number.parseInt(String(raw), 10) : DEFAULT_CONCURRENCY;
+  if (!Number.isFinite(parsed) || parsed < 1) {
+    throw new Error(`Invalid concurrency: ${raw}`);
+  }
+  return Math.min(parsed, Math.max(1, exampleCount));
+}
+
+/** Run `fn` over items with at most `concurrency` in flight. Preserves result order. */
+async function mapPool(items, concurrency, fn) {
+  const results = new Array(items.length);
+  let nextIndex = 0;
+
+  async function worker() {
+    while (true) {
+      const index = nextIndex;
+      nextIndex += 1;
+      if (index >= items.length) return;
+      results[index] = await fn(items[index], index);
+    }
+  }
+
+  const workers = Math.min(concurrency, items.length);
+  await Promise.all(Array.from({ length: workers }, () => worker()));
+  return results;
+}
 
 async function waitForServer(url, timeoutMs = 60_000) {
   const deadline = Date.now() + timeoutMs;
@@ -264,19 +297,30 @@ function finalizeComparison({ comparison, currentScenarios, updateSnapshot }) {
   return { exitCode: 0, evolvedIds: [] };
 }
 
-async function captureAllExamples({ browser, files, outDir, recordVideo, useTempDir }) {
-  const currentScenarios = {};
-
-  for (const file of files) {
+function listExampleEntries() {
+  return listExampleFiles().map((file) => {
     const relPath = join('examples', file);
     const { scenario } = readScenarioFile(relPath);
-    const prefix = scenario.id;
+    return { file, relPath, id: scenario.id, scenario };
+  });
+}
 
-    console.log(`→ ${relPath} (${scenario.id})`);
+async function captureAllExamples({
+  browser,
+  entries,
+  outDir,
+  recordVideo,
+  useTempDir,
+  concurrency,
+}) {
+  const currentScenarios = {};
+
+  await mapPool(entries, concurrency, async ({ relPath, id, scenario }) => {
+    console.log(`→ ${relPath} (${id})`);
     const outputs = await captureScenario({
       scenario,
       outDir,
-      prefix,
+      prefix: id,
       baseUrl: requestedBaseUrl,
       recordVideo,
       videoFormat: 'gif',
@@ -284,51 +328,70 @@ async function captureAllExamples({ browser, files, outDir, recordVideo, useTemp
       captureStepHashes: true,
       browser,
     });
-    currentScenarios[prefix] = { steps: outputs.stepHashes ?? {} };
+    currentScenarios[id] = { steps: outputs.stepHashes ?? {} };
     if (!useTempDir) {
       logCaptureOutputs(root, outputs);
     } else if (outputs.video) {
-      console.log(`  · ${prefix}.gif (temp)`);
+      console.log(`  · ${id}.gif (temp)`);
     }
-  }
+  });
 
   return currentScenarios;
 }
 
-async function captureWithRetries({ browser, files, baselineScenarios, recordVideo, useTempDir }) {
+async function captureWithRetries({
+  browser,
+  entries,
+  baselineScenarios,
+  recordVideo,
+  useTempDir,
+  concurrency,
+}) {
   let tempDir = null;
   try {
     const shouldRetry = refreshMode || verifyMode;
     let attempt = 0;
-
-    let currentScenarios = null;
+    /** @type {Record<string, { steps: Record<string, string> }>} */
+    let currentScenarios = {};
     let comparison = null;
+    let entriesToCapture = entries;
 
     while (true) {
-      removeTempDir(tempDir);
-      tempDir = useTempDir ? createCaptureTempDir() : null;
+      // Keep prior GIFs for scenarios not re-captured on retry (selective recapture).
+      if (!tempDir && useTempDir) {
+        tempDir = createCaptureTempDir();
+      } else if (!useTempDir) {
+        removeTempDir(tempDir);
+        tempDir = null;
+      }
       const outDir = tempDir ?? snapshotsDir;
 
       if (attempt === 0) {
         console.log(
           tempDir
-            ? `Capturing ${files.length} example(s) → ${tempDir}`
-            : `Capturing ${files.length} example(s) → tests/snapshots/`,
+            ? `Capturing ${entriesToCapture.length} example(s) (concurrency=${concurrency}) → ${tempDir}`
+            : `Capturing ${entriesToCapture.length} example(s) (concurrency=${concurrency}) → tests/snapshots/`,
         );
       } else {
         console.log(
-          `\nDiff instable détectée — retry ${attempt}/${MAX_SNAPSHOT_RETRIES} → ${tempDir ?? 'tests/snapshots/'}`,
+          `\nDiff instable détectée — retry ${attempt}/${MAX_SNAPSHOT_RETRIES} ` +
+            `(${entriesToCapture.map((e) => e.id).join(', ')}) → ${tempDir ?? 'tests/snapshots/'}`,
         );
       }
 
-      currentScenarios = await captureAllExamples({
+      const captured = await captureAllExamples({
         browser,
-        files,
+        entries: entriesToCapture,
         outDir,
         recordVideo,
         useTempDir,
+        concurrency,
       });
-      console.log(`\n${files.length} snapshot(s) hashed (attempt ${attempt + 1}).`);
+      currentScenarios = { ...currentScenarios, ...captured };
+      console.log(
+        `\n${entriesToCapture.length} snapshot(s) hashed (attempt ${attempt + 1}, ` +
+          `${Object.keys(currentScenarios).length} scenario(s) total).`,
+      );
 
       comparison = compareToBaseline(baselineScenarios, currentScenarios);
       if (!comparison.ok) {
@@ -353,6 +416,12 @@ async function captureWithRetries({ browser, files, baselineScenarios, recordVid
       console.log(
         `\nDiff vs baseline détectée (scénarios: ${comparison.evolvedIds.join(', ') || 'n/a'}).`,
       );
+      // Only re-capture evolved scenarios — others stay merged from prior attempts.
+      const evolved = new Set(comparison.evolvedIds);
+      entriesToCapture = entries.filter((entry) => evolved.has(entry.id));
+      if (entriesToCapture.length === 0) {
+        return { tempDir, currentScenarios, comparison, keepTemp: true };
+      }
       attempt += 1;
     }
   } catch (err) {
@@ -397,11 +466,12 @@ async function captureSnapshots() {
     throw new Error('dist/ is missing. Run npm run build or drop --skip-build.');
   }
 
-  const files = listExampleFiles();
-  if (files.length === 0) {
+  const entries = listExampleEntries();
+  if (entries.length === 0) {
     console.error(`No JSON examples found in ${examplesDir}`);
     process.exit(2);
   }
+  const concurrency = resolveConcurrency(entries.length);
 
   let previewProc;
   let browser;
@@ -416,10 +486,11 @@ async function captureSnapshots() {
 
     const result = await captureWithRetries({
       browser,
-      files,
+      entries,
       baselineScenarios,
       recordVideo,
       useTempDir,
+      concurrency,
     });
     tempDir = result.tempDir;
 
