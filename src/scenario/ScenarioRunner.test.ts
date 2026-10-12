@@ -582,6 +582,63 @@ describe('ScenarioRunner', () => {
     expect(runner.getState().modal?.focusedField).toBe('role');
   });
 
+  it('skips modal focus rings in capture_steps mode', async () => {
+    vi.stubGlobal('location', { search: '?capture_steps=1' });
+
+    const runner = new ScenarioRunner(
+      makeScenario([
+        {
+          type: 'openModal',
+          modal: {
+            type: 9,
+            data: {
+              title: 'Créer un sondage',
+              components: [
+                {
+                  type: 18,
+                  label: 'Titre',
+                  component: { type: 4, custom_id: 'title', style: 1, required: true },
+                },
+                {
+                  type: 18,
+                  label: 'Role',
+                  component: { type: 6, custom_id: 'role', required: false },
+                },
+              ],
+            },
+          },
+        },
+        {
+          type: 'fillModal',
+          values: { title: 'Repas' },
+          msPerField: 10,
+          delayBeforeFieldMs: 0,
+        },
+        {
+          type: 'selectModalOption',
+          field: 'role',
+          option: 'Staff',
+          options: [{ label: 'Staff', memberCount: 1 }],
+        },
+      ]),
+    );
+
+    // capture_steps pauses after each action until __SCENARIO_CAPTURE_NEXT_STEP__
+    const playPromise = runner.play();
+    await vi.advanceTimersByTimeAsync(0);
+    for (let i = 0; i < 3; i++) {
+      window.__SCENARIO_CAPTURE_NEXT_STEP__?.();
+      await vi.advanceTimersByTimeAsync(0);
+    }
+    await playPromise;
+
+    expect(runner.getState().modal?.values).toEqual({ title: 'Repas' });
+    expect(runner.getState().modal?.roleDisplay).toEqual({ role: 'Staff' });
+    expect(runner.getState().modal?.focusedField).toBeNull();
+
+    vi.unstubAllGlobals();
+  });
+
   it('shows loading on modal submit but not a pending reply', async () => {
     const runner = new ScenarioRunner(
       makeScenario(

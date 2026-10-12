@@ -802,12 +802,13 @@ export class ScenarioRunner {
       const values = Object.fromEntries(
         fieldIds.map((fieldId) => [fieldId, String(targetValues[fieldId] ?? '')]),
       );
+      // Skip focus ring: Chromium AA on the brand border flakes step MD5s.
       this.patch({
         modal: {
           ...this.state.modal,
           values,
           roleDisplay: source.roleDisplay ?? this.state.modal.roleDisplay,
-          focusedField: fieldIds[fieldIds.length - 1] ?? null,
+          focusedField: null,
         },
       });
       return;
@@ -869,7 +870,7 @@ export class ScenarioRunner {
           },
           openSelectField: null,
           selectOptions: undefined,
-          focusedField: action.field,
+          focusedField: this.captureStepMode ? null : action.field,
         },
       });
     };
