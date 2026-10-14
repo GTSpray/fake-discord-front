@@ -1193,6 +1193,50 @@ button {
   font-weight: 700;
 }
 
+/* ── Member join (Discord system welcome) ──────────────────── */
+.member-join {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+}
+
+.member-join discord-system-message {
+  width: 100%;
+  /* Spacing comes from discord-messages ::slotted — avoid double margin */
+  margin-top: 0 !important;
+}
+
+.member-join-wave {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  margin: 2px 0 4px calc(1em + 56px);
+  padding: 2px 16px 2px 2px;
+  min-height: 32px;
+  border: none;
+  border-radius: 8px;
+  background: #4e5058;
+  color: #dbdee1;
+  font-family: inherit;
+  font-size: 14px;
+  font-weight: 500;
+  line-height: 1.2;
+  cursor: default;
+  pointer-events: none;
+}
+
+.member-join-wave__icon {
+  width: 28px;
+  height: 28px;
+  border-radius: 4px;
+  flex-shrink: 0;
+  display: block;
+}
+
+.member-join-wave__label {
+  white-space: nowrap;
+}
+
 /* ── Skyra message integration ─────────────────────────────── */
 .channel-messages--skyra {
   padding: 0;

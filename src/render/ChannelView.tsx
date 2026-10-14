@@ -14,6 +14,7 @@ import { BotPendingReplyMessage } from './BotPendingReply.tsx';
 import { IconHash, IconThreads } from './discordIcons.tsx';
 import { InteractionBody } from './InteractionComponents.tsx';
 import { Markdown } from './markdown.tsx';
+import { MemberJoinMessage } from './MemberJoinMessage.tsx';
 import { SkyraMarkdown } from './skyraMarkdown.tsx';
 import { skyraAuthorProps, skyraCommand, defaultBotProps } from './skyraAuthor.ts';
 import { skyraTimestampProps } from '../lib/skyraTimestamp.ts';
@@ -213,17 +214,21 @@ export function ChannelView({
       {threadIntro && <ThreadIntro name={threadIntro.name} startedBy={threadIntro.startedBy} />}
       {(hasMessages || hasEphemeral || hasPending) && (
         <DiscordMessages noBackground>
-          {messages?.map((msg, i) => (
-            <SkyraMessageItem
-              key={i}
-              message={msg}
-              highlightedButton={highlightedButton}
-              loadingButton={loadingButton}
-              openMessageSelect={openMessageSelect}
-              loadingMessageSelect={loadingMessageSelect}
-              messageSelectValues={messageSelectValues}
-            />
-          ))}
+          {messages?.map((msg, i) =>
+            msg.system?.type === 'join' ? (
+              <MemberJoinMessage key={i} message={msg} />
+            ) : (
+              <SkyraMessageItem
+                key={i}
+                message={msg}
+                highlightedButton={highlightedButton}
+                loadingButton={loadingButton}
+                openMessageSelect={openMessageSelect}
+                loadingMessageSelect={loadingMessageSelect}
+                messageSelectValues={messageSelectValues}
+              />
+            ),
+          )}
           {pendingBotReply && <BotPendingReplyMessage pending={pendingBotReply} />}
           {ephemeral && !pendingBotReply?.ephemeral && (
             <SkyraEphemeralMessage

@@ -64,6 +64,21 @@ export interface MessageReaction {
   reacted?: boolean;
 }
 
+/** Discord system message overlay on a channel message (member join, …) */
+export interface SystemMessage {
+  type: 'join';
+  /** Show the wave CTA under the join message (default true) */
+  wave?: boolean;
+  /** Wave button label (default: « Fais coucou ! ») */
+  waveLabel?: string;
+}
+
+export const DEFAULT_MEMBER_JOIN_WAVE_LABEL = 'Fais coucou !';
+
+export function defaultMemberJoinContent(memberName: string): string {
+  return `Bienvenue, ${memberName}. Dis bonjour !`;
+}
+
 export interface ChannelMessage {
   author: Author;
   content?: string;
@@ -74,6 +89,8 @@ export interface ChannelMessage {
   slashInvocation?: SlashInvocation;
   interaction?: BotInteractionResponse;
   reactions?: MessageReaction[];
+  /** Discord system message (e.g. member join welcome) */
+  system?: SystemMessage;
 }
 
 export interface BotInteractionResponse {

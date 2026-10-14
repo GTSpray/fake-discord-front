@@ -219,9 +219,38 @@
           "type": "array",
           "items": { "$ref": "#/$defs/MessageReaction" },
           "description": "Réactions affichées sous le message"
+        },
+        "system": {
+          "$ref": "#/$defs/SystemMessage",
+          "description": "Message système Discord (ex. arrivée d’un membre)"
         }
       },
-      "oneOf": [{ "required": ["content"] }, { "required": ["interaction"] }]
+      "anyOf": [
+        { "required": ["content"] },
+        { "required": ["interaction"] },
+        { "required": ["system"] }
+      ]
+    },
+    "SystemMessage": {
+      "type": "object",
+      "required": ["type"],
+      "additionalProperties": false,
+      "properties": {
+        "type": {
+          "type": "string",
+          "const": "join",
+          "description": "Message d’arrivée membre (flèche verte + texte de bienvenue)"
+        },
+        "wave": {
+          "type": "boolean",
+          "default": true,
+          "description": "Affiche le bouton « Fais coucou ! » sous le message (défaut : true)"
+        },
+        "waveLabel": {
+          "type": "string",
+          "description": "Libellé du bouton wave (défaut : Fais coucou !)"
+        }
+      }
     },
     "BotInteractionResponse": {
       "type": "object",

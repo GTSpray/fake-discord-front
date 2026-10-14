@@ -129,7 +129,14 @@ ephemeral message (`field` = `custom_id`, `option` = label).
 4. Preview: `npm run dev` → upload the file in the browser.
 5. Capture: `npm run capture -- --file my-flow.json`
 
-Reference examples: `examples/poll-moderator-flow.json`, `examples/gimme-otter.json`.
+Reference examples: `examples/poll-moderator-flow.json`, `examples/gimme-otter.json`,
+`examples/member-join.json`.
+
+### Member join (system message)
+
+Channel messages may set `system: { "type": "join" }` (author = joining member).
+Optional `content` defaults to `Bienvenue, {name}. Dis bonjour !`. The wave CTA
+defaults on (`wave: false` to hide; `waveLabel` to override « Fais coucou ! »).
 
 ## Renderer priorities
 

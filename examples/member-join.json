@@ -1,0 +1,47 @@
+{
+  "$schema": "../schema/scenario.schema.json",
+  "id": "member-join",
+  "title": "Message système — arrivée d’un membre",
+  "chrome": {
+    "guild": {
+      "name": "Serveur de démo"
+    },
+    "channel": {
+      "name": "général",
+      "type": "text"
+    },
+    "viewer": {
+      "name": "Modo",
+      "status": "Online"
+    }
+  },
+  "actions": [
+    {
+      "type": "wait",
+      "ms": 800
+    },
+    {
+      "type": "applyState",
+      "holdMs": 4000,
+      "layers": {
+        "messages": [
+          {
+            "author": {
+              "name": "GTSpray"
+            },
+            "content": "Bienvenue, GTSpray. Dis bonjour !",
+            "timestamp": "15:00",
+            "system": {
+              "type": "join"
+            }
+          }
+        ]
+      }
+    }
+  ],
+  "output": {
+    "directory": "output",
+    "prefix": "member-join",
+    "video": true
+  }
+}
