@@ -4,10 +4,29 @@ import {
   DiscordOrderedList,
   DiscordUnorderedList,
 } from '@skyra/discord-components-react';
+import type { CustomEmoji } from '../lib/types.ts';
 import { parseBlocks } from './parseSkyraBlocks.ts';
+import { renderMarkdown } from './renderMarkdown.ts';
+import { useEmojiRegistry } from './useEmojiRegistry.ts';
+
+function InlineMarkdown({
+  content,
+  emojiById,
+}: {
+  content: string;
+  emojiById: Map<string, CustomEmoji>;
+}) {
+  return (
+    <span
+      className="discord-markdown"
+      dangerouslySetInnerHTML={{ __html: renderMarkdown(content, emojiById) }}
+    />
+  );
+}
 
 export function SkyraMarkdown({ content }: { content: string }) {
   const blocks = parseBlocks(content);
+  const emojiById = useEmojiRegistry();
 
   return (
     <>
@@ -16,16 +35,22 @@ export function SkyraMarkdown({ content }: { content: string }) {
           case 'header':
             return (
               <DiscordHeader key={i} level={block.level}>
-                {block.text}
+                <InlineMarkdown content={block.text} emojiById={emojiById} />
               </DiscordHeader>
             );
           case 'paragraph':
-            return <p key={i}>{block.text}</p>;
+            return (
+              <p key={i}>
+                <InlineMarkdown content={block.text} emojiById={emojiById} />
+              </p>
+            );
           case 'unordered':
             return (
               <DiscordUnorderedList key={i}>
                 {block.items.map((item, j) => (
-                  <DiscordListItem key={j}>{item}</DiscordListItem>
+                  <DiscordListItem key={j}>
+                    <InlineMarkdown content={item} emojiById={emojiById} />
+                  </DiscordListItem>
                 ))}
               </DiscordUnorderedList>
             );
@@ -34,11 +59,13 @@ export function SkyraMarkdown({ content }: { content: string }) {
               <DiscordOrderedList key={i} start={block.start}>
                 {block.items.map((item, j) => (
                   <DiscordListItem key={j}>
-                    {item.text}
+                    <InlineMarkdown content={item.text} emojiById={emojiById} />
                     {item.children && (
                       <DiscordUnorderedList>
                         {item.children.map((child, k) => (
-                          <DiscordListItem key={k}>{child}</DiscordListItem>
+                          <DiscordListItem key={k}>
+                            <InlineMarkdown content={child} emojiById={emojiById} />
+                          </DiscordListItem>
                         ))}
                       </DiscordUnorderedList>
                     )}
