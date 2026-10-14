@@ -52,6 +52,20 @@
         "002-done": "3dec139ea69eaf115b1cf54e5e9e1a1b"
       }
     },
+    "trigger-select-flow": {
+      "steps": {
+        "000-done": "77c1f5de3b84b83c9a059984ea53ebf4",
+        "001-done": "9321e989b591af86f6636ee94ecdb994",
+        "002-done": "9321e989b591af86f6636ee94ecdb994",
+        "003-done": "341d3d01efd09cd248524b2aa8018c0f",
+        "004-done": "341d3d01efd09cd248524b2aa8018c0f",
+        "005-done": "a5b03c99ded712307d4f5640cb66719f",
+        "006-done": "fa107073498a983a1fb7c0e7f64b7b35",
+        "007-done": "fa107073498a983a1fb7c0e7f64b7b35",
+        "008-done": "57c458339b2f91b3ab08842348d9d143",
+        "009-done": "60d4502c788c2c47061983dbb82db144"
+      }
+    },
     "poll-moderator-flow": {
       "steps": {
         "000-done": "77c1f5de3b84b83c9a059984ea53ebf4",
@@ -71,20 +85,6 @@
         "014-done": "375693a6ca613b4f809c595f3ee76adf",
         "015-done": "29d17855565e3ad609c76e95b5d5e994",
         "016-done": "0e6104b2cefe6973dc3295d339c23e02"
-      }
-    },
-    "trigger-select-flow": {
-      "steps": {
-        "000-done": "77c1f5de3b84b83c9a059984ea53ebf4",
-        "001-done": "9321e989b591af86f6636ee94ecdb994",
-        "002-done": "9321e989b591af86f6636ee94ecdb994",
-        "003-done": "341d3d01efd09cd248524b2aa8018c0f",
-        "004-done": "341d3d01efd09cd248524b2aa8018c0f",
-        "005-done": "a5b03c99ded712307d4f5640cb66719f",
-        "006-done": "fa107073498a983a1fb7c0e7f64b7b35",
-        "007-done": "fa107073498a983a1fb7c0e7f64b7b35",
-        "008-done": "ae6f3984de782689dcf41db1f7633128",
-        "009-done": "60d4502c788c2c47061983dbb82db144"
       }
     }
   }
