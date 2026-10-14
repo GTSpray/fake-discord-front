@@ -1,5 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import { parseBlocks } from './parseSkyraBlocks.ts';
+import { renderMarkdown } from './renderMarkdown.ts';
 
 describe('parseBlocks', () => {
   it('keeps consecutive numbered items in one ordered list', () => {
@@ -20,5 +21,13 @@ describe('parseBlocks', () => {
         ],
       },
     ]);
+  });
+
+  it('keeps bold markers in paragraph text for inline markdown', () => {
+    expect(parseBlocks('**Désactiver**\nQuel automatisme ?')).toEqual([
+      { kind: 'paragraph', text: '**Désactiver**' },
+      { kind: 'paragraph', text: 'Quel automatisme ?' },
+    ]);
+    expect(renderMarkdown('**Désactiver**')).toContain('<strong>Désactiver</strong>');
   });
 });
