@@ -135,8 +135,8 @@ Reference examples: `examples/poll-moderator-flow.json`, `examples/gimme-otter.j
 ### Member join (system message)
 
 Channel messages may set `system: { "type": "join" }` (author = joining member).
-Optional `content` defaults to `Bienvenue, {name}. Dis bonjour !`. The wave CTA
-defaults on (`wave: false` to hide; `waveLabel` to override « Fais coucou ! »).
+Optional `content` defaults to `Welcome, {name}. Say hi!`. The wave CTA defaults
+on (`wave: false` to hide; `waveLabel` to override « Wave to say hi! »).
 
 ## Renderer priorities
 

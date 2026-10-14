@@ -69,14 +69,14 @@ export interface SystemMessage {
   type: 'join';
   /** Show the wave CTA under the join message (default true) */
   wave?: boolean;
-  /** Wave button label (default: « Fais coucou ! ») */
+  /** Wave button label (default: « Wave to say hi! ») */
   waveLabel?: string;
 }
 
-export const DEFAULT_MEMBER_JOIN_WAVE_LABEL = 'Fais coucou !';
+export const DEFAULT_MEMBER_JOIN_WAVE_LABEL = 'Wave to say hi!';
 
 export function defaultMemberJoinContent(memberName: string): string {
-  return `Bienvenue, ${memberName}. Dis bonjour !`;
+  return `Welcome, ${memberName}. Say hi!`;
 }
 
 export interface ChannelMessage {

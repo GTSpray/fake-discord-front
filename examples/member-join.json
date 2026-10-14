@@ -1,17 +1,17 @@
 {
   "$schema": "../schema/scenario.schema.json",
   "id": "member-join",
-  "title": "Message système — arrivée d’un membre",
+  "title": "System message — member join",
   "chrome": {
     "guild": {
-      "name": "Serveur de démo"
+      "name": "Demo server"
     },
     "channel": {
-      "name": "général",
+      "name": "general",
       "type": "text"
     },
     "viewer": {
-      "name": "Modo",
+      "name": "Mod",
       "status": "Online"
     }
   },
@@ -29,7 +29,7 @@
             "author": {
               "name": "GTSpray"
             },
-            "content": "Bienvenue, GTSpray. Dis bonjour !",
+            "content": "Welcome, GTSpray. Say hi!",
             "timestamp": "15:00",
             "system": {
               "type": "join"

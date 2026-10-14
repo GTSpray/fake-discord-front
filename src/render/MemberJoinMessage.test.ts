@@ -4,14 +4,14 @@ import { highlightMemberName } from './MemberJoinMessage.tsx';
 
 describe('highlightMemberName', () => {
   it('wraps the member name in <i> for Skyra join styling', () => {
-    const nodes = highlightMemberName('Bienvenue, GTSpray. Dis bonjour !', 'GTSpray');
+    const nodes = highlightMemberName('Welcome, GTSpray. Say hi!', 'GTSpray');
     expect(nodes).toHaveLength(3);
-    expect(nodes[0]).toBe('Bienvenue, ');
+    expect(nodes[0]).toBe('Welcome, ');
     expect(nodes[1]).toEqual(createElement('i', { key: 'member-0' }, 'GTSpray'));
-    expect(nodes[2]).toBe('. Dis bonjour !');
+    expect(nodes[2]).toBe('. Say hi!');
   });
 
   it('returns the content unchanged when the name is absent', () => {
-    expect(highlightMemberName('Bienvenue !', 'GTSpray')).toEqual(['Bienvenue !']);
+    expect(highlightMemberName('Welcome!', 'GTSpray')).toEqual(['Welcome!']);
   });
 });
