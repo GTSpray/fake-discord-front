@@ -1,6 +1,6 @@
 import { createElement } from 'react';
 import { describe, expect, it } from 'vitest';
-import { highlightMemberName } from './MemberJoinMessage.tsx';
+import { highlightMemberName } from './highlightMemberName.tsx';
 
 describe('highlightMemberName', () => {
   it('wraps the member name in <i> for Skyra join styling', () => {

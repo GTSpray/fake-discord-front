@@ -3,7 +3,6 @@ import {
   DiscordReactions,
   DiscordSystemMessage,
 } from '@skyra/discord-components-react';
-import type { ReactNode } from 'react';
 import { resolveMessageReactions } from '../lib/emojiResolve.ts';
 import { DEFAULT_WAVE_STICKER } from '../lib/stickerResolve.ts';
 import {
@@ -12,23 +11,11 @@ import {
   type ChannelMessage,
 } from '../lib/types.ts';
 import { formatSkyraClockTime } from '../lib/skyraTimestamp.ts';
+import { highlightMemberName } from './highlightMemberName.tsx';
 import { StickerMedia } from './StickerMedia.tsx';
 import { useEmojiRegistry } from './useEmojiRegistry.ts';
 
-/** Highlight every occurrence of the member name the way Discord styles join mentions. */
-export function highlightMemberName(content: string, memberName: string): ReactNode[] {
-  if (!memberName) return [content];
-  const parts = content.split(memberName);
-  if (parts.length === 1) return [content];
-  const nodes: ReactNode[] = [];
-  parts.forEach((part, index) => {
-    if (part) nodes.push(part);
-    if (index < parts.length - 1) {
-      nodes.push(<i key={`member-${index}`}>{memberName}</i>);
-    }
-  });
-  return nodes;
-}
+export { highlightMemberName } from './highlightMemberName.tsx';
 
 export function MemberJoinMessage({
   message,
