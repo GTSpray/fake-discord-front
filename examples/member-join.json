@@ -11,29 +11,225 @@
       "type": "text"
     },
     "viewer": {
-      "name": "Mod",
+      "name": "Prey",
       "status": "Online"
     }
   },
   "actions": [
     {
       "type": "wait",
-      "ms": 800
+      "ms": 600
     },
     {
       "type": "applyState",
-      "holdMs": 4000,
+      "holdMs": 900,
       "layers": {
         "messages": [
           {
             "author": {
-              "name": "GTSpray"
+              "name": "Wumpus"
             },
-            "content": "Welcome, GTSpray. Say hi!",
+            "content": "Bienvenue, Wumpus. Dis bonjour !",
             "timestamp": "15:00",
             "system": {
-              "type": "join"
+              "type": "join",
+              "waveSticker": "wumpus_hello"
             }
+          }
+        ]
+      }
+    },
+    {
+      "type": "applyState",
+      "holdMs": 900,
+      "layers": {
+        "messages": [
+          {
+            "author": {
+              "name": "Wumpus"
+            },
+            "content": "Bienvenue, Wumpus. Dis bonjour !",
+            "timestamp": "15:00",
+            "system": {
+              "type": "join",
+              "waveSticker": "wumpus_hello"
+            }
+          },
+          {
+            "author": {
+              "name": "Nelly"
+            },
+            "content": "Bienvenue, Nelly. Dis bonjour !",
+            "timestamp": "15:01",
+            "system": {
+              "type": "join",
+              "waveSticker": "nelly_greetings"
+            }
+          }
+        ]
+      }
+    },
+    {
+      "type": "applyState",
+      "holdMs": 900,
+      "layers": {
+        "messages": [
+          {
+            "author": {
+              "name": "Wumpus"
+            },
+            "content": "Bienvenue, Wumpus. Dis bonjour !",
+            "timestamp": "15:00",
+            "system": {
+              "type": "join",
+              "waveSticker": "wumpus_hello"
+            }
+          },
+          {
+            "author": {
+              "name": "Nelly"
+            },
+            "content": "Bienvenue, Nelly. Dis bonjour !",
+            "timestamp": "15:01",
+            "system": {
+              "type": "join",
+              "waveSticker": "nelly_greetings"
+            }
+          },
+          {
+            "author": {
+              "name": "Clyde"
+            },
+            "content": "Bienvenue, Clyde. Dis bonjour !",
+            "timestamp": "15:02",
+            "system": {
+              "type": "join",
+              "waveSticker": "clyde_greetings"
+            }
+          }
+        ]
+      }
+    },
+    {
+      "type": "applyState",
+      "holdMs": 1200,
+      "layers": {
+        "messages": [
+          {
+            "author": {
+              "name": "Wumpus"
+            },
+            "content": "Bienvenue, Wumpus. Dis bonjour !",
+            "timestamp": "15:00",
+            "system": {
+              "type": "join",
+              "waveSticker": "wumpus_hello"
+            }
+          },
+          {
+            "author": {
+              "name": "Nelly"
+            },
+            "content": "Bienvenue, Nelly. Dis bonjour !",
+            "timestamp": "15:01",
+            "system": {
+              "type": "join",
+              "waveSticker": "nelly_greetings"
+            }
+          },
+          {
+            "author": {
+              "name": "Clyde"
+            },
+            "content": "Bienvenue, Clyde. Dis bonjour !",
+            "timestamp": "15:02",
+            "system": {
+              "type": "join",
+              "waveSticker": "clyde_greetings"
+            }
+          },
+          {
+            "author": {
+              "name": "Dogo"
+            },
+            "content": "Bienvenue, Dogo. Dis bonjour !",
+            "timestamp": "15:03",
+            "system": {
+              "type": "join",
+              "waveSticker": "sup_dogo"
+            }
+          }
+        ]
+      }
+    },
+    {
+      "type": "clickButton",
+      "label": "Fais coucou !"
+    },
+    {
+      "type": "applyState",
+      "holdMs": 2500,
+      "responseDelayMs": 400,
+      "layers": {
+        "messages": [
+          {
+            "author": {
+              "name": "Wumpus"
+            },
+            "content": "Bienvenue, Wumpus. Dis bonjour !",
+            "timestamp": "15:00",
+            "system": {
+              "type": "join",
+              "waveSticker": "wumpus_hello"
+            }
+          },
+          {
+            "author": {
+              "name": "Nelly"
+            },
+            "content": "Bienvenue, Nelly. Dis bonjour !",
+            "timestamp": "15:01",
+            "system": {
+              "type": "join",
+              "waveSticker": "nelly_greetings"
+            }
+          },
+          {
+            "author": {
+              "name": "Clyde"
+            },
+            "content": "Bienvenue, Clyde. Dis bonjour !",
+            "timestamp": "15:02",
+            "system": {
+              "type": "join",
+              "waveSticker": "clyde_greetings"
+            }
+          },
+          {
+            "author": {
+              "name": "Dogo"
+            },
+            "content": "Bienvenue, Dogo. Dis bonjour !",
+            "timestamp": "15:03",
+            "system": {
+              "type": "join",
+              "waveSticker": "sup_dogo"
+            }
+          },
+          {
+            "author": {
+              "name": "Prey"
+            },
+            "timestamp": "15:04",
+            "reply": {
+              "system": true,
+              "content": "Bienvenue, Dogo. Dis bonjour !"
+            },
+            "stickers": [
+              {
+                "url": "sup_dogo"
+              }
+            ]
           }
         ]
       }

@@ -29,6 +29,15 @@ describe('findScenarioButton', () => {
     expect(findScenarioButtonRect('Valider')).toEqual(new DOMRect(10, 20, 100, 40));
   });
 
+  it('finds a native wave button by data-scenario-button-label', () => {
+    const button = document.createElement('button');
+    button.setAttribute('data-scenario-button-label', 'Fais coucou !');
+    button.getBoundingClientRect = () => new DOMRect(40, 80, 160, 32);
+    document.body.append(button);
+
+    expect(findScenarioButtonRect('Fais coucou !')).toEqual(new DOMRect(40, 80, 160, 32));
+  });
+
   it('falls back to visible text content', () => {
     const button = document.createElement('discord-button');
     button.textContent = '  Publier  ';

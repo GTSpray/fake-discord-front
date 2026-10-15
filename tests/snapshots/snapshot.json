@@ -4,8 +4,13 @@
   "scenarios": {
     "member-join": {
       "steps": {
-        "000-done": "286b51c7a3ac5fd1355e354889230938",
-        "001-done": "63e440fb3fc2884bad89b75712c8d084"
+        "000-done": "729e0740f966029fc9856863e7125a53",
+        "001-done": "effc636ec3d2e9b472e1186850582915",
+        "002-done": "fb17fcc5b4f17c9d2f72f0122670665c",
+        "003-done": "9eba9a109c24cb08cbbf12891fd767f7",
+        "004-done": "d89f1ffce17392c1e47f6ca8a2c50344",
+        "005-done": "d89f1ffce17392c1e47f6ca8a2c50344",
+        "006-done": "63d1ab9e20bdcf32827c6d2f9bcc9294"
       }
     },
     "gimme-emoji": {
@@ -35,6 +40,13 @@
         "010-done": "19ea4e4d01cfb7d5111995aaa79c9e92"
       }
     },
+    "thread-open-flow": {
+      "steps": {
+        "000-done": "396359909132c66a92fffae9e89bd375",
+        "001-done": "396359909132c66a92fffae9e89bd375",
+        "002-done": "3dec139ea69eaf115b1cf54e5e9e1a1b"
+      }
+    },
     "say-hello-flow": {
       "steps": {
         "000-done": "77c1f5de3b84b83c9a059984ea53ebf4",
@@ -49,13 +61,6 @@
         "009-done": "bee6c05bf2cfcaac93c89bc3472c0857",
         "010-done": "afd0415eec2fc7a7ba3f1873a42037b7",
         "011-done": "0ad79e739d68ecbca8aa2d8d02d10aec"
-      }
-    },
-    "thread-open-flow": {
-      "steps": {
-        "000-done": "396359909132c66a92fffae9e89bd375",
-        "001-done": "396359909132c66a92fffae9e89bd375",
-        "002-done": "3dec139ea69eaf115b1cf54e5e9e1a1b"
       }
     },
     "poll-moderator-flow": {

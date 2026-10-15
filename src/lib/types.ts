@@ -69,14 +69,45 @@ export interface SystemMessage {
   type: 'join';
   /** Show the wave CTA under the join message (default true) */
   wave?: boolean;
-  /** Wave button label (default: « Wave to say hi! ») */
+  /** Wave button label (default: « Fais coucou ! ») */
   waveLabel?: string;
+  /**
+   * Sticker on the wave button.
+   * Bundled ids: `wumpus_hello`, `nelly_greetings`, `clyde_greetings`, `sup_dogo`
+   * (default: `wumpus_hello`).
+   */
+  waveSticker?: string;
 }
 
-export const DEFAULT_MEMBER_JOIN_WAVE_LABEL = 'Wave to say hi!';
+export const DEFAULT_MEMBER_JOIN_WAVE_LABEL = 'Fais coucou !';
 
 export function defaultMemberJoinContent(memberName: string): string {
-  return `Welcome, ${memberName}. Say hi!`;
+  return `Bienvenue, ${memberName}. Dis bonjour !`;
+}
+
+/** Referenced message shown above a channel message (Discord reply bar) */
+export interface MessageReply {
+  /** Author of the referenced message (omitted / ignored when `system` is true) */
+  author?: Author;
+  content: string;
+  /**
+   * Reply to a Discord system message (member join, …).
+   * Renders the reply badge arrow + content only — no avatar or username.
+   */
+  system?: boolean;
+}
+
+/** Sticker shown in a channel message (Lottie JSON, HTTP URL, or bundled id) */
+export interface MessageSticker {
+  /**
+   * Bundled sticker id (`wumpus_hello`, `nelly_greetings`, `clyde_greetings`,
+   * `sup_dogo`), HTTP(S) Lottie JSON URL, or image URL.
+   */
+  url: string;
+  /** Accessible name / alt text (defaults to bundled sticker name when known) */
+  name?: string;
+  /** Loop the Lottie animation (default true) */
+  loop?: boolean;
 }
 
 export interface ChannelMessage {
@@ -84,6 +115,10 @@ export interface ChannelMessage {
   content?: string;
   timestamp?: string;
   deletedReply?: boolean;
+  /** Reply bar referencing another message (ignored when deletedReply is true) */
+  reply?: MessageReply;
+  /** Stickers shown as large media in the message body */
+  stickers?: MessageSticker[];
   /** Render with Discord ephemeral styling (Only you can see this) */
   ephemeral?: boolean;
   slashInvocation?: SlashInvocation;

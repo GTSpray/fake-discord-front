@@ -1211,7 +1211,7 @@ button {
   align-items: center;
   gap: 8px;
   margin: 2px 0 4px calc(1em + 56px);
-  padding: 2px 16px 2px 2px;
+  padding: 6px 16px 6px 6px;
   min-height: 32px;
   border: none;
   border-radius: 8px;
@@ -1225,16 +1225,59 @@ button {
   pointer-events: none;
 }
 
+.member-join-wave--highlighted {
+  box-shadow: 0 0 0 2px rgba(255, 255, 255, 0.25);
+}
+
 .member-join-wave__icon {
   width: 28px;
   height: 28px;
   border-radius: 4px;
   flex-shrink: 0;
   display: block;
+  overflow: hidden;
+  pointer-events: none;
+}
+
+.member-join-wave__icon svg {
+  display: block;
+  width: 100%;
+  height: 100%;
 }
 
 .member-join-wave__label {
   white-space: nowrap;
+}
+
+.member-join-reactions {
+  margin: 2px 0 4px calc(1em + 56px);
+}
+
+.member-join-reactions discord-reactions {
+  margin: 0;
+}
+
+.message-stickers {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-top: 4px;
+}
+
+.message-sticker {
+  width: 160px;
+  height: 160px;
+  object-fit: contain;
+  display: block;
+  user-select: none;
+  pointer-events: none;
+  overflow: hidden;
+}
+
+.message-sticker svg {
+  display: block;
+  width: 100%;
+  height: 100%;
 }
 
 /* ── Skyra message integration ─────────────────────────────── */
@@ -1249,9 +1292,11 @@ button {
   margin-bottom: 20px;
 }
 
-/* Skyra uses margin-left: 62px on deleted replies vs 56px on slash commands.
-   The L-connector then sits right of the avatar; match command indent. */
-.channel-messages--skyra discord-reply[deleted] {
+/* Skyra uses margin-left: 62px on deleted/compact replies vs 56px on slash
+   commands. The L-connector then sits right of the avatar; match command indent. */
+.channel-messages--skyra discord-reply[deleted],
+.channel-messages--skyra discord-reply.discord-reply--system,
+.channel-messages--skyra discord-reply[compact-mode] {
   margin-left: 56px !important;
   margin-bottom: 4px !important;
 }
