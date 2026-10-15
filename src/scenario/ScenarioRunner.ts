@@ -7,6 +7,7 @@ import type {
   ScenarioStatus,
 } from '../lib/scenarioTypes.ts';
 import { resolveScenarioEmojis } from '../lib/emojiResolve.ts';
+import { resolveScenarioUsers } from '../lib/userResolve.ts';
 import {
   resolveApplyState,
   resolveEphemeral,
@@ -108,6 +109,7 @@ export function createInitialState(scenario: Scenario): PlaybackState {
   return {
     chrome: resolveScenarioChrome(scenario),
     emojis: resolveScenarioEmojis(scenario.emojis),
+    users: resolveScenarioUsers(scenario.users),
     messages: [],
     slash: null,
     modal: null,

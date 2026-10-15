@@ -1,0 +1,78 @@
+{
+  "$schema": "../schema/scenario.schema.json",
+  "id": "user-mention",
+  "title": "Mention utilisateur dans un message",
+  "chrome": {
+    "guild": {
+      "name": "Serveur de démo"
+    },
+    "channel": {
+      "name": "général",
+      "type": "text"
+    },
+    "viewer": {
+      "name": "Modo",
+      "status": "Online"
+    }
+  },
+  "users": [
+    {
+      "id": "1",
+      "name": "Alice"
+    },
+    {
+      "id": "2",
+      "name": "Arthur"
+    }
+  ],
+  "actions": [
+    {
+      "type": "wait",
+      "ms": 800
+    },
+    {
+      "type": "applyState",
+      "holdMs": 1600,
+      "layers": {
+        "messages": [
+          {
+            "author": {
+              "name": "Bot",
+              "bot": true
+            },
+            "content": "Bienvenue <@1> ! <@2> est déjà là.",
+            "timestamp": "14:20"
+          }
+        ]
+      }
+    },
+    {
+      "type": "wait",
+      "ms": 1200
+    },
+    {
+      "type": "applyState",
+      "holdMs": 1600,
+      "layers": {
+        "messages": [
+          {
+            "author": {
+              "name": "Bot",
+              "bot": true
+            },
+            "content": "Bienvenue <@1> ! <@2> est déjà là.",
+            "timestamp": "14:20"
+          },
+          {
+            "author": {
+              "name": "Alice",
+              "color": "#ed4245"
+            },
+            "content": "Merci <@!2> 👋",
+            "timestamp": "14:21"
+          }
+        ]
+      }
+    }
+  ]
+}

@@ -49,6 +49,12 @@ export interface CustomEmoji {
   animated?: boolean;
 }
 
+/** User resolved by id for <@id> / <@!id> mentions in message content */
+export interface MentionableUser {
+  id: string;
+  name: string;
+}
+
 export interface SlashInvocation {
   user: Author;
   command: string;

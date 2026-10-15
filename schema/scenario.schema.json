@@ -19,6 +19,11 @@
       "description": "Résolution des emotes custom Discord dans le contenu (<:name:id> / <a:name:id>)",
       "items": { "$ref": "#/$defs/CustomEmoji" }
     },
+    "users": {
+      "type": "array",
+      "description": "Résolution des mentions utilisateur Discord dans le contenu (<@id> / <@!id>)",
+      "items": { "$ref": "#/$defs/MentionableUser" }
+    },
     "defaults": {
       "type": "object",
       "additionalProperties": false,
@@ -165,6 +170,24 @@
           "type": "boolean",
           "default": false,
           "description": "Métadonnée ; le préfixe <a:…> dans le contenu indique déjà une emote animée"
+        }
+      }
+    },
+    "MentionableUser": {
+      "type": "object",
+      "required": ["id", "name"],
+      "additionalProperties": false,
+      "description": "Utilisateur résolu par id (mention Discord <@id> / <@!id>)",
+      "properties": {
+        "id": {
+          "type": "string",
+          "pattern": "^\\d+$",
+          "description": "Id utilisé dans la mention (snowflake Discord ou id fictif)"
+        },
+        "name": {
+          "type": "string",
+          "minLength": 1,
+          "description": "Nom affiché (@name)"
         }
       }
     },

@@ -1,5 +1,10 @@
 import { SimpleMarkdown, rules } from 'discord-markdown-parser';
-import type { CustomEmoji } from '../lib/types.ts';
+import type { CustomEmoji, MentionableUser } from '../lib/types.ts';
+
+type MarkdownContext = {
+  emojiById: Map<string, CustomEmoji>;
+  userById: Map<string, MentionableUser>;
+};
 
 type AstNode = {
   type: string;
@@ -164,24 +169,26 @@ const parseDiscordMarkdown = SimpleMarkdown.parserFor(
 export function renderMarkdown(
   text: string,
   emojiById: Map<string, CustomEmoji> = new Map(),
+  userById: Map<string, MentionableUser> = new Map(),
 ): string {
+  const ctx: MarkdownContext = { emojiById, userById };
   const nodes = parseDiscordMarkdown(text, { inline: true }) as AstNode[];
-  return nodes.map((node) => renderNode(node, emojiById)).join('');
+  return nodes.map((node) => renderNode(node, ctx)).join('');
 }
 
 function renderNodes(
   content: string | AstNode | AstNode[] | undefined,
-  emojiById: Map<string, CustomEmoji>,
+  ctx: MarkdownContext,
 ): string {
   if (content == null) return '';
   if (typeof content === 'string') return escapeHtml(content);
   if (Array.isArray(content)) {
-    return content.map((node) => renderNode(node, emojiById)).join('');
+    return content.map((node) => renderNode(node, ctx)).join('');
   }
-  return renderNode(content, emojiById);
+  return renderNode(content, ctx);
 }
 
-function renderNode(node: AstNode, emojiById: Map<string, CustomEmoji>): string {
+function renderNode(node: AstNode, ctx: MarkdownContext): string {
   switch (node.type) {
     case 'text':
       return escapeHtml(String(node.content ?? ''));
@@ -190,47 +197,51 @@ function renderNode(node: AstNode, emojiById: Map<string, CustomEmoji>): string 
       return '<br />';
     case 'heading': {
       const level = Math.min(Math.max(Number(node.level) || 1, 1), 3);
-      return `<h${level} class="md-h${level}">${renderNodes(node.content, emojiById)}</h${level}>`;
+      return `<h${level} class="md-h${level}">${renderNodes(node.content, ctx)}</h${level}>`;
     }
     case 'subtext':
-      return `<span class="md-subtext">${renderNodes(node.content, emojiById)}</span>`;
+      return `<span class="md-subtext">${renderNodes(node.content, ctx)}</span>`;
     case 'list': {
       const tag = node.ordered ? 'ol' : 'ul';
       const nestedClass = node.nested ? ' md-list--nested' : '';
       const startAttr =
         node.ordered && node.start != null && node.start !== 1 ? ` start="${node.start}"` : '';
       const items = (node.items ?? [])
-        .map((item) => `<li>${renderNodes(item, emojiById)}</li>`)
+        .map((item) => `<li>${renderNodes(item, ctx)}</li>`)
         .join('');
       return `<${tag} class="md-list${nestedClass}"${startAttr}>${items}</${tag}>`;
     }
     case 'strong':
-      return `<strong>${renderNodes(node.content, emojiById)}</strong>`;
+      return `<strong>${renderNodes(node.content, ctx)}</strong>`;
     case 'em':
-      return `<em>${renderNodes(node.content, emojiById)}</em>`;
+      return `<em>${renderNodes(node.content, ctx)}</em>`;
     case 'underline':
-      return `<u>${renderNodes(node.content, emojiById)}</u>`;
+      return `<u>${renderNodes(node.content, ctx)}</u>`;
     case 'strikethrough':
-      return `<s>${renderNodes(node.content, emojiById)}</s>`;
+      return `<s>${renderNodes(node.content, ctx)}</s>`;
     case 'inlineCode':
       return `<code class="md-inline-code">${escapeHtml(String(node.content ?? ''))}</code>`;
     case 'codeBlock':
       return `<pre class="md-code-block"><code>${escapeHtml(String(node.content ?? ''))}</code></pre>`;
     case 'spoiler':
-      return `<span class="md-spoiler">${renderNodes(node.content, emojiById)}</span>`;
+      return `<span class="md-spoiler">${renderNodes(node.content, ctx)}</span>`;
     case 'blockQuote':
-      return `<blockquote class="md-quote">${renderNodes(node.content, emojiById)}</blockquote>`;
+      return `<blockquote class="md-quote">${renderNodes(node.content, ctx)}</blockquote>`;
     case 'emoji': {
       const id = String(node.id ?? '');
       const name = String(node.name ?? 'emoji');
-      const emoji = emojiById.get(id);
+      const emoji = ctx.emojiById.get(id);
       return emoji ? customEmojiHtml(emoji) : escapeHtml(`:${name}:`);
     }
     case 'twemoji':
     case 'emoticon':
       return escapeHtml(String(node.content ?? node.name ?? ''));
-    case 'user':
-      return '<span class="md-user-mention">@user</span>';
+    case 'user': {
+      const id = String(node.id ?? '');
+      const user = ctx.userById.get(id);
+      const label = user ? `@${user.name}` : '@user';
+      return `<span class="md-user-mention">${escapeHtml(label)}</span>`;
+    }
     case 'role':
       return '<span class="md-role-mention">@role</span>';
     case 'channel':
@@ -245,11 +256,11 @@ function renderNode(node: AstNode, emojiById: Map<string, CustomEmoji>): string 
     case 'link':
     case 'autolink': {
       const href = escapeAttr(String(node.target ?? node.content ?? ''));
-      const label = renderNodes(node.content ?? node.target, emojiById);
+      const label = renderNodes(node.content ?? node.target, ctx);
       return `<a class="md-link" href="${href}" target="_blank" rel="noreferrer">${label}</a>`;
     }
     default:
-      return renderNodes(node.content, emojiById);
+      return renderNodes(node.content, ctx);
   }
 }
 
