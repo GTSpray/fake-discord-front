@@ -51,7 +51,11 @@ describe('renderMarkdown', () => {
   });
 
   it('falls back to @user when the id is unknown', () => {
-    const html = renderMarkdown('hey <@999>', new Map(), indexUsersById([{ id: '1', name: 'Alice' }]));
+    const html = renderMarkdown(
+      'hey <@999>',
+      new Map(),
+      indexUsersById([{ id: '1', name: 'Alice' }]),
+    );
     expect(html).toContain('<span class="md-user-mention">@user</span>');
   });
 

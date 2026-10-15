@@ -206,9 +206,7 @@ function renderNode(node: AstNode, ctx: MarkdownContext): string {
       const nestedClass = node.nested ? ' md-list--nested' : '';
       const startAttr =
         node.ordered && node.start != null && node.start !== 1 ? ` start="${node.start}"` : '';
-      const items = (node.items ?? [])
-        .map((item) => `<li>${renderNodes(item, ctx)}</li>`)
-        .join('');
+      const items = (node.items ?? []).map((item) => `<li>${renderNodes(item, ctx)}</li>`).join('');
       return `<${tag} class="md-list${nestedClass}"${startAttr}>${items}</${tag}>`;
     }
     case 'strong':

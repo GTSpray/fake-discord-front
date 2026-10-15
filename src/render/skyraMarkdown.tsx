@@ -63,11 +63,7 @@ export function SkyraMarkdown({ content }: { content: string }) {
               <DiscordOrderedList key={i} start={block.start}>
                 {block.items.map((item, j) => (
                   <DiscordListItem key={j}>
-                    <InlineMarkdown
-                      content={item.text}
-                      emojiById={emojiById}
-                      userById={userById}
-                    />
+                    <InlineMarkdown content={item.text} emojiById={emojiById} userById={userById} />
                     {item.children && (
                       <DiscordUnorderedList>
                         {item.children.map((child, k) => (
