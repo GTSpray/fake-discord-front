@@ -34,6 +34,7 @@ Each file is self-contained:
 - `id`, `title` — metadata
 - `chrome` — guild, channel, theme
 - `emojis` — optional custom emoji resolution (`<:name:id>` / `<a:name:id>` → image URL)
+- `users` — optional user mention resolution (`<@id>` / `<@!id>` → `@name`; see `examples/user-mention.json`)
 - `actions` — animated sequence (typing, modals, buttons…)
 
 Validate a file from the CLI:

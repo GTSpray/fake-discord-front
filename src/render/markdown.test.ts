@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import { indexEmojisById } from '../lib/emojiResolve.ts';
-import type { CustomEmoji } from '../lib/types.ts';
+import type { CustomEmoji, MentionableUser } from '../lib/types.ts';
+import { indexUsersById } from '../lib/userResolve.ts';
 import { renderMarkdown } from './renderMarkdown.ts';
 
 const emojis: CustomEmoji[] = [
@@ -38,7 +39,24 @@ describe('renderMarkdown', () => {
     const html = renderMarkdown('**gg** <@123> <a:imout:238528>', indexEmojisById(emojis));
     expect(html).toContain('<strong>gg</strong>');
     expect(html).toContain('md-user-mention');
+    expect(html).toContain('@user');
     expect(html).toContain('src="https://cdn.example/imout.png"');
+  });
+
+  it('resolves <@id> and <@!id> via the user registry', () => {
+    const users: MentionableUser[] = [{ id: '123', name: 'Alice' }];
+    const html = renderMarkdown('hey <@123> and <@!123>', new Map(), indexUsersById(users));
+    expect(html).toContain('<span class="md-user-mention">@Alice</span>');
+    expect(html).not.toContain('@user');
+  });
+
+  it('falls back to @user when the id is unknown', () => {
+    const html = renderMarkdown(
+      'hey <@999>',
+      new Map(),
+      indexUsersById([{ id: '1', name: 'Alice' }]),
+    );
+    expect(html).toContain('<span class="md-user-mention">@user</span>');
   });
 
   it('renders headings, subtext, underline and block quotes', () => {

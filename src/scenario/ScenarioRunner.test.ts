@@ -31,6 +31,7 @@ describe('ScenarioRunner', () => {
 
     expect(state.messages).toEqual([]);
     expect(state.emojis).toEqual([]);
+    expect(state.users).toEqual([]);
     expect(state.slash).toBeNull();
     expect(state.modal).toBeNull();
     expect(state.chrome.channel.name).toBe('general');
@@ -49,6 +50,14 @@ describe('ScenarioRunner', () => {
     });
 
     expect(createInitialState(scenario).emojis).toEqual(scenario.emojis);
+  });
+
+  it('indexes scenario users into the initial playback state', () => {
+    const scenario = makeScenario([{ type: 'wait', ms: 1 }], {
+      users: [{ id: '1', name: 'Alice' }],
+    });
+
+    expect(createInitialState(scenario).users).toEqual(scenario.users);
   });
 
   it('plays wait and focusInput actions', async () => {

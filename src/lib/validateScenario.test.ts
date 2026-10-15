@@ -32,6 +32,13 @@ describe('validateScenario', () => {
     }
   });
 
+  it('accepts top-level users for mention resolution', () => {
+    const scenario = makeScenario([{ type: 'wait', ms: 1 }], {
+      users: [{ id: '1', name: 'Alice' }],
+    });
+    expect(validateScenario(scenario)).toEqual(scenario);
+  });
+
   it('accepts ephemeral messages inline in applyState layers.messages', () => {
     const scenario = makeScenario([
       {

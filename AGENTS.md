@@ -48,6 +48,10 @@ handlers.
 Optional top-level `emojis` resolves Discord custom mentions (`<:name:id>` /
 `<a:name:id>`) to image URLs in message markdown.
 
+Optional top-level `users` resolves Discord user mentions (`<@id>` / `<@!id>`)
+to display names (`@name`) in message markdown. Unknown ids fall back to `@user`.
+See `examples/user-mention.json`.
+
 ## Playback model
 
 A playback file describes an **animated sequence**:
@@ -130,7 +134,7 @@ ephemeral message (`field` = `custom_id`, `option` = label).
 5. Capture: `npm run capture -- --file my-flow.json`
 
 Reference examples: `examples/poll-moderator-flow.json`, `examples/gimme-otter.json`,
-`examples/member-join.json`.
+`examples/member-join.json`, `examples/user-mention.json`.
 
 ### Member join (system message)
 

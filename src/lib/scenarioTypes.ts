@@ -4,6 +4,7 @@ import type {
   Chrome,
   CustomEmoji,
   EphemeralLayer,
+  MentionableUser,
   ModalLayer,
   ModalSelectOption,
   SlashCommandParam,
@@ -132,6 +133,8 @@ export interface Scenario {
   chrome: Chrome;
   /** Custom emoji resolution map for <:name:id> / <a:name:id> in message content */
   emojis?: CustomEmoji[];
+  /** User resolution map for <@id> / <@!id> in message content */
+  users?: MentionableUser[];
   defaults?: ScenarioDefaults;
   actions: ScenarioAction[];
   output?: {
@@ -148,6 +151,8 @@ export interface PlaybackState {
   chrome: Chrome;
   /** Indexed custom emojis from the scenario (stable for the whole playback) */
   emojis: CustomEmoji[];
+  /** Indexed mentionable users from the scenario (stable for the whole playback) */
+  users: MentionableUser[];
   messages: ChannelMessage[];
   slash: import('./types.ts').SlashLayer | null;
   modal: ModalLayer | null;
