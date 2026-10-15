@@ -11,7 +11,7 @@
       "type": "text"
     },
     "viewer": {
-      "name": "Prey",
+      "name": "Camille",
       "status": "Online"
     }
   },
@@ -218,7 +218,7 @@
           },
           {
             "author": {
-              "name": "Prey"
+              "name": "Camille"
             },
             "timestamp": "15:04",
             "reply": {

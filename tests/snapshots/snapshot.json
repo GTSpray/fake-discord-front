@@ -4,13 +4,13 @@
   "scenarios": {
     "member-join": {
       "steps": {
-        "000-done": "729e0740f966029fc9856863e7125a53",
-        "001-done": "effc636ec3d2e9b472e1186850582915",
-        "002-done": "fb17fcc5b4f17c9d2f72f0122670665c",
-        "003-done": "9eba9a109c24cb08cbbf12891fd767f7",
-        "004-done": "d89f1ffce17392c1e47f6ca8a2c50344",
-        "005-done": "d89f1ffce17392c1e47f6ca8a2c50344",
-        "006-done": "63d1ab9e20bdcf32827c6d2f9bcc9294"
+        "000-done": "6c79b9db49cad10e5ebe40e29f58ee4a",
+        "001-done": "9aa6ca695889a4ad03080ccd26e7b7c5",
+        "002-done": "a1d85f5141a791ad324476b3ab27f214",
+        "003-done": "4a53781c2bf5ed03974cec2a8ea2ee96",
+        "004-done": "4296e75004432ac6184ce2458a54734f",
+        "005-done": "4296e75004432ac6184ce2458a54734f",
+        "006-done": "2aefb6e8d60ac8142a3a2303ef35553e"
       }
     },
     "gimme-emoji": {

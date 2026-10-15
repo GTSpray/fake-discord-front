@@ -153,12 +153,12 @@ with `reply` (to the welcome text) and a Lottie sticker
 
 Bundled sticker ids (`src/styles/stickers/`):
 
-| id | file |
-| --- | --- |
-| `wumpus_hello` | `wumpus_hello.json` |
+| id                | file                   |
+| ----------------- | ---------------------- |
+| `wumpus_hello`    | `wumpus_hello.json`    |
 | `nelly_greetings` | `nelly_greetings.json` |
 | `clyde_greetings` | `clyde_greetings.json` |
-| `sup_dogo` | `sup_dogo.json` |
+| `sup_dogo`        | `sup_dogo.json`        |
 
 ## Renderer priorities
 

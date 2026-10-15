@@ -54,7 +54,10 @@ export function MemberJoinMessage({
       {showWave && (
         <button
           type="button"
-          className={['member-join-wave', isHighlighted ? 'member-join-wave--highlighted' : undefined]
+          className={[
+            'member-join-wave',
+            isHighlighted ? 'member-join-wave--highlighted' : undefined,
+          ]
             .filter(Boolean)
             .join(' ')}
           data-scenario-button-label={waveLabel}
