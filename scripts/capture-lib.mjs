@@ -199,6 +199,19 @@ async function waitForStepCaptureReady(page) {
     undefined,
     { timeout: 15_000 },
   );
+  // Lottie stickers are frozen on frame 0 in capture_steps — wait until their SVG
+  // is painted so MD5 hashes don't catch an empty host mid-load.
+  await page.waitForFunction(
+    `() => {
+      const hosts = document.querySelectorAll('[data-lottie-frozen="1"]');
+      for (const host of hosts) {
+        if (!host.querySelector('svg')) return false;
+      }
+      return true;
+    }`,
+    undefined,
+    { timeout: 15_000 },
+  );
   await page.waitForTimeout(100);
 }
 

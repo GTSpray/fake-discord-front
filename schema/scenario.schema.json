@@ -192,6 +192,56 @@
         }
       }
     },
+    "MessageReply": {
+      "type": "object",
+      "required": ["content"],
+      "additionalProperties": false,
+      "description": "Barre de réponse Discord au-dessus d’un message",
+      "properties": {
+        "author": {
+          "$ref": "#/$defs/Author",
+          "description": "Auteur du message référencé (ignoré si system est true)"
+        },
+        "content": {
+          "type": "string",
+          "description": "Aperçu du message référencé"
+        },
+        "system": {
+          "type": "boolean",
+          "default": false,
+          "description": "Réponse à un message système : flèche + contenu seulement (pas d’avatar ni de nom)"
+        }
+      },
+      "anyOf": [
+        {
+          "required": ["system"],
+          "properties": { "system": { "const": true } }
+        },
+        { "required": ["author"] }
+      ]
+    },
+    "MessageSticker": {
+      "type": "object",
+      "required": ["url"],
+      "additionalProperties": false,
+      "description": "Sticker Discord (Lottie ou image) affiché dans le corps du message",
+      "properties": {
+        "url": {
+          "type": "string",
+          "minLength": 1,
+          "description": "Id bundlé (wumpus_hello | nelly_greetings | clyde_greetings | sup_dogo), URL HTTP(S) Lottie JSON, ou image"
+        },
+        "name": {
+          "type": "string",
+          "description": "Nom / texte alternatif du sticker (sinon nom du sticker bundlé)"
+        },
+        "loop": {
+          "type": "boolean",
+          "default": true,
+          "description": "Boucle l’animation Lottie (défaut : true)"
+        }
+      }
+    },
     "ChannelMessage": {
       "type": "object",
       "required": ["author"],
@@ -201,6 +251,16 @@
         "content": { "type": "string" },
         "timestamp": { "type": "string" },
         "deletedReply": { "type": "boolean" },
+        "reply": {
+          "$ref": "#/$defs/MessageReply",
+          "description": "Répond à un autre message (ignoré si deletedReply est true)"
+        },
+        "stickers": {
+          "type": "array",
+          "items": { "$ref": "#/$defs/MessageSticker" },
+          "minItems": 1,
+          "description": "Stickers affichés dans le message"
+        },
         "ephemeral": {
           "type": "boolean",
           "description": "Render as an ephemeral message (Only you can see this)"
@@ -218,10 +278,45 @@
         "reactions": {
           "type": "array",
           "items": { "$ref": "#/$defs/MessageReaction" },
-          "description": "Réactions affichées sous le message"
+          "description": "Réations affichées sous le message"
+        },
+        "system": {
+          "$ref": "#/$defs/SystemMessage",
+          "description": "Message système Discord (ex. arrivée d’un membre)"
         }
       },
-      "oneOf": [{ "required": ["content"] }, { "required": ["interaction"] }]
+      "anyOf": [
+        { "required": ["content"] },
+        { "required": ["interaction"] },
+        { "required": ["system"] },
+        { "required": ["stickers"] }
+      ]
+    },
+    "SystemMessage": {
+      "type": "object",
+      "required": ["type"],
+      "additionalProperties": false,
+      "properties": {
+        "type": {
+          "type": "string",
+          "const": "join",
+          "description": "Message d’arrivée membre (flèche verte + texte de bienvenue)"
+        },
+        "wave": {
+          "type": "boolean",
+          "default": true,
+          "description": "Affiche le bouton « Fais coucou ! » sous le message (défaut : true)"
+        },
+        "waveLabel": {
+          "type": "string",
+          "description": "Libellé du bouton wave (défaut : Fais coucou !)"
+        },
+        "waveSticker": {
+          "type": "string",
+          "minLength": 1,
+          "description": "Sticker du bouton wave : wumpus_hello | nelly_greetings | clyde_greetings | sup_dogo (défaut : wumpus_hello)"
+        }
+      }
     },
     "BotInteractionResponse": {
       "type": "object",

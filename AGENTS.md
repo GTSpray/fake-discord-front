@@ -129,7 +129,36 @@ ephemeral message (`field` = `custom_id`, `option` = label).
 4. Preview: `npm run dev` → upload the file in the browser.
 5. Capture: `npm run capture -- --file my-flow.json`
 
-Reference examples: `examples/poll-moderator-flow.json`, `examples/gimme-otter.json`.
+Reference examples: `examples/poll-moderator-flow.json`, `examples/gimme-otter.json`,
+`examples/member-join.json`.
+
+### Member join (system message)
+
+Channel messages may set `system: { "type": "join" }` (author = joining member).
+Optional `content` defaults to `Bienvenue, {name}. Dis bonjour !`. The wave CTA
+defaults on (`wave: false` to hide; `waveLabel` to override « Fais coucou ! »).
+Playback can `clickButton` the wave label, then `applyState` adding a user message
+with `reply` (to the welcome text) and a Lottie sticker
+(`stickers: [{ "url": "nelly_greetings" }]`).
+
+### Replies & stickers
+
+- `reply: { author, content }` — Discord reply bar above a channel message.
+- `reply: { system: true, content }` — reply to a system message: badge arrow +
+  content only (no avatar / username). The L-connector is drawn by Skyra.
+- `stickers: [{ url, name?, loop? }]` — pick a bundled sticker **by id**, or pass
+  an HTTP(S) Lottie JSON / image URL.
+- `system.waveSticker` — sticker on the « Fais coucou ! » button (independent of
+  the reply sticker). Default: `wumpus_hello`.
+
+Bundled sticker ids (`src/styles/stickers/`):
+
+| id                | file                   |
+| ----------------- | ---------------------- |
+| `wumpus_hello`    | `wumpus_hello.json`    |
+| `nelly_greetings` | `nelly_greetings.json` |
+| `clyde_greetings` | `clyde_greetings.json` |
+| `sup_dogo`        | `sup_dogo.json`        |
 
 ## Renderer priorities
 
@@ -168,6 +197,8 @@ npm run capture -- --file examples/poll-moderator-flow.json
 - **Visual regression = MD5 of per-step PNG captures** stored in `tests/snapshots/snapshot.json`. Step PNGs are generated during capture only (not versioned).
 - **Versioned artifacts**: `tests/snapshots/snapshot.json` (CI gate) + `tests/snapshots/*.gif` for human review (updated only when step hashes evolve).
 - Capture uses `?capture=1&capture_steps=1` to pause after each action and hash a stable frame.
+- In `capture_steps` mode, Lottie stickers freeze on **frame 0** (stable MD5); the GIF/video
+  pass omits `capture_steps` so animations play normally.
 - Snapshot GIFs are recorded in a **second pass** without `capture_steps`, so typing animations remain visible for review.
 - `make snapshots-refresh`: capture in a temp dir, update `snapshot.json`, copy only evolved GIFs. On hash mismatch, retry capture up to **2 times** to filter flakiness. **Exit 0** if nothing to refresh, **exit 1** if snapshots were refreshed (commit them). Existing videos are never deleted.
 

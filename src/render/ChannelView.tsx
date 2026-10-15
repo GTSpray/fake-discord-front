@@ -8,16 +8,63 @@ import {
 } from '@skyra/discord-components-react';
 import { useEffect, useRef } from 'react';
 import { resolveMessageReactions } from '../lib/emojiResolve.ts';
-import type { ChannelMessage, EphemeralLayer } from '../lib/types.ts';
+import type { ChannelMessage, EphemeralLayer, MessageReply } from '../lib/types.ts';
 import type { PendingBotReply } from '../lib/scenarioTypes.ts';
 import { BotPendingReplyMessage } from './BotPendingReply.tsx';
 import { IconHash, IconThreads } from './discordIcons.tsx';
 import { InteractionBody } from './InteractionComponents.tsx';
 import { Markdown } from './markdown.tsx';
+import { MemberJoinMessage } from './MemberJoinMessage.tsx';
 import { SkyraMarkdown } from './skyraMarkdown.tsx';
+import { StickerMedia } from './StickerMedia.tsx';
 import { skyraAuthorProps, skyraCommand, defaultBotProps } from './skyraAuthor.ts';
 import { skyraTimestampProps } from '../lib/skyraTimestamp.ts';
 import { useEmojiRegistry } from './useEmojiRegistry.ts';
+
+const SYSTEM_REPLY_STYLE = `
+  .discord-replied-message-username,
+  .discord-application-tag,
+  .discord-clan-tag {
+    display: none !important;
+  }
+`;
+
+/** Reply bar: normal (avatar + name) or system (badge arrow + content only). */
+function MessageReplyBar({ reply }: { reply: MessageReply }) {
+  const hostRef = useRef<HTMLElement | null>(null);
+
+  useEffect(() => {
+    if (!reply.system) return;
+    const host = hostRef.current;
+    const shadow = host?.shadowRoot;
+    if (!shadow || shadow.querySelector('[data-system-reply-overrides]')) return;
+    const style = document.createElement('style');
+    style.setAttribute('data-system-reply-overrides', '');
+    style.textContent = SYSTEM_REPLY_STYLE;
+    shadow.appendChild(style);
+  }, [reply.system, reply.content]);
+
+  if (reply.system) {
+    return (
+      <DiscordReply
+        // lit-react host element — needed to inject shadow CSS (hide username)
+        ref={hostRef as never}
+        slot="reply"
+        compactMode
+        author=""
+        className="discord-reply--system"
+      >
+        {reply.content}
+      </DiscordReply>
+    );
+  }
+
+  return (
+    <DiscordReply slot="reply" {...skyraAuthorProps(reply.author ?? { name: 'User' })}>
+      {reply.content}
+    </DiscordReply>
+  );
+}
 
 function SkyraMessageItem({
   message,
@@ -39,6 +86,8 @@ function SkyraMessageItem({
     content,
     timestamp,
     deletedReply,
+    reply,
+    stickers,
     slashInvocation,
     interaction,
     ephemeral,
@@ -54,7 +103,11 @@ function SkyraMessageItem({
       {...skyraTimestampProps(timestamp)}
       ephemeral={ephemeral || undefined}
     >
-      {deletedReply && <DiscordReply slot="reply" deleted />}
+      {deletedReply ? (
+        <DiscordReply slot="reply" deleted />
+      ) : (
+        reply && <MessageReplyBar reply={reply} />
+      )}
       {slashInvocation && (
         <DiscordCommand
           slot="reply"
@@ -63,6 +116,20 @@ function SkyraMessageItem({
         />
       )}
       {content && <Content content={content} />}
+      {stickers && stickers.length > 0 && (
+        <div className="message-stickers">
+          {stickers.map((sticker) => (
+            <StickerMedia
+              key={`${sticker.name ?? ''}:${sticker.url}`}
+              className="message-sticker"
+              url={sticker.url}
+              name={sticker.name}
+              size={160}
+              loop={sticker.loop !== false}
+            />
+          ))}
+        </div>
+      )}
       {interaction?.type === 4 && interaction.data && (
         <InteractionBody
           data={interaction.data}
@@ -183,6 +250,16 @@ export function ChannelView({
   const hasPending = Boolean(pendingBotReply);
   const hasContent = hasMessages || hasEphemeral || hasPending;
   const showThreadIntro = Boolean(threadIntro);
+  // clickButton targets the last matching wave CTA — only highlight that one.
+  let lastWaveJoinIndex = -1;
+  if (messages) {
+    for (let j = messages.length - 1; j >= 0; j--) {
+      if (messages[j].system?.type === 'join' && messages[j].system?.wave !== false) {
+        lastWaveJoinIndex = j;
+        break;
+      }
+    }
+  }
 
   useEffect(() => {
     if (!hasContent) return;
@@ -213,17 +290,25 @@ export function ChannelView({
       {threadIntro && <ThreadIntro name={threadIntro.name} startedBy={threadIntro.startedBy} />}
       {(hasMessages || hasEphemeral || hasPending) && (
         <DiscordMessages noBackground>
-          {messages?.map((msg, i) => (
-            <SkyraMessageItem
-              key={i}
-              message={msg}
-              highlightedButton={highlightedButton}
-              loadingButton={loadingButton}
-              openMessageSelect={openMessageSelect}
-              loadingMessageSelect={loadingMessageSelect}
-              messageSelectValues={messageSelectValues}
-            />
-          ))}
+          {messages?.map((msg, i) =>
+            msg.system?.type === 'join' ? (
+              <MemberJoinMessage
+                key={i}
+                message={msg}
+                highlightedButton={i === lastWaveJoinIndex ? highlightedButton : null}
+              />
+            ) : (
+              <SkyraMessageItem
+                key={i}
+                message={msg}
+                highlightedButton={highlightedButton}
+                loadingButton={loadingButton}
+                openMessageSelect={openMessageSelect}
+                loadingMessageSelect={loadingMessageSelect}
+                messageSelectValues={messageSelectValues}
+              />
+            ),
+          )}
           {pendingBotReply && <BotPendingReplyMessage pending={pendingBotReply} />}
           {ephemeral && !pendingBotReply?.ephemeral && (
             <SkyraEphemeralMessage

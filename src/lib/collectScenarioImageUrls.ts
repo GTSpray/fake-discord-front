@@ -7,6 +7,7 @@ import {
   resolveUserMessage,
 } from './scenarioResolve.ts';
 import type { Scenario } from './scenarioTypes.ts';
+import { resolveStickerImageUrl } from './stickerResolve.ts';
 import type {
   Author,
   ChannelMessage,
@@ -78,9 +79,13 @@ function collectMessage(
   if (!message) return;
   collectAuthor(urls, message.author);
   collectAuthor(urls, message.slashInvocation?.user);
+  collectAuthor(urls, message.reply?.author);
   collectInteractionData(urls, message.interaction?.data);
   for (const reaction of resolveMessageReactions(message.reactions, emojiById)) {
     add(urls, reaction.url);
+  }
+  for (const sticker of message.stickers ?? []) {
+    add(urls, resolveStickerImageUrl(sticker.url));
   }
 }
 

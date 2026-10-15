@@ -106,7 +106,12 @@ function hostMatchesLabel(host: Element, normalized: string): boolean {
 
 function findMatchingButtonHosts(label: string): Element[] {
   const normalized = label.trim();
-  return queryDeep('discord-button').filter((host) => hostMatchesLabel(host, normalized));
+  const skyra = queryDeep('discord-button').filter((host) => hostMatchesLabel(host, normalized));
+  // Native controls (e.g. member-join wave CTA) also use data-scenario-button-label.
+  const native = queryAllDeepByAttr('data-scenario-button-label', normalized, captureRoot()).filter(
+    (el) => el.tagName.toLowerCase() !== 'discord-button',
+  );
+  return [...skyra, ...native];
 }
 
 function pickBestButtonRect(candidates: Element[]): DOMRect | null {
